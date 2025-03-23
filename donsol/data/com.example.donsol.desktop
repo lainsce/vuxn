@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Donsol
+Comment=Brave the dungeon
+Exec=com.example.donsol
+Icon=com.example.donsol
+Terminal=false
+Type=Application
+Categories=Utilities;Games;
+StartupNotify=true

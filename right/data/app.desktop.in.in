@@ -1,0 +1,13 @@
+[Desktop Entry]
+Categories=Utility;TextEditor;GTK;
+Comment=A simple text processor inspired by classic MacWrite
+Exec=com.example.Right
+GenericName=Text Writer
+Icon=com.example.Right
+MimeType=text/plain;
+Name=Right
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

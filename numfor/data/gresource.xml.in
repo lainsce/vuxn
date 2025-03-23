@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/Numfor">
+    <file compressed="true" alias="style.css">style.css</file>
+  </gresource>
+  <gresource prefix="/com/example/Numfor/icons">
+    <file compressed="true" alias="scalable/actions/texture-symbolic.svg">assets/texture-symbolic.svg</file>
+  </gresource>
+</gresources>

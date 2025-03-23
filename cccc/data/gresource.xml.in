@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/cccc/">
+    <file alias="style.css">style.css</file>
+  </gresource>
+  <gresource prefix="/com/example/cccc/icons">
+    <file alias="scalable/actions/ac-symbolic.svg">icons/ac-symbolic.svg</file>
+    <file alias="scalable/actions/hd-symbolic.svg">icons/hd-symbolic.svg</file>
+    <file alias="scalable/actions/swp-symbolic.svg">icons/swp-symbolic.svg</file>
+    <file alias="scalable/actions/dup-symbolic.svg">icons/dup-symbolic.svg</file>
+    <file alias="scalable/actions/vid-symbolic.svg">icons/vid-symbolic.svg</file>
+    <file alias="scalable/actions/inv-symbolic.svg">icons/inv-symbolic.svg</file>
+  </gresource>
+</gresources>

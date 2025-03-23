@@ -1,0 +1,69 @@
+checkbutton {
+    font-family: "Chicago 12.1", sans-serif;
+    font-size: 16px;
+    color: @theme_fg;
+}
+
+checkbutton check {
+    border: 1px solid @theme_fg;
+    background: @theme_bg;
+    min-width: 11px;
+    min-height: 11px;
+    border-radius: 0;
+}
+
+checkbutton check:checked {
+    background: @theme_fg;
+}
+
+.contrast-scale {
+    background: @theme_bg;
+    color: @theme_fg;
+    border-radius: 0;
+}
+
+.contrast-scale highlight {
+    background: @theme_accent;
+}
+
+.contrast-scale trough {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    border-radius: 0;
+    min-height: 8px;
+}
+
+.contrast-scale slider {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    border-radius: 0;
+    min-width: 4px;
+    min-height: 8px;
+}
+
+.contrast-scale slider:hover {
+    background: @theme_selection;
+}
+
+.contrast-scale slider:active {
+    background: @theme_accent;
+}
+
+dialog {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+messagedialog {
+    background: @theme_bg;
+    color: @theme_fg;
+}
+
+filechooser {
+    background: @theme_bg;
+    color: @theme_fg;
+}
+
+.image-frame {
+  2px solid @theme_fg;
+}

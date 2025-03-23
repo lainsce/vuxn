@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/voodle/">
+    <file compressed="true" alias="style.css">style.css</file>
+  </gresource>
+  <gresource prefix="/com/example/voodle/icons">
+    <file compressed="true" alias="scalable/actions/eraser-symbolic.svg">icons/eraser-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/pen-symbolic.svg">icons/pen-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/halftone-symbolic.svg">icons/halftone-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/magic-symbolic.svg">icons/magic-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/selection-symbolic.svg">icons/selection-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/zoom-symbolic.svg">icons/zoom-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/diamond-3-symbolic.svg">icons/diamond-3-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/diamond-5-symbolic.svg">icons/diamond-5-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/diamond-7-symbolic.svg">icons/diamond-7-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/diamond-full-symbolic.svg">icons/diamond-full-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/circ-1-symbolic.svg">icons/circ-1-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/circ-3-symbolic.svg">icons/circ-3-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/circ-5-symbolic.svg">icons/circ-5-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/circ-7-symbolic.svg">icons/circ-7-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-full-symbolic.svg">icons/ht-full-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-3-cross-symbolic.svg">icons/ht-3-cross-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-5-cross-symbolic.svg">icons/ht-5-cross-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-check-symbolic.svg">icons/ht-check-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-diag-left-symbolic.svg">icons/ht-diag-left-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-diag-right-symbolic.svg">icons/ht-diag-right-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-hori-symbolic.svg">icons/ht-hori-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/ht-vert-symbolic.svg">icons/ht-vert-symbolic.svg</file>
+  </gresource>
+</gresources>

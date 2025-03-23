@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Ditto
+Comment=Image dithering application with classic Mac OS style
+Exec=com.example.ditto %f
+Icon=com.example.ditto
+Terminal=false
+Type=Application
+Categories=Graphics;Utility;
+StartupNotify=true
+MimeType=image/png;image/bmp;image/tga;application/x-chr;

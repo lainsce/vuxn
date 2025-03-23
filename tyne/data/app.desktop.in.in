@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;FontViewer;GTK;
+Comment=A font viewer for UFX fonts
+Exec=com.example.tyne
+GenericName=UFX Font Viewer
+Icon=com.example.tyne
+Name=Tyne
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

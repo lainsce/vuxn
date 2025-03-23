@@ -1,0 +1,178 @@
+.display-area {
+    background: @theme_bg;
+    color: @theme_bg;
+    min-width: 224px;
+    min-height: 128px;
+    margin: 1px;
+    padding: 0;
+}
+
+.calculator-display {
+    background: @theme_fg;
+    color: @theme_bg;
+    border-radius: 0;
+    padding: 0;
+    padding-top: 19px;
+    min-height: 10px;
+    min-width: 10px;
+    margin: 0;
+}
+
+.display-stack {
+    border-radius: 0;
+    min-height: 10px;
+    min-width: 10px;
+    padding: 0;
+    margin: 0;
+}
+
+.display-label {
+    font-size: 16px;
+    padding: 0;
+    margin: 0;
+    font-family: "CCCC";
+}
+
+.result-label {
+    font-size: 16px;
+    font-family: "CCCC";
+    padding: 0 7px;
+    padding-top: 3px;
+    margin: 0;
+}
+
+.half-keypad-button {
+    background: @theme_selection;
+    font-size: 0;
+    -gtk-icon-size: 14px;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0;
+    min-height: 12px;
+    min-width: 22px;
+    border: none;
+    box-shadow:
+        inset 0 -2px 0 0 @theme_bg,
+        inset 0 0 0 1px @theme_fg;
+}
+
+.half-keypad-button:active {
+    transform: translateY(1px);
+}
+
+.base-toggle:checked {
+    background: @theme_accent;
+    color: @theme_fg;
+}
+
+.half-keypad-button label {
+    padding: 0;
+    margin: 0;
+    font-size: 0px;
+}
+
+.half-keypad-button image {
+    padding: 0;
+    margin: 0;
+}
+
+.keypad-button {
+    background: @theme_selection;
+    font-size: 16px;
+    font-family: "CCCC";
+    border-radius: 4px;
+    padding: 0;
+    margin: 0;
+    min-height: 22px;
+    min-width: 22px;
+    border: none;
+    box-shadow:
+        inset 0 -2px 0 0 @theme_bg,
+        inset 0 0 0 1px @theme_fg;
+}
+
+.keypad-button label {
+    padding: 0;
+    margin: 0;
+    font-size: 16px;
+    font-family: "CCCC";
+}
+
+.keypad-button:active {
+    transform: translateY(1px);
+}
+
+.keypad-button:disabled {
+    opacity: 0;
+}
+
+.hex-button {
+    background: @theme_selection;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0px;
+    min-height: 22px;
+    min-width: 22px;
+    font-size: 16px;
+    font-family: "CCCC";
+}
+
+.hex-button:active {
+    transform: translateY(1px);
+}
+
+.hex-button label {
+    padding: 0;
+    margin: 0;
+}
+
+.keypad-op-button {
+    background: @theme_accent;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0px;
+    min-height: 22px;
+    min-width: 22px;
+    font-size: 16px;
+    font-family: "CCCC";
+}
+
+.keypad-op-button label {
+    padding: 0;
+    margin: 0;
+}
+
+.keypad-op-button:active {
+    transform: translateY(1px);
+}
+
+.calculator-keypad {
+    min-height: 94px;
+    min-width: 191px;
+    margin: 0;
+    padding: 0;
+    padding-top: 13px;
+    padding-bottom: 17px;
+}
+
+.result-sep {
+    border-top: 1px dashed #fff;
+    padding: 0;
+    padding-bottom: 1px;
+    margin: 0;
+}
+
+.result-indicator {
+    min-height: 8px;
+    min-width: 8px;
+    padding: 0;
+    margin: 0;
+    padding-top: 3px;
+}
+
+.pip-area {
+    margin: 0;
+    padding: 0;
+    padding-top: 3px;
+    min-height: 8px;
+}

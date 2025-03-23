@@ -1,0 +1,158 @@
+.cell {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    min-width: 0;
+    min-height: 0;
+    border-right: none;
+    border-bottom: none;
+    outline: none;
+}
+
+.cell label,
+.cell entry, .cell entry * {
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    min-width: 0;
+    min-height: 0;
+    outline: none;
+    background: transparent;
+}
+
+.cell entry text {
+    padding: 0 0 0 5px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    margin: 0;
+    min-width: 0;
+    min-height: 0;
+}
+
+.cell:hover {
+    background: @theme_accent;
+    color: @theme_fg;
+}
+
+.cell-header,
+.row-header {
+    background-color: @theme_selection;
+    border-left: 1px dotted @theme_fg;
+    border-top: 1px dotted @theme_fg;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+}
+
+.cell-header {
+    border-top: none;
+    border-bottom: none;
+}
+.row-header {
+    border-left: none;
+    border-right: none;
+}
+.cell-corner {
+    border-left: none;
+}
+
+.cell-indicator {
+    background-color: @theme_bg;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mac-toolbar {
+    border-top: 1px dotted @theme_fg;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+}
+
+scrollbar {
+    background: none;
+    box-shadow: none;
+    border: none;
+    outline: none;
+    min-height: 0px;
+    min-width: 0px;
+}
+
+scrollbar slider {
+    box-shadow: none;
+    border: none;
+    outline: none;
+    min-height: 3px;
+    min-width: 3px;
+    background: transparent;
+}
+
+scrollbar slider:hover {
+    min-height: 5px;
+    min-width: 5px;
+    background: @theme_fg;
+}
+
+scrollbar slider:active {
+    min-height: 5px;
+    min-width: 5px;
+    background: @theme_fg;
+}
+
+/* Remove trough styling */
+scrollbar trough {
+    border: none;
+    box-shadow: none;
+    background: none;
+    outline: none;
+    min-height: 3px;
+    min-width: 3px;
+}
+
+.header-highlighted,
+.cell-selected {
+    background: @theme_accent;
+}
+
+.cell-formula {
+    background: transparent;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        @theme_accent,
+        @theme_accent 1px,
+        transparent 1px,
+        transparent 4px
+    );
+}
+
+.cell-formula-main {
+    background: @theme_selection;
+}
+
+.cell-selected {
+    background: @theme_accent;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    min-width: 0;
+    min-height: 0;
+    outline: none;
+}
+
+.arrow-indicator {
+    color: @theme_accent;
+    margin: 0;
+    padding: 0;
+    min-height: 3px;
+    min-width: 3px;
+}

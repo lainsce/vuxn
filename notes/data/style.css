@@ -1,0 +1,18 @@
+.mac-textview {
+    font-family: "New York", monospace;
+    font-size: 16px;
+    color: @theme_fg;
+    background: transparent;
+}
+
+.mac-textview text {
+    color: @theme_fg;
+    background: transparent;
+}
+
+.page-counter {
+    font-family: "New York", monospace;
+    font-size: 16px;
+    padding: 2px 12px;
+    border-radius: 4px;
+}

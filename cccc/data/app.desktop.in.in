@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;Calculator;GTK;
+Comment=A simple calculator inspired by classic Mac
+Exec=com.example.cccc
+GenericName=Calculator
+Icon=com.example.cccc
+Name=CCCC
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

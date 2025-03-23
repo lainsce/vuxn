@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A simple configurator inspired by classic Mac
+Exec=com.example.conf
+GenericName=Configurator
+Icon=com.example.conf
+Name=Confvara
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

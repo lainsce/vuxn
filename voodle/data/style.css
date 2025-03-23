@@ -1,0 +1,112 @@
+.window {
+    background: @theme_accent;
+}
+
+.flat-menu-button .toggle {
+    margin: 0;
+    padding: 0 8px;
+    background: none;
+    color: @theme_fg;
+    box-shadow: none;
+    border: none;
+}
+
+.flat-menu-button .toggle:hover {
+    background: none;
+    color: @theme_bg;
+}
+
+.flat-menu-button .toggle:active {
+    background: none;
+    color: @theme_selection;
+}
+
+.tool-box {
+    padding: 8px 4px;
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    border-radius: 4px;
+}
+
+.tool-box separator {
+    margin: 0;
+    padding: 0;
+}
+
+.tool-box button {
+    margin: 0;
+    padding: 0;
+    background: none;
+    color: @theme_fg;
+    min-height: 8px;
+    min-width: 8px;
+    box-shadow: none;
+    border: none;
+    -gtk-icon-size: 8px;
+}
+
+.tool-box button:hover {
+    background: none;
+    color: @theme_accent;
+}
+
+.tool-box button:checked {
+    background: none;
+    color: @theme_selection;
+}
+
+.tool-box image,
+.tool-box label {
+    margin: 0;
+    padding: 0;
+    -gtk-icon-size: 8px;
+}
+
+.file-name {
+    color: @theme_bg;
+    background-color: @theme_fg;
+    border-radius: 6px 6px 0 0;
+    padding: 0 8px;
+}
+
+.drawing-area {
+    background-image:
+        linear-gradient(45deg, @theme_accent 25%, transparent 25%),
+        linear-gradient(-45deg, @theme_accent 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, @theme_accent 75%),
+        linear-gradient(-45deg, transparent 75%, @theme_accent 75%);
+    background-size: 8px 8px;
+    background-position:
+        0 0,
+        0 4px,
+        4px -4px,
+        -4px 0px;
+    background-color: @theme_bg;
+    border-radius: 4px;
+    box-shadow: inset 0px 0px 0px 1px @theme_bg;
+}
+
+popover label {
+    padding: 0 4px;
+}
+
+.resize-handle {
+    background-color: transparent;
+    color: @theme_selection;
+    border-radius: 4px;
+    border: none;
+    padding: 0;
+    min-width: 8px;
+    min-height: 8px;
+    margin: 0;
+    box-shadow: none;
+}
+
+.dimensions-label {
+    background-color: @theme_bg;
+    color: @theme_accent;
+    margin: 0;
+    font-family: "Monaco", monospace;
+    padding: 0 4px;
+    font-size: 10px;
+}

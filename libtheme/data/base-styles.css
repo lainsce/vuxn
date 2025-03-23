@@ -1,0 +1,459 @@
+/* Global styles */
+@define-color theme_bg #FFFFFF;
+@define-color theme_fg #000000;
+@define-color theme_selection #FFBB66;
+@define-color theme_accent #77DDCC;
+
+* {
+    border-radius: 0;
+    -gtk-icon-style: symbolic;
+    text-shadow: none;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    font-family: "Chicago 12.1";
+    font-size: 16px;
+}
+
+.monospace {
+    font-family: "Monaco";
+    font-size: 12px;
+}
+
+.background {
+    background: @theme_bg;
+    color: @theme_fg;
+}
+
+/* Header bar (title bar) */
+headerbar {
+    background: @theme_selection;
+    color: @theme_fg;
+    border-bottom: 1px solid @theme_fg;
+    min-height: 32px;
+    padding: 4px;
+}
+
+headerbar button.titlebutton {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 2px;
+    margin: 2px;
+}
+
+/* Regular buttons */
+button {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px 8px;
+    min-height: 16px;
+}
+
+button:hover {
+    background: @theme_selection;
+}
+
+button:active,
+button:checked {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Checkboxes and radio buttons */
+check,
+radio {
+    border: 1px solid @theme_fg;
+    min-width: 11px;
+    min-height: 11px;
+}
+
+check:checked,
+radio:checked {
+    background: @theme_accent;
+}
+
+/* Lists and trees */
+treeview,
+listview {
+    background: @theme_bg;
+    color: @theme_fg;
+}
+
+treeview:selected,
+listview:selected,
+row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Toggle buttons */
+button.toggle {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+button.toggle:checked {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Text entries */
+entry {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+entry:focus {
+    border: 1px solid @theme_accent;
+}
+
+/* Scrollbars - Classic Mac style */
+scrollbar {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+scrollbar slider {
+    background: @theme_selection;
+    min-width: 4px;
+    min-height: 16px;
+}
+
+scrollbar slider:hover {
+    background: @theme_accent;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* Classic Mac-style menu bar */
+menubar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+    padding: 1px;
+}
+
+menubar > menuitem {
+    padding: 1px 6px;
+}
+
+menubar > menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+menu {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    padding: 1px;
+}
+
+menu menuitem {
+    padding: 4px 6px;
+}
+
+menu menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Notebooks (tabs) */
+notebook > header {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+}
+
+notebook > header > tabs > tab {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px 8px;
+}
+
+notebook > header > tabs > tab:checked {
+    background: @theme_bg;
+    border-bottom-color: @theme_bg;
+}
+
+/* Progress bars */
+progressbar trough {
+    background: @theme_bg;
+    min-height: 11px;
+}
+
+progressbar progress {
+    background: @theme_accent;
+}
+
+/* Sliders */
+scale trough {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    min-height: 8px;
+    min-width: 8px;
+}
+
+scale slider {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    min-height: 16px;
+    min-width: 16px;
+}
+
+/* Frames and separators */
+frame {
+    border: 1px solid @theme_fg;
+}
+
+separator {
+    background: @theme_fg;
+    min-height: 1px;
+    min-width: 1px;
+}
+
+/* Dialogs */
+dialog {
+    border: 1px solid @theme_fg;
+}
+
+/* Tooltips */
+tooltip {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+textview {
+    color: @theme_fg;
+    font-family: "Luxi Mono";
+    font-size: 14px;
+    background: @theme_bg;
+}
+
+textview text {
+    color: @theme_fg;
+    background: transparent;
+}
+
+textview:selected,
+textview text:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Classic Mac-style text cursor */
+textview text {
+    caret-color: @theme_fg;
+}
+
+/* Combobox (dropdown) */
+combobox button.combo {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+combobox menu {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+combobox menu menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Spinbutton */
+spinbutton {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+spinbutton button {
+    border: none;
+    border-left: 1px solid @theme_fg;
+    margin: 0;
+    min-height: 0;
+    min-width: 0;
+    padding: 2px 4px;
+}
+
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Switch */
+switch {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+}
+
+switch:checked {
+    background: @theme_accent;
+}
+
+switch slider {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* InfoBar */
+infobar {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+infobar.warning {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Popover */
+popover {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Link */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Sidebar */
+sidebar {
+    background: @theme_selection;
+    color: @theme_fg;
+    border-right: 1px solid @theme_fg;
+}
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Search entry */
+searchbar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+}
+
+/* Toolbar */
+toolbar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* ActionBar */
+actionbar {
+    background: @theme_selection;
+    border-top: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Statusbar */
+statusbar {
+    background: @theme_bg;
+    border-top: 1px solid @theme_fg;
+    padding: 2px;
+    font-size: 0.9em;
+}
+
+/* Custom GTK stuff */
+window {
+    color: @theme_fg;
+    box-shadow: 0 0 0 2px @theme_fg;
+}
+
+.title-bar {
+    background:
+        linear-gradient(@theme_accent, @theme_accent) top / 100% 3px
+            no-repeat,
+        linear-gradient(@theme_accent, @theme_accent) bottom / 100% 3px
+            no-repeat,
+        repeating-linear-gradient(
+                to bottom,
+                @theme_accent 0px,
+                @theme_accent 1px,
+                @theme_fg 1px,
+                @theme_fg 2px,
+                @theme_accent 2px,
+                @theme_accent 3px,
+                @theme_fg 3px,
+                @theme_fg 4px,
+                @theme_accent 4px,
+                @theme_accent 5px,
+                @theme_fg 5px,
+                @theme_fg 6px,
+                @theme_accent 6px,
+                @theme_accent 7px,
+                @theme_fg 7px,
+                @theme_fg 8px,
+                @theme_accent 8px,
+                @theme_accent 9px,
+                @theme_fg 9px,
+                @theme_fg 10px,
+                @theme_accent 10px
+            )
+            0 0 / 100% 100% no-repeat;
+    box-shadow: inset 0 0 0 1px @theme_accent;
+    border-bottom: 1px solid @theme_fg;
+    color: @theme_fg;
+    min-height: 17px;
+}
+
+.title-box {
+    background: @theme_accent;
+    color: @theme_fg;
+    padding: 0 8px;
+}
+
+.close-button {
+    background: @theme_accent;
+    border: none;
+    color: @theme_fg;
+    min-height: 11px;
+    min-width: 11px;
+    padding: 0;
+    margin: 0;
+    box-shadow:
+        inset 0 0 0 1px @theme_fg,
+        0 0 0 1px @theme_accent;
+}
+
+.close-button:hover,
+.close-button:active {
+    color: @theme_fg;
+}

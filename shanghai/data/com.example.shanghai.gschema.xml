@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="com.example.shanghai" path="/com/example/shanghai/">
+    <key name="use-one-bit-mode" type="b">
+      <default>false</default>
+      <summary>Use 1-bit Mode</summary>
+      <description>Whether to use 1-bit mode (black and white) for the game</description>
+    </key>
+    
+    <key name="current-theme" type="s">
+      <default>'nes'</default>
+      <summary>Current Theme</summary>
+      <description>The current theme identifier to use</description>
+    </key>
+    
+    <key name="window-width" type="i">
+      <default>256</default>
+      <summary>Window Width</summary>
+      <description>Width of the application window in pixels</description>
+    </key>
+    
+    <key name="window-height" type="i">
+      <default>256</default>
+      <summary>Window Height</summary>
+      <description>Height of the application window in pixels</description>
+    </key>
+    
+    <key name="last-high-score" type="i">
+      <default>0</default>
+      <summary>Last High Score</summary>
+      <description>The best time (in seconds) to complete the puzzle</description>
+    </key>
+    
+    <key name="sound-enabled" type="b">
+      <default>true</default>
+      <summary>Sound Enabled</summary>
+      <description>Whether sound effects are enabled</description>
+    </key>
+  </schema>
+</schemalist>

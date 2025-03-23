@@ -1,0 +1,47 @@
+# Ditto - Image Dithering Application
+
+Ditto is a GTK4 application for converting images to 1-bit or 2-bit color formats using Atkinson dithering, with a classic Macintosh System 1-6 styled user interface.
+
+## Features
+
+- Open images in PNG, BMP, or TGA formats
+- Convert to 1-bit (black and white) or 2-bit (4 colors) mode
+- Atkinson dithering for superior detail preservation
+- Adjustable contrast control with 10 levels
+- Save images in CHR format
+- Classic Macintosh System 1-6 styling
+
+## Building from Source
+
+Requirements:
+- Vala compiler
+- GTK 4
+- Meson and Ninja build system
+
+Build Steps:
+```bash
+meson setup build
+cd build
+ninja
+sudo ninja install
+```
+
+## Usage
+
+- Ctrl+O to open an image
+- Ctrl+S to save the dithered result
+- Use the checkbox in the bottom-left to toggle between 1-bit and 2-bit modes
+- Use the contrast slider in the bottom-right to adjust image contrast (1-10)
+
+## About Atkinson Dithering
+
+Ditto uses Atkinson dithering, developed by Bill Atkinson for the original Apple Macintosh. This algorithm offers better detail preservation than Floyd-Steinberg dithering by:
+
+- Distributing only 3/4 of the error (vs. full error in Floyd-Steinberg)
+- Using a pattern that reduces visual noise
+- Preserving more diagonal lines and fine details
+- Creating a cleaner, more deliberate pattern that's authentic to classic Mac applications
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

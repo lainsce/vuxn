@@ -1,0 +1,147 @@
+.album-label {
+    color: @theme_fg;
+    padding: 0;
+    margin: 0;
+}
+.artist-label {
+    color: @theme_fg;
+    padding: 0;
+    margin: 0;
+}
+.time-label {
+    color: @theme_fg;
+    padding: 0;
+    margin: 0;
+}
+.progress-bar {
+    min-height: 12px;
+    background: @theme_bg;
+    color: @theme_fg;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+}
+.progress-bar trough {
+    background: @theme_bg;
+    min-height: 12px;
+    box-shadow: 0 0 0 1px @theme_fg;
+    border-radius: 999px;
+    padding: 0;
+    margin: 0;
+}
+.progress-bar progress {
+    background: @theme_accent;
+    min-height: 12px;
+    border-radius: 999px;
+    padding: 0;
+    margin: 0;
+}
+
+scrollbar {
+    width: 6px;
+    background: transparent;
+    color: @theme_fg;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+}
+scrollbar trough {
+    background: transparent;
+    min-height: 6px;
+    box-shadow: none;
+    border-radius: 999px;
+    padding: 0;
+    margin: 0;
+}
+scrollbar thumb {
+    background: @theme_selection;
+    min-height: 6px;
+    border-radius: 999px;
+    padding: 0;
+    margin: 0;
+}
+
+.music-list {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: none;
+    box-shadow: none;
+}
+.music-list row {
+    margin: 0;
+    padding: 0;
+    min-height: 16px;
+    min-width: 8px;
+    background: @theme_bg;
+    color: @theme_fg;
+}
+.music-list row:hover {
+    background: @theme_fg;
+    color: @theme_selection;
+}
+.music-list row:selected {
+    background: @theme_fg;
+    color: @theme_bg;
+}
+.control-button {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: @theme_fg;
+    min-height: 16px;
+    min-width: 16px;
+    padding: 0;
+    margin: 0;
+}
+.control-button image {
+    padding: 0;
+    margin: 0;
+}
+.control-button-main {
+    background: @theme_accent;
+    border: 1px solid @theme_fg;
+    border-radius: 6px;
+    color: @theme_fg;
+    min-height: 28px;
+    min-width: 28px;
+    padding: 0;
+    margin: 0;
+}
+.control-button-main image {
+    padding: 0;
+    margin: 0;
+}
+.header-box {
+    padding: 0;
+    margin: 0;
+}
+.controls-box {
+    padding: 0;
+    margin: 0;
+}
+.timed-box {
+    padding: 0;
+    margin: 0;
+    margin-bottom: 11px;
+}
+.music-list row .play-indicator {
+    margin: 0;
+    padding: 0;
+    min-height: 16px;
+    min-width: 8px;
+    background: transparent;
+}
+.music-list row:selected .play-indicator {
+    margin: 0;
+    padding: 0;
+    min-height: 16px;
+    min-width: 8px;
+    background: transparent;
+}
+
+.marquee-label {
+    min-width: 256px;
+    margin: 0;
+    padding: 0;
+}

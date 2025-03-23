@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/notepadapp/">
+    <file compressed="true" alias="style.css">style.css</file>
+
+    <file alias="texture.png">assets/texture.png</file>
+  </gresource>
+</gresources>

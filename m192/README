@@ -1,0 +1,63 @@
+# Music Player
+
+A simple, lightweight music player application inspired by classic Mac OS notes.
+Built with **Vala** and **GTK4**.
+
+## Features
+- Minimalist design inspired by pre-OS X Mac.
+
+## Build Instructions
+
+### **Dependencies**
+Ensure you have the following installed:
+- **Vala**
+- **GTK4**
+- **Meson**
+- **Ninja**
+
+On Fedora:
+```sh
+sudo dnf install vala gtk4-devel meson ninja-build
+```
+
+On Debian/Ubuntu:
+```sh
+sudo apt install valac libgtk-4-dev meson ninja-build
+```
+
+### **Building the App**
+Clone the repository and navigate into it:
+```sh
+git clone https://github.com/lainsce/m192.git
+cd m192
+```
+
+Create a build directory and compile:
+```sh
+meson setup build
+cd build
+meson compile
+```
+
+### **Running the App**
+Run directly from the build directory:
+```sh
+./com.example.m192
+```
+
+To install the app system-wide:
+```sh
+sudo ninja install
+```
+Then launch it from your application menu.
+
+## **Development Notes**
+- All source code is in the `src/` folder.
+- `data/` contains the **GResource** files (CSS, desktop entry, etc.).
+- The main entry point is `src/application.vala`.
+
+## **Contributing**
+Feel free to open issues or submit pull requests to improve the app!
+
+## **License**
+GPLv3 License

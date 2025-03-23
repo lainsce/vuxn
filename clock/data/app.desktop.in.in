@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A simple clock inspired by classic Mac
+Exec=com.example.clock
+GenericName=Clock
+Icon=com.example.clock
+Name=Clock
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

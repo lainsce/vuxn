@@ -1,0 +1,53 @@
+/* Main application styling */
+window {
+    background-color: @theme_accent;
+}
+
+/* Game area */
+.game-area {
+    margin: 8px;
+}
+
+/* Matching counter */
+.match-counter {
+    color: @theme_bg;
+    font-size: 12px;
+    margin: 8px;
+    padding: 4px;
+}
+
+/* Tile styling */
+.tile {
+    border-radius: 1px;
+    background-color: @theme_bg;
+    box-shadow: 1px 1px 0px @theme_fg;
+}
+
+/* Selected tile highlight */
+.selected-tile {
+    border: 1px solid @theme_selection;
+}
+
+/* NES-style retro dialog */
+dialog {
+    background-color: @theme_bg;
+    border: 2px solid @theme_fg;
+    border-radius: 0px;
+    color: #000000;
+    padding: 8px;
+    margin: 8px;
+}
+
+dialog button {
+    background-color: @theme_bg;
+    border: 1px solid @theme_fg;
+    color: #000000;
+    margin: 4px;
+    min-width: 80px;
+    padding: 4px 8px;
+}
+
+dialog button:hover {
+    background-color: @theme_selection;
+    color: @theme_bg;
+}

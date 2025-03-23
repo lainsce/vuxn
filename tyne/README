@@ -1,0 +1,90 @@
+# UFX Font Viewer
+
+A modern GTK4 application for viewing and converting UFX bitmap font formats.
+
+## Overview
+
+UFX Font Viewer is a specialized tool for working with UFX bitmap font formats  
+(UF1, UF2, UF3). The application provides a visual grid display of font glyphs  
+and supports exporting to the BDF (Bitmap Distribution Format) for compatibility  
+with various systems.
+
+## Features
+
+- View UF1 (8x8), UF2 (16x16), and UF3 (24x24) bitmap fonts
+- Grid-based display with proper scaling and alignment
+- Export to BDF format for use in other applications
+- Keyboard shortcuts for common operations
+
+## Architecture
+
+The application follows a modular architecture with three main components:
+
+- **application.vala**: Core application class and entry point
+- **window.vala**: Window implementation with UI components and event handling
+- **utils.vala**: Font format utilities and rendering code
+
+## Font Formats
+
+UFX Font Viewer supports the following formats:
+
+### UF1
+- 8x8 pixel glyphs (standard)
+- 8x16 pixel glyphs (tall variant)
+- Each glyph composed of 1 or 2 tiles
+
+### UF2
+- 16x16 pixel glyphs
+- Each glyph composed of 4 tiles in a 2x2 arrangement
+
+### UF3
+- 24x24 pixel glyphs
+- Each glyph composed of 9 tiles in a 3x3 arrangement
+
+Each format includes a 256-byte header containing width information for each  
+glyph.
+
+## Dependencies
+
+- GTK 4.x
+- GLib 2.x
+- Cairo graphics library
+
+## Building and Installation
+
+### Build from Source
+
+1. Ensure you have the Vala compiler and dependencies installed:
+
+```bash
+sudo apt install valac libgtk-4-dev meson ninja-build
+```
+
+2. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/ufx-font-viewer.git
+cd ufx-font-viewer
+```
+
+3. Build using Meson:
+
+```bash
+meson setup builddir
+cd builddir
+ninja
+```
+
+4. Run the application:
+
+```bash
+./ufx-font-viewer
+```
+
+### Installation
+
+To install system-wide after building:
+
+```bash
+sudo ninja install
+```

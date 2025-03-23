@@ -1,0 +1,100 @@
+.toolbar {
+    padding: 0;
+    margin: 0;
+    padding-left: 4px;
+    border: none;
+}
+
+.toolbar .toggle {
+    padding: 0 4px;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    min-height: 16px;
+}
+
+popover {
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    min-height: 16px;
+    min-width: 16px;
+}
+
+popover contents {
+    padding: 8px;
+    margin: 0;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
+    min-height: 16px;
+}
+
+popover contents * {
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    min-height: 16px;
+}
+
+.searchbar {
+    padding: 0;
+    margin: 0;
+    border: none;
+    border: none;
+}
+
+.searchbar box {
+    padding: 4px 0;
+    margin: 0;
+    background: none;
+    min-height: 16px;
+}
+
+.searchbar entry {
+    padding: 4px 4px;
+    margin: 0;
+    background: none;
+    min-height: 16px;
+}
+
+.searchbar button {
+    padding: 0 4px;
+    margin: 0 4px;
+    border: none;
+    box-shadow: none;
+    min-height: 16px;
+}
+
+.symboltree {
+    background: @theme_bg;
+    border-right: 8px solid @theme_bg;
+    padding: 0;
+}
+
+.symboltree scrolledwindow {
+    background: transparent;
+}
+
+.symbol-list {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.symbol-list row {
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+}
+
+.symbol-list row:selected {
+    background: none;
+    color: @theme_fg;
+}
+
+.symbol-list row:hover:not(:selected) {
+    background: @theme_accent;
+}

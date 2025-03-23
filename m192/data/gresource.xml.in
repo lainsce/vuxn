@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/m192/">
+    <file compressed="true" alias="style.css">style.css</file>
+  </gresource>
+  <gresource prefix="/com/example/m192/icons">
+    <file compressed="true" alias="scalable/actions/play-symbolic.svg">icons/play-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/pause-symbolic.svg">icons/pause-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/previous-symbolic.svg">icons/previous-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/next-symbolic.svg">icons/next-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/shuffle-symbolic.svg">icons/shuffle-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/no-shuffle-symbolic.svg">icons/no-shuffle-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/no-repeat-symbolic.svg">icons/no-repeat-symbolic.svg</file>
+    <file compressed="true" alias="scalable/actions/repeat-symbolic.svg">icons/repeat-symbolic.svg</file>
+  </gresource>
+</gresources>

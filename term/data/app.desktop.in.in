@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;Terminal;GTK;
+Comment=A simple terminal inspired by classic Mac
+Exec=com.example.term
+GenericName=Terminal
+Icon=com.example.term
+Name=Term
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0
