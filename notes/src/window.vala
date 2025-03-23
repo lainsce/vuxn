@@ -2,7 +2,7 @@ public class Window : Gtk.ApplicationWindow {
     private Gtk.Overlay overlay;
     private CheckboxTextView text_view;
     private Gtk.TextBuffer buffer;
-    private ThemeManager theme;
+    private Theme.Manager theme;
     
     // Drawing areas for visual elements
     private Gtk.DrawingArea background_area;
@@ -14,12 +14,12 @@ public class Window : Gtk.ApplicationWindow {
     private int current_page = 0;
     
     // Checkbox data storage
-    private Gee.Map<int, Gee.List<CheckboxTextViewCheckboxData>> checkbox_data_by_page 
-        = new Gee.HashMap<int, Gee.List<CheckboxTextViewCheckboxData>>();
+    private Gee.Map<int, Gee.List<CheckboxTextView.CheckboxData>> checkbox_data_by_page 
+        = new Gee.HashMap<int, Gee.List<CheckboxTextView.CheckboxData>>();
 
     public Window(Gtk.Application app) {
         Object(application: app);
-        theme = ThemeManager.get_default();
+        theme = Theme.Manager.get_default();
         theme.apply_to_display();
         setup_theme_management();
         theme.theme_changed.connect(() => {
@@ -370,7 +370,7 @@ public class Window : Gtk.ApplicationWindow {
                 pages.add(page_text);
                 
                 if (page_obj.has_member("checkboxes")) {
-                    var checkboxes = new Gee.ArrayList<CheckboxTextViewCheckboxData>();
+                    var checkboxes = new Gee.ArrayList<CheckboxTextView.CheckboxData>();
                     
                     var cb_array = page_obj.get_array_member("checkboxes");
                     cb_array.foreach_element((cb_arr, idx, cb_node) => {
@@ -379,10 +379,10 @@ public class Window : Gtk.ApplicationWindow {
                         int offset = (int)cb_obj.get_int_member("offset");
                         bool is_checked = cb_obj.get_boolean_member("checked");
                         
-                        checkboxes.add(new CheckboxTextViewCheckboxData(line, offset, is_checked));
+                        checkboxes.add(new CheckboxTextView.CheckboxData(line, offset, is_checked));
                     });
                     
-                    checkbox_data_by_page[page_idx] = checkboxes;
+                    checkbox_data_by_page[(int)page_idx] = checkboxes;
                 }
             });
             
