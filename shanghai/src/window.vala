@@ -64,10 +64,14 @@ namespace Shanghai {
         
         private void initialize_ui() {
             // Create header bar
-            set_titlebar(create_titlebar ());
+            set_titlebar(new Gtk.Box (Gtk.Orientation.VERTICAL, 0) {
+                visible = false
+            });
             
             // Create main box
             main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+            
+            main_box.append(create_titlebar ());
             
             drawing_area = new DrawingArea();
             drawing_area.set_draw_func(draw);
@@ -92,7 +96,7 @@ namespace Shanghai {
         private Gtk.Widget create_titlebar() {
             // Create classic Mac-style title bar
             var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
-            title_bar.width_request = NES_WIDTH,
+            title_bar.width_request = NES_WIDTH;
             title_bar.add_css_class("title-bar");
 
             // Add event controller for right-click to toggle calendar visibility
