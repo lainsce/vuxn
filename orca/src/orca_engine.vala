@@ -120,11 +120,8 @@ public class OrcaEngine {
                 // Process uppercase operators and special operators always
                 if ((c >= 'A' && c <= 'Z') || SPECIAL_OPERATORS.contains(c.to_string())) {
                     bool is_uppercase = c >= 'A' && c <= 'Z';
-                    process_operator(c, x, y, next_grid, is_uppercase);
-                }
-                // Process lowercase operators only when they've been banged
-                else if (c >= 'a' && c <= 'z' && banged_this_frame[x, y]) {
-                    process_operator(c, x, y, next_grid, false);
+                    bool is_banged = banged_this_frame[x, y];
+                    process_operator(c, x, y, next_grid, is_uppercase, is_banged);
                 }
             }
         }
@@ -214,7 +211,8 @@ public class OrcaEngine {
                 } else {
                     // Properly handle all operators - this is key!
                     bool is_uppercase = c >= 'A' && c <= 'Z';
-                    process_operator(c, x, y, next_grid, is_uppercase);
+                    bool is_banged = banged_this_frame[x, y];
+                    process_operator(c, x, y, next_grid, is_uppercase, is_banged);
                 }
 
                 operator_processed_this_frame[x, y] = true;
@@ -278,87 +276,87 @@ public class OrcaEngine {
     }
 
     // Process regular alphabetic operators
-    private void process_operator(char op, int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_operator(char op, int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         char lower_op = op.tolower();
 
         switch (lower_op) {
         case 'a': // Add
-            process_add(x, y, next_grid, is_uppercase);
+            process_add(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'b': // Subtract
-            process_subtract(x, y, next_grid, is_uppercase);
+            process_subtract(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'c': // Clock
-            process_clock(x, y, next_grid, is_uppercase);
+            process_clock(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'd': // Delay
-            process_delay(x, y, next_grid);
+            process_delay(x, y, next_grid, is_banged);
             break;
         case 'e': // East
-            process_east(x, y, next_grid);
+            process_east(x, y, next_grid, is_banged);
             break;
         case 'f': // If
-            process_if(x, y, next_grid, is_uppercase);
+            process_if(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'g': // Generator
-            process_generator(x, y, next_grid, is_uppercase);
+            process_generator(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'h': // Hold
-            process_hold(x, y, next_grid, is_uppercase);
+            process_hold(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'i': // Increment
-            process_increment(x, y, next_grid, is_uppercase);
+            process_increment(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'j': // Jumper
-            process_jumper(x, y, next_grid, is_uppercase);
+            process_jumper(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'k': // Konkat
-            process_konkat(x, y, next_grid, is_uppercase);
+            process_konkat(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'l': // Lesser
-            process_lesser(x, y, next_grid, is_uppercase);
+            process_lesser(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'm': // Multiply
-            process_multiply(x, y, next_grid, is_uppercase);
+            process_multiply(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'n': // North
-            process_north(x, y, next_grid);
+            process_north(x, y, next_grid, is_banged);
             break;
         case 'o': // Read
-            process_read(x, y, next_grid, is_uppercase);
+            process_read(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'p': // Push
-            process_push(x, y, next_grid, is_uppercase);
+            process_push(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'q': // Query
-            process_query(x, y, next_grid, is_uppercase);
+            process_query(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'r': // Random
-            process_random(x, y, next_grid, is_uppercase);
+            process_random(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 's': // South
-            process_south(x, y, next_grid);
+            process_south(x, y, next_grid, is_banged);
             break;
         case 't': // Track
-            process_track(x, y, next_grid, is_uppercase);
+            process_track(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'u': // Uclid
-            process_uclid(x, y, next_grid, is_uppercase);
+            process_uclid(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'v': // Variable
-            process_variable(x, y, next_grid, is_uppercase);
+            process_variable(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'w': // West
-            process_west(x, y, next_grid);
+            process_west(x, y, next_grid, is_banged);
             break;
         case 'x': // Write
-            process_write(x, y, next_grid, is_uppercase);
+            process_write(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'y': // Yumper
-            process_yumper(x, y, next_grid, is_uppercase);
+            process_yumper(x, y, next_grid, is_uppercase, is_banged);
             break;
         case 'z': // Lerp
-            process_lerp(x, y, next_grid, is_uppercase);
+            process_lerp(x, y, next_grid, is_uppercase, is_banged);
             break;
 
         // Special operators
@@ -417,7 +415,7 @@ public class OrcaEngine {
     }
 
     // A - add(a b): Outputs sum of inputs.
-    private void process_add(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_add(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int a = (x > 0) ? read_parameter(x - 1, y) : 0;
         int b = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
@@ -436,7 +434,7 @@ public class OrcaEngine {
     }
 
     // B - subtract(a b): Outputs difference of inputs.
-    private void process_subtract(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_subtract(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int a = (x > 0) ? read_parameter(x - 1, y) : 0;
         int b = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
@@ -455,7 +453,7 @@ public class OrcaEngine {
     }
 
     // C - clock(rate mod): Outputs modulo of frame.
-    private void process_clock(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_clock(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int rate = (x > 0) ? read_parameter(x - 1, y) : 1;
         int mod = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 8;
@@ -478,7 +476,7 @@ public class OrcaEngine {
     }
 
     // D - delay(rate mod): Bangs on modulo of frame.
-    private void process_delay(int x, int y, char[,] next_grid) {
+    private void process_delay(int x, int y, char[,] next_grid, bool is_banged) {
         // Read parameters with data marking
         int rate = (x > 0) ? read_parameter(x - 1, y) : 1;
         int mod = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 8;
@@ -502,7 +500,7 @@ public class OrcaEngine {
     }
 
     // E - east: Moves eastward, or bangs.
-    private void process_east(int x, int y, char[,] next_grid) {
+    private void process_east(int x, int y, char[,] next_grid, bool is_banged) {
         char operator_char = grid.get_char(x, y);
 
         // Calculate new position
@@ -520,22 +518,22 @@ public class OrcaEngine {
     }
 
     // F - if(a b): Bangs if inputs are equal.
-    private void process_if(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_if(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read values from left and right
-        char a = grid.get_char(x - 1, y);
-        char b = grid.get_char(x + 1, y);
+        char a = (x > 0) ? read_char_parameter(x - 1, y) : '.';
+        char b = (x + 1 < OrcaGrid.WIDTH) ? read_char_parameter(x + 1, y) : '.';
 
-        // Bang below if a and b are equal
+        // Bang below if a and b are equal OR if this operator is banged
         if (a == b) {
             if (y + 1 < OrcaGrid.HEIGHT) {
-                banged_this_frame[x, y + 1] = true;
+                // Place a visual bang (*) character in the output cell
                 next_grid[x, y + 1] = '*';
             }
         }
     }
 
     // G - generator(x y len): Writes operands with offset.
-    private void process_generator(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_generator(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int x_offset = (x > 2) ? read_parameter(x - 3, y) : 0;
         int y_offset = (x > 1) ? read_parameter(x - 2, y) : 0;
@@ -570,7 +568,7 @@ public class OrcaEngine {
     }
 
     // H - Hold operator
-    private void process_hold(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_hold(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // H - hold: Holds southward operand.
 
         // Lock the cell below H
@@ -590,7 +588,7 @@ public class OrcaEngine {
     }
 
     // I - increment(step mod): Increments southward operand.
-    private void process_increment(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_increment(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters
         int step = 1; // Default
         int mod = 36; // Default
@@ -627,7 +625,7 @@ public class OrcaEngine {
     }
 
     // J - jumper: Outputs northward operand.
-    private void process_jumper(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_jumper(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Check the cell above
         char val = '.';
         if (y > 0) {
@@ -660,7 +658,7 @@ public class OrcaEngine {
     }
 
     // K - Konkat operator
-    private void process_konkat(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_konkat(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read length parameter with data marking
         int len = (x > 0) ? read_parameter(x - 1, y) : 1;
         if (len <= 0)len = 1;
@@ -692,7 +690,7 @@ public class OrcaEngine {
     }
 
     // L - lesser(a b): Outputs smallest input.
-    private void process_lesser(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_lesser(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read values from left and right
         char a_char = grid.get_char(x - 1, y);
         char b_char = grid.get_char(x + 1, y);
@@ -722,7 +720,7 @@ public class OrcaEngine {
     }
 
     // M - multiply(a b): Outputs product of inputs.
-    private void process_multiply(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_multiply(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read values from left and right
         int a = get_value(x - 1, y);
         int b = get_value(x + 1, y);
@@ -753,7 +751,7 @@ public class OrcaEngine {
     }
 
     // N - north: Moves northward, or bangs.
-    private void process_north(int x, int y, char[,] next_grid) {
+    private void process_north(int x, int y, char[,] next_grid, bool is_banged) {
         char operator_char = grid.get_char(x, y);
 
         // Calculate new position
@@ -771,7 +769,7 @@ public class OrcaEngine {
     }
 
     // O - read(x y): Reads operand with offset.
-    private void process_read(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_read(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read x,y offset parameters
         int x_offset = 0;
         int y_offset = 0;
@@ -804,7 +802,7 @@ public class OrcaEngine {
     }
 
     // P - push(key len val): Writes eastward operand.
-    private void process_push(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_push(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int key = (x > 1) ? read_parameter(x - 2, y) : 0;
         int len = (x > 0) ? read_parameter(x - 1, y) : 1;
@@ -831,7 +829,7 @@ public class OrcaEngine {
     }
 
     // Q - query(x y len): Reads operands with offset.
-    private void process_query(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_query(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         int x_param = 0; // X coordinate offset to read from
         int y_param = 0; // Y coordinate offset to read from
         int len = 1; // Length of values to read
@@ -872,7 +870,7 @@ public class OrcaEngine {
     }
 
     // R - random(min max): Outputs random value.
-    private void process_random(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_random(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         int min = 0;
         int max = 35;
 
@@ -914,7 +912,7 @@ public class OrcaEngine {
     }
 
     // S - south: Moves southward, or bangs.
-    private void process_south(int x, int y, char[,] next_grid) {
+    private void process_south(int x, int y, char[,] next_grid, bool is_banged) {
         char operator_char = grid.get_char(x, y);
 
         // Calculate new position
@@ -932,7 +930,7 @@ public class OrcaEngine {
     }
 
     // T - track(key len): Makes a track of notes.
-    private void process_track(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_track(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int key = (x > 1) ? read_parameter(x - 2, y) : 0;
         int len = (x > 0) ? read_parameter(x - 1, y) : 1;
@@ -970,8 +968,7 @@ public class OrcaEngine {
     }
 
     // U - uclid(step max): Bangs on Euclidean rhythm.
-    // U - uclid(step max): Bangs on Euclidean rhythm.
-    private void process_uclid(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_uclid(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int step = (x > 0) ? read_parameter(x - 1, y) : 1;
         int max = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 8;
@@ -983,18 +980,17 @@ public class OrcaEngine {
         // Calculate the current beat position
         int beat_position = frame_count % max;
 
-        // Calculate if this beat position should have a pulse
-        // This is the standard algorithm for Euclidean rhythms
+        // Proper Euclidean rhythm algorithm
         bool should_bang = (beat_position * step) % max < step;
 
-        // Bang below if condition is met
-        if (should_bang && y + 1 < OrcaGrid.HEIGHT) {
+        // Bang below if condition is met or if operator is banged
+        if ((should_bang) && y + 1 < OrcaGrid.HEIGHT) {
             next_grid[x, y + 1] = '*';
         }
     }
 
     // V - Variable operator: Reads and writes variable.
-    private void process_variable(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_variable(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         char write = (x > 0) ? read_char_parameter(x - 1, y) : '.';
         char read = (x + 1 < OrcaGrid.WIDTH) ? read_char_parameter(x + 1, y) : '.';
@@ -1018,7 +1014,7 @@ public class OrcaEngine {
     }
 
     // W - west: Moves westward, or bangs.
-    private void process_west(int x, int y, char[,] next_grid) {
+    private void process_west(int x, int y, char[,] next_grid, bool is_banged) {
         char operator_char = grid.get_char(x, y);
 
         // Calculate new position
@@ -1036,7 +1032,7 @@ public class OrcaEngine {
     }
 
     // X - write(x y val): Writes operand with offset.
-    private void process_write(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_write(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int x_offset = (x > 1) ? read_parameter(x - 2, y) : 0;
         int y_offset = (x > 0) ? read_parameter(x - 1, y) : 0;
@@ -1050,18 +1046,18 @@ public class OrcaEngine {
         if (write_x >= 0 && write_x < OrcaGrid.WIDTH && write_y >= 0 && write_y < OrcaGrid.HEIGHT) {
             next_grid[write_x, write_y] = val;
 
-            // Only mark as data if it's not an operator
+            // If banged and writing an operator, don't mark it as data
             bool is_operator = (val >= 'A' && val <= 'Z') ||
                 SPECIAL_OPERATORS.contains(val.to_string());
 
-            if (!is_operator) {
+            if (!is_operator || !is_banged) {
                 mark_output_as_data(write_x, write_y);
             }
         }
     }
 
     // Y - Yumper implementation
-    private void process_yumper(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_yumper(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read value from west (left)
         char val = '.';
         if (x > 0) {
@@ -1112,7 +1108,7 @@ public class OrcaEngine {
     }
 
     // Z - lerp(rate target): Transitions operand to target.
-    private void process_lerp(int x, int y, char[,] next_grid, bool is_uppercase) {
+    private void process_lerp(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         // Read parameters with data marking
         int rate = (x > 0) ? read_parameter(x - 1, y) : 1;
         int target = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
@@ -1251,6 +1247,7 @@ public class OrcaEngine {
             char g = grid.get_char(param_x, y);
             grid.mark_as_data(param_x, y);
             grid.lock_cell(param_x, y);
+            grid.protect_cell_content(param_x, y, g);
 
             if (g == '.')break;
             msg.append_c(g);
@@ -1271,6 +1268,7 @@ public class OrcaEngine {
             if (param_x < OrcaGrid.WIDTH) {
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
+                grid.protect_cell_content(param_x, y, g);
             }
         }
 
@@ -1301,6 +1299,7 @@ public class OrcaEngine {
             if (param_x < OrcaGrid.WIDTH) {
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
+                grid.protect_cell_content(param_x, y, g);
             }
         }
 
@@ -1332,6 +1331,7 @@ public class OrcaEngine {
             if (param_x < OrcaGrid.WIDTH) {
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
+                grid.protect_cell_content(param_x, y, g);
             }
         }
 
@@ -1377,6 +1377,7 @@ public class OrcaEngine {
             char g = grid.get_char(param_x, y);
             grid.mark_as_data(param_x, y);
             grid.lock_cell(param_x, y);
+            grid.protect_cell_content(param_x, y, g);
 
             if (g == '.')break;
             msg.append_c(g);
@@ -1404,6 +1405,7 @@ public class OrcaEngine {
             char g = grid.get_char(param_x, y);
             grid.mark_as_data(param_x, y);
             grid.lock_cell(param_x, y);
+            grid.protect_cell_content(param_x, y, g);
 
             if (g == '.')break;
             cmd.append_c(g);
