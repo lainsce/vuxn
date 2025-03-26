@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Nowlog
+Comment=A Memex-style knowledge base
+Exec=com.example.nowlog
+Icon=com.example.nowlog
+Terminal=false
+Type=Application
+Categories=Utility;Office;
+StartupNotify=true

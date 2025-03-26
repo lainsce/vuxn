@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=ORCA
+GenericName=Live Coding Environment
+Comment=Create and manipulate musical patterns with a grid-based sequencer
+Exec=com.example.orca
+Icon=com.example.orca
+Terminal=false
+Categories=AudioVideo;Audio;Music;Development;
+Keywords=music;sequencer;livecoding;pattern;grid;synth;midi;
+StartupNotify=true
+X-GNOME-UsesNotifications=false

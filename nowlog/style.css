@@ -1,0 +1,35 @@
+.sidebar-box {
+    background: @theme_bg;
+    border-right: 8px solid transparent;
+}
+
+listbox {
+    background: transparent;
+    color: @theme_fg;
+}
+
+listbox row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+listbox row:hover:not(:selected) {
+    background: @theme_selection;
+}
+
+/* Styles for one-bit mode */
+.one-bit-inverted {
+    color: @theme_bg;
+    background: @theme_fg;
+}
+
+/* Theme utility classes */
+.theme-accent {
+    color: @theme_bg;
+    background: @theme_accent;
+}
+
+.theme-selection {
+    color: @theme_fg;
+    background: @theme_selection;
+}
