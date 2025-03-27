@@ -185,41 +185,6 @@ public class OrcaEngine {
         }
     }
 
-    private void process_operators_by_type(char[,] next_grid, string operator_types) {
-        for (int x = 0; x < OrcaGrid.WIDTH; x++) {
-            for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
-                char c = grid.get_char(x, y);
-
-                // Skip if conditions not met
-                if (grid.is_cell_locked(x, y) ||
-                    operator_processed_this_frame[x, y] ||
-                    !operator_types.contains(c.to_string()) ||
-                    grid.is_data_cell(x, y)) {
-                    continue;
-                }
-
-                if (c == '#')continue;
-
-                if (c == '*') {
-                    process_bang_char(x, y);
-
-                    if (!grid.is_data_cell(x, y) && !grid.is_protected_cell(x, y)) {
-                        next_grid[x, y] = '.';
-                    } else {
-                        next_grid[x, y] = '*';
-                    }
-                } else {
-                    // Properly handle all operators - this is key!
-                    bool is_uppercase = c >= 'A' && c <= 'Z';
-                    bool is_banged = banged_this_frame[x, y];
-                    process_operator(c, x, y, next_grid, is_uppercase, is_banged);
-                }
-
-                operator_processed_this_frame[x, y] = true;
-            }
-        }
-    }
-
     // Helper method to match the JS hasNeighbor behavior
     private bool has_neighbor(int x, int y, char g) {
         // Check the four adjacent cells (not diagonals)
@@ -1266,6 +1231,7 @@ public class OrcaEngine {
         for (int i = 1; i <= 3; i++) {
             int param_x = x + i;
             if (param_x < OrcaGrid.WIDTH) {
+                char g = grid.get_char(param_x, y);
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
                 grid.protect_cell_content(param_x, y, g);
@@ -1297,6 +1263,7 @@ public class OrcaEngine {
         for (int i = 1; i <= 3; i++) {
             int param_x = x + i;
             if (param_x < OrcaGrid.WIDTH) {
+                char g = grid.get_char(param_x, y);
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
                 grid.protect_cell_content(param_x, y, g);
@@ -1329,6 +1296,7 @@ public class OrcaEngine {
         for (int i = 1; i <= 4; i++) {
             int param_x = x + i;
             if (param_x < OrcaGrid.WIDTH) {
+                char g = grid.get_char(param_x, y);
                 grid.mark_as_data(param_x, y);
                 grid.lock_cell(param_x, y);
                 grid.protect_cell_content(param_x, y, g);
