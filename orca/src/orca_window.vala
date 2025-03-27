@@ -285,7 +285,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
     private Gtk.Widget create_titlebar() {
         var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
         title_bar.width_request = 800;
-        title_bar.add_css_class("title-bar");
 
         // Create close button
         var close_button = new Gtk.Button();
@@ -297,16 +296,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
             close();
         });
 
-        // Create title label
-        var title_label = new Gtk.Label("ORCA");
-        title_label.add_css_class("title-box");
-        title_label.hexpand = true;
-        title_label.margin_end = 8;
-        title_label.valign = Gtk.Align.CENTER;
-        title_label.halign = Gtk.Align.CENTER;
-
         title_bar.append(close_button);
-        title_bar.append(title_label);
 
         var winhandle = new Gtk.WindowHandle();
         winhandle.set_child(title_bar);
