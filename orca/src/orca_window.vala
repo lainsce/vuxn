@@ -335,6 +335,9 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         grid_x = (int) Math.fmin(Math.fmax(grid_x, 0), OrcaGrid.WIDTH - 1);
         grid_y = (int) Math.fmin(Math.fmax(grid_y, 0), OrcaGrid.HEIGHT - 1);
 
+        // Clear any existing selection
+        clear_selection();
+
         // Set cursor position
         cursor_x = grid_x;
         cursor_y = grid_y;
@@ -428,6 +431,32 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         selection_start_y = -1;
         selection_end_x = -1;
         selection_end_y = -1;
+    }
+
+    private void delete_selection() {
+        if (!has_selection)return;
+
+        // Get the bounds of the selection
+        int min_x = int.min(selection_start_x, selection_end_x);
+        int max_x = int.max(selection_start_x, selection_end_x);
+        int min_y = int.min(selection_start_y, selection_end_y);
+        int max_y = int.max(selection_start_y, selection_end_y);
+
+        // Delete all characters in the selection by setting them to '.'
+        for (int y = min_y; y <= max_y; y++) {
+            for (int x = min_x; x <= max_x; x++) {
+                grid.set_char(x, y, '.');
+            }
+        }
+
+        // Move cursor to beginning of selection
+        cursor_x = min_x;
+        cursor_y = min_y;
+
+        // Clear the selection state
+        clear_selection();
+
+        print("Deleted selection: %d,%d to %d,%d\n", min_x, min_y, max_x, max_y);
     }
 
     // Update the timer method to call the visualization update
@@ -1090,21 +1119,31 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         switch (keyval) {
         case Gdk.Key.Left:
+            // Clear selection when using arrow keys
+            clear_selection();
             cursor_x = (int) Math.fmax(0, cursor_x - 1);
             break;
         case Gdk.Key.Right:
+            clear_selection();
             cursor_x = (int) Math.fmin(OrcaGrid.WIDTH - 1, cursor_x + 1);
             break;
         case Gdk.Key.Up:
+            clear_selection();
             cursor_y = (int) Math.fmax(0, cursor_y - 1);
             break;
         case Gdk.Key.Down:
+            clear_selection();
             cursor_y = (int) Math.fmin(OrcaGrid.HEIGHT - 1, cursor_y + 1);
             break;
         case Gdk.Key.BackSpace:
-            // Delete character and move cursor back
-            grid.set_char(cursor_x, cursor_y, '.');
-            cursor_x = (int) Math.fmax(0, cursor_x - 1);
+            if (has_selection) {
+                // Delete the entire selection
+                delete_selection();
+            } else {
+                // Delete character and move cursor back
+                grid.set_char(cursor_x, cursor_y, '.');
+                cursor_x = (int) Math.fmax(0, cursor_x - 1);
+            }
             break;
         case Gdk.Key.Escape:
             // Clear selection if exists, otherwise clear grid
