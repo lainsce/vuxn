@@ -15,12 +15,14 @@ public class OrcaEngine {
     // Track active bangs in the current frame
     private bool[,] banged_this_frame;
     private bool[,] operator_processed_this_frame;
+    private bool[,] bangs_used_as_inputs;
 
     public OrcaEngine(OrcaGrid grid, OrcaSynth synth) {
         this.grid = grid;
         this.synth = synth;
         banged_this_frame = new bool[OrcaGrid.WIDTH, OrcaGrid.HEIGHT];
         operator_processed_this_frame = new bool[OrcaGrid.WIDTH, OrcaGrid.HEIGHT];
+        bangs_used_as_inputs = new bool[OrcaGrid.WIDTH, OrcaGrid.HEIGHT];
         variables = new Gee.HashMap<char, char> ();
     }
 
@@ -55,6 +57,7 @@ public class OrcaEngine {
             for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
                 banged_this_frame[x, y] = false;
                 operator_processed_this_frame[x, y] = false;
+                bangs_used_as_inputs[x, y] = false;
             }
         }
 
@@ -66,16 +69,11 @@ public class OrcaEngine {
             }
         }
 
-        // FIRST PASS: Process all bang (*) operators to establish initial bang state
+        // FIRST PASS: Process all bang (*) operators to establish bang effects ONLY
         for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
             for (int x = 0; x < OrcaGrid.WIDTH; x++) {
                 if (grid.get_char(x, y) == '*') {
                     process_bang_char(x, y);
-
-                    // Bang disappears unless protected
-                    if (!grid.is_protected_cell(x, y)) {
-                        next_grid[x, y] = '.';
-                    }
                 }
             }
         }
@@ -84,7 +82,7 @@ public class OrcaEngine {
         for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
             for (int x = 0; x < OrcaGrid.WIDTH; x++) {
                 char c = grid.get_char(x, y);
-                if (c == '=' || c == ':' || c == '!' || c == 'T') {
+                if (c == '=' || c == ':' || c == '!' || c == 'T' || c == ';') {
                     // Mark parameters as data
                     int max_params = (c == 'T') ? ((x > 0) ? get_value(x - 1, y) : 1) : 4;
                     for (int i = 1; i <= max_params; i++) {
@@ -106,11 +104,6 @@ public class OrcaEngine {
                     continue;
                 }
 
-                // Skip bangs (already processed)
-                if (c == '*') {
-                    continue;
-                }
-
                 // Comments
                 if (c == '#') {
                     process_comment(x, y, next_grid);
@@ -122,6 +115,18 @@ public class OrcaEngine {
                     bool is_uppercase = c >= 'A' && c <= 'Z';
                     bool is_banged = banged_this_frame[x, y];
                     process_operator(c, x, y, next_grid, is_uppercase, is_banged);
+                }
+            }
+        }
+
+        // FINAL PASS: Now handle bang removal AFTER operators have had a chance to protect them
+        for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
+            for (int x = 0; x < OrcaGrid.WIDTH; x++) {
+                if (grid.get_char(x, y) == '*') {
+                    // Bang disappears unless protected or used as input
+                    if (!grid.is_protected_cell(x, y) && !bangs_used_as_inputs[x, y]) {
+                        next_grid[x, y] = '.';
+                    }
                 }
             }
         }
@@ -149,9 +154,6 @@ public class OrcaEngine {
 
                 if (nx >= 0 && nx < OrcaGrid.WIDTH && ny >= 0 && ny < OrcaGrid.HEIGHT) {
                     if (grid.get_char(nx, ny) == '*') {
-                        // Mark this bang as protected data when used as input
-                        // This is critical: only protect bangs when they're explicitly
-                        // checked by operators like =, !, ?, etc.
                         grid.protect_cell_content(nx, ny, '*');
                         return true;
                     }
@@ -159,6 +161,14 @@ public class OrcaEngine {
             }
         }
         return false;
+    }
+
+    public void mark_bang_as_input_parameter(int x, int y) {
+        if (x >= 0 && x < OrcaGrid.WIDTH && y >= 0 && y < OrcaGrid.HEIGHT &&
+            grid.get_char(x, y) == '*') {
+            bangs_used_as_inputs[x, y] = true;
+            grid.protect_cell_content(x, y, '*');
+        }
     }
 
     // Process explicit * character - mark all adjacent cells as banged
@@ -877,6 +887,10 @@ public class OrcaEngine {
                 // Also protect cell content to ensure it's not modified
                 char cell_content = grid.get_char(data_x, y);
                 grid.protect_cell_content(data_x, y, cell_content);
+
+                if (cell_content == '*') {
+                    mark_bang_as_input_parameter(data_x, y);
+                }
             }
         }
 
@@ -966,7 +980,15 @@ public class OrcaEngine {
         // Read parameters with data marking
         int x_offset = (x > 1) ? read_parameter(x - 2, y) : 0;
         int y_offset = (x > 0) ? read_parameter(x - 1, y) : 0;
-        char val = (x + 1 < OrcaGrid.WIDTH) ? read_char_parameter(x + 1, y) : '.';
+
+        // Special handling for bang input
+        char val;
+        if (x + 1 < OrcaGrid.WIDTH && grid.get_char(x + 1, y) == '*') {
+            mark_bang_as_input_parameter(x + 1, y);
+            val = '*';
+        } else {
+            val = read_char_parameter(x + 1, y);
+        }
 
         // Calculate write position
         int write_x = x + x_offset;
@@ -976,12 +998,13 @@ public class OrcaEngine {
         if (write_x >= 0 && write_x < OrcaGrid.WIDTH && write_y >= 0 && write_y < OrcaGrid.HEIGHT) {
             next_grid[write_x, write_y] = val;
 
-            // If banged and writing an operator, don't mark it as data
-            bool is_operator = (val >= 'A' && val <= 'Z') ||
-                SPECIAL_OPERATORS.contains(val.to_string());
+            if (val != '*') {
+                bool is_operator = (val >= 'A' && val <= 'Z') ||
+                    SPECIAL_OPERATORS.contains(val.to_string());
 
-            if (!is_operator || !is_banged) {
-                mark_output_as_data(write_x, write_y);
+                if (!is_operator || !is_banged) {
+                    mark_output_as_data(write_x, write_y);
+                }
             }
         }
     }
@@ -1363,12 +1386,7 @@ public class OrcaEngine {
 
             // Parse BPM value
             int new_bpm = 0;
-            try {
-                new_bpm = int.parse(bpm_str);
-            } catch (Error e) {
-                warning("Invalid BPM value: %s", bpm_str);
-                return;
-            }
+            new_bpm = int.parse(bpm_str);
 
             if (new_bpm > 0) {
                 print("  Changing BPM to %d\n", new_bpm);
