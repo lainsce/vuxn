@@ -80,6 +80,10 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         drawing_area.set_size_request(800, 600);
         drawing_area.set_focusable(true);
         drawing_area.grab_focus();
+        drawing_area.margin_start = 1;
+        drawing_area.margin_top = 1;
+        drawing_area.margin_end = 1;
+        drawing_area.margin_bottom = 1;
         main_box.append(drawing_area);
 
         var click_controller = new Gtk.GestureClick();
@@ -292,6 +296,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         close_button.tooltip_text = "Close";
         close_button.valign = Gtk.Align.CENTER;
         close_button.margin_start = 8;
+        close_button.margin_top = 8;
         close_button.clicked.connect(() => {
             close();
         });

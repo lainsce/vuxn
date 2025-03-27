@@ -1,6 +1,6 @@
 public class OrcaGrid {
-    public const int WIDTH = 70;
-    public const int HEIGHT = 27;
+    public const int WIDTH = 71;
+    public const int HEIGHT = 28;
 
     private char[,] grid;
     private bool[,] locked_cells; // Track which cells are locked for reading
