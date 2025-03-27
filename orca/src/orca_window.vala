@@ -105,12 +105,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         // Add to OrcaWindow constructor after existing initialization
         initialize_midi_outputs();
 
-        // Add status bar click controller for filename editing
-        var status_bar_click = new Gtk.GestureClick();
-        status_bar_click.button = 1; // Primary button (left click)
-        status_bar_click.pressed.connect(on_status_bar_click);
-        main_box.add_controller(status_bar_click);
-
         engine.bpm_change_requested.connect((new_bpm) => {
             set_bpm(new_bpm);
         });
@@ -152,21 +146,47 @@ public class OrcaWindow : Gtk.ApplicationWindow {
     }
 
     private void end_filename_editing(bool apply_changes) {
-        if (apply_changes && editing_text != filename) {
-            // Check if this is a path with directory separators
-            if (editing_text.contains("/") || editing_text.contains("\\")) {
-                var file = File.new_for_path(editing_text);
-                if (file.query_exists()) {
-                    load_orca_file(file);
-                } else {
-                    // Just update the filename for the next save
-                    filename = editing_text;
-                }
-            } else {
-                filename = editing_text;
-            }
+        if (!apply_changes) {
+            // Cancel editing without applying changes
+            is_editing_filename = false;
+            drawing_area.queue_draw();
+            return;
         }
 
+        if (editing_text == filename) {
+            // No changes made
+            is_editing_filename = false;
+            drawing_area.queue_draw();
+            return;
+        }
+
+        // Ensure filename has .orca extension
+        string new_filename = editing_text;
+        if (!new_filename.down().has_suffix(".orca")) {
+            new_filename = new_filename + ".orca";
+        }
+
+        // Determine if this is an absolute path or just a filename
+        bool is_path = new_filename.contains("/") || new_filename.contains("\\");
+
+        if (is_path) {
+            // This is a path, check if the file exists
+            var file = File.new_for_path(new_filename);
+            if (file.query_exists()) {
+                // If file exists, load it
+                load_orca_file(file);
+                // Update the filename to match the file we just loaded
+                filename = file.get_path();
+            } else {
+                // File doesn't exist, just update the filename for next save
+                filename = new_filename;
+            }
+        } else {
+            // Just a filename, update for next save
+            filename = new_filename;
+        }
+
+        // End editing mode
         is_editing_filename = false;
         drawing_area.queue_draw();
     }
@@ -184,27 +204,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
             start_timer(); // Restart timer with new rate
             drawing_area.queue_draw(); // Update display (status bar shows BPM)
             print("BPM changed to %d\n", bpm);
-        }
-    }
-
-    private void on_status_bar_click(int n_press, double x, double y) {
-        int grid_height = drawing_area.get_height() - STATUS_BAR_HEIGHT;
-
-        // Only process clicks in the status bar area
-        if (y < grid_height) {
-            return;
-        }
-
-        // Check if click is in the filename area
-        if (x >= filename_area.x &&
-            x <= filename_area.x + filename_area.width &&
-            y >= grid_height + filename_area.y &&
-            y <= grid_height + filename_area.y + filename_area.height) {
-
-            start_filename_editing();
-        } else if (is_editing_filename) {
-            // Click outside filename area while editing
-            end_filename_editing(true);
         }
     }
 
@@ -318,8 +317,26 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         // Convert screen coordinates to grid coordinates
         int grid_height = drawing_area.get_height() - STATUS_BAR_HEIGHT;
 
-        // Skip if we're in the status bar area
-        if (y >= grid_height)return;
+        // Check if we're in the status bar area
+        if (y >= grid_height) {
+            // We're in the status bar - handle status bar clicks
+
+            // Check if click is in the filename area
+            if (x >= filename_area.x &&
+                x <= filename_area.x + filename_area.width &&
+                y >= filename_area.y &&
+                y <= filename_area.y + filename_area.height) {
+
+                start_filename_editing();
+            } else if (is_editing_filename) {
+                // Click outside filename area while editing
+                end_filename_editing(true);
+            }
+
+            return; // Don't process further as grid click
+        }
+
+        // Below this point is the original grid click handling
 
         double cell_width = (double) drawing_area.get_width() / OrcaGrid.WIDTH;
         double cell_height = (double) grid_height / OrcaGrid.HEIGHT;
@@ -855,16 +872,20 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         }
 
         cr.text_extents(display_text, out filename_extents);
-
         double filename_x = 350;
         double filename_y = grid_height + 20;
 
-        // Store filename area for click detection
+        // More accurate calculation of the text bounding box
+        // Cairo text is positioned at the baseline, so we need to calculate the top properly
+        double text_top = filename_y + filename_extents.y_bearing; // y_bearing is negative
+        double text_height = filename_extents.height;
+
+        // Store filename area for click detection using accurate coordinates
         filename_area = {
             (int) filename_x,
-            (int) (filename_y - filename_extents.height),
+            (int) text_top,
             (int) filename_extents.width,
-            (int) filename_extents.height
+            (int) text_height
         };
 
         // Draw filename
@@ -877,12 +898,13 @@ public class OrcaWindow : Gtk.ApplicationWindow {
             string text_before_cursor = editing_text.substring(0, editing_cursor_pos);
             Cairo.TextExtents cursor_extents;
             cr.text_extents(text_before_cursor, out cursor_extents);
+            cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
 
             // Draw cursor line
             cr.set_antialias(Cairo.Antialias.NONE);
             cr.set_line_width(1);
-            cr.move_to(filename_x + cursor_extents.width, filename_y - 12);
-            cr.line_to(filename_x + cursor_extents.width, filename_y + 2);
+            cr.move_to(filename_x + cursor_extents.width + 4, filename_y - 16);
+            cr.line_to(filename_x + cursor_extents.width + 4, filename_y);
             cr.stroke();
         }
 
@@ -890,7 +912,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         draw_sound_visualization(cr, width, grid_height);
     }
 
-// New method to draw the sound visualization
+    // New method to draw the sound visualization
     private void draw_sound_visualization(Cairo.Context cr, int width, int grid_height) {
         // Get visualization data from synth
         float[] amplitude_data;
@@ -959,7 +981,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         string filename = file.get_basename();
 
         // If it's just a filename with no directory, return it as is
-        if (!full_path.contains("/") && !full_path.contains("\\")) {
+        if (!full_path.contains(Path.DIR_SEPARATOR_S)) {
             return filename;
         }
 
@@ -974,11 +996,11 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         // For root directories or empty parent names
         if (parent_name == "") {
-            return "/" + filename;
+            return Path.DIR_SEPARATOR_S + filename;
         }
 
         // Format as "/parent_folder/filename"
-        return "/" + parent_name + "/" + filename;
+        return Path.DIR_SEPARATOR_S + parent_name + Path.DIR_SEPARATOR_S + filename;
     }
 
     private void copy_selection() {
@@ -1102,7 +1124,12 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         file_dialog.save.begin(this, null, (obj, res) => {
             try {
                 var file = file_dialog.save.end(res);
-                save_orca_file(file);
+                // Ensure filename has .orca extension
+                if (!filename.down().has_suffix(".orca")) {
+                    filename = filename + ".orca";
+                    file = File.new_for_path(filename);
+                    save_orca_file(file);
+                }
                 filename = file.get_path();
                 drawing_area.queue_draw();
             } catch (Error e) {
