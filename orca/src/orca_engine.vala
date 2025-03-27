@@ -524,6 +524,10 @@ public class OrcaEngine {
 
             // The value remains in the target cell
             next_grid[target_x, target_y] = value;
+
+            if (value == '*') {
+                mark_bang_as_input_parameter(target_x, target_y);
+            }
         }
     }
 
