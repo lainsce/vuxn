@@ -542,7 +542,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                 bool near_bang = is_near_bang(x, y);
                 bool is_left_input = is_left_input_of_operator(x, y);
                 bool is_right_input = is_right_input_of_operator(x, y);
-                bool is_bangee_op = is_input_to_operator(x, y, "CUD");
+                bool is_bangee_op = is_input_to_operator(x, y, "CUDFV");
                 // Special checks for operator inputs
                 bool is_t_active_input = false;
                 bool is_t_input = false;
@@ -622,15 +622,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if (is_data) {
-                        // Data cells
-                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
-                    } else if (is_commented) {
-                        // Commented cells
-                        cr.set_source_rgb(0.5, 0.5, 0.5);
-                    } else if (is_t_active_input) {
-                        // Active input to T operator - accent text color
-                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
                     } else if ((is_left_input || is_right_input) && is_bangee_op) {
                         // Inputs to C or U operators - background text color
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
@@ -640,6 +631,15 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                     } else if (is_t_input && !is_t_active_input && is_operator) {
                         // T inputs that aren't active - background text color
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    } else if (is_data) {
+                        // Data cells
+                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
+                    } else if (is_commented) {
+                        // Commented cells
+                        cr.set_source_rgb(0.5, 0.5, 0.5);
+                    } else if (is_t_active_input) {
+                        // Active input to T operator - accent text color
+                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
                     } else if (is_right_input || (is_left_input && !is_bangee_op)) {
                         // Other operator inputs - background text color
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
