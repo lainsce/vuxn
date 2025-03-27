@@ -540,6 +540,41 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                 bool is_banged = engine.is_cell_banged(x, y);
                 bool is_commented = grid.is_commented_cell(x, y);
                 bool near_bang = is_near_bang(x, y);
+                bool is_left_input = is_left_input_of_operator(x, y);
+                bool is_right_input = is_right_input_of_operator(x, y);
+                bool is_bangee_op = is_input_to_operator(x, y, "CUD");
+                // Special checks for operator inputs
+                bool is_t_active_input = false;
+                bool is_t_input = false;
+
+                // Look for T operators to the left
+                for (int tx = x - 1; tx >= 0; tx--) {
+                    if (grid.get_char(tx, y) == 'T') {
+                        // Calculate active input position
+                        int active_pos = get_t_active_input_position(tx, y);
+
+                        // Check if this is the active input
+                        if (x == active_pos) {
+                            is_t_active_input = true;
+                        }
+
+                        // Get length parameter to determine input range
+                        int len = (tx > 0) ? get_value(tx - 1, y) : 1;
+                        if (len <= 0)len = 1;
+
+                        // Check if this is any input to T
+                        if (x > tx && x <= tx + len) {
+                            is_t_input = true;
+                        }
+
+                        break; // Found a T
+                    }
+
+                    // Stop if we hit another operator
+                    if (!grid.is_data_cell(tx, y) && grid.get_char(tx, y) != '.') {
+                        break;
+                    }
+                }
 
                 if (c == '.') {
                     if (is_quadrant_corner) {
@@ -580,35 +615,30 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.fill();
                     }
                 } else {
-                    // Draw normal dots inside the active quadrant
+                    // First determine what kind of cell we're dealing with
                     if (is_selected) {
+                        // Selection coloring (highest priority)
                         cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
-                        cr.rectangle(
-                                     pos_x,
-                                     pos_y,
-                                     cell_width, cell_height
-                        );
+                        cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if (in_active_quadrant) {
-                        cr.set_source_rgb(0.5, 0.5, 0.5);
-                    } else {
-                        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    }
-                    cr.arc(pos_x + cell_width / 2, pos_y + cell_height / 2, 1, 0, 2 * Math.PI);
-                    cr.fill();
-
-                    // Draw all other characters with correct styling
-                    if (is_selected) {
-                        cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
-                        cr.rectangle(
-                                     pos_x,
-                                     pos_y,
-                                     cell_width, cell_height
-                        );
-                        cr.fill();
-                        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+                    } else if (is_t_active_input) {
+                        // Active input to T operator - accent text color
+                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
+                    } else if ((is_left_input || is_right_input) && is_bangee_op) {
+                        // Inputs to C or U operators - background text color
+                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    } else if (is_t_input && !is_t_active_input) {
+                        // T inputs that aren't active - background text color
+                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    } else if (is_t_input && !is_t_active_input && is_operator) {
+                        // T inputs that aren't active - background text color
+                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    } else if (is_right_input || (is_left_input && !is_bangee_op)) {
+                        // Other operator inputs - background text color
+                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     } else if (is_special && !is_data) {
+                        // Special operators
                         if (is_banged || near_bang) {
                             cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                         } else {
@@ -618,15 +648,19 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                     } else if (is_data) {
-                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
-                    } else if (is_operator && !is_commented) {
+                        // Data cells
+                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    } else if (outputs_bang(x, y) || (is_operator && !is_commented)) {
+                        // Operators
                         cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                     } else if (is_commented) {
+                        // Commented cells
                         cr.set_source_rgb(0.5, 0.5, 0.5);
                     } else {
+                        // Default case
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
@@ -662,6 +696,83 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         // Draw status bar
         draw_status_bar(cr, width, height, grid_height);
+    }
+
+    // Check if a cell is a left input to an operator
+    private bool is_left_input_of_operator(int x, int y) {
+        // Most operators take inputs from their left
+        if (x < OrcaGrid.WIDTH - 1) {
+            char right_char = grid.get_char(x + 1, y);
+            if (is_operator(right_char) && grid.is_data_cell(x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Check if a cell is a right input to an operator
+    private bool is_right_input_of_operator(int x, int y) {
+        // Most operators take inputs from their right
+        if (x > 0) {
+            char left_char = grid.get_char(x - 1, y);
+            if (is_operator(left_char) && grid.is_data_cell(x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Check if cell is input to a specific operator
+    private bool is_input_to_operator(int x, int y, string operator_chars) {
+        if (x > 0 && x < OrcaGrid.WIDTH - 1) {
+            char left_char = grid.get_char(x - 1, y);
+            char right_char = grid.get_char(x + 1, y);
+
+            return (operator_chars.contains(left_char.to_string()) ||
+                    operator_chars.contains(right_char.to_string())) &&
+                   grid.is_data_cell(x, y);
+        }
+        return false;
+    }
+
+    // Check if an operator outputs bangs
+    private bool outputs_bang(int x, int y) {
+        char c = grid.get_char(x, y);
+        // Operators that output bangs: D, F, U
+        return (c == 'D' || c == 'F' || c == 'U');
+    }
+
+    // Helper method to calculate T's active input position
+    private int get_t_active_input_position(int t_x, int t_y) {
+        // Read T's parameters
+        int key = (t_x > 1) ? get_value(t_x - 2, t_y) : 0;
+        int len = (t_x > 0) ? get_value(t_x - 1, t_y) : 1;
+        if (len <= 0)len = 1;
+
+        // Calculate offset using the same formula as in engine
+        int offset = (key % len) + 1;
+
+        // Return the position T reads from
+        return t_x + offset;
+    }
+
+    // Helper to convert characters to values (same as in OrcaEngine)
+    private int get_value(int x, int y) {
+        if (x < 0 || x >= OrcaGrid.WIDTH || y < 0 || y >= OrcaGrid.HEIGHT) {
+            return 0;
+        }
+
+        char c = grid.get_char(x, y);
+
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        } else if (c >= 'a' && c <= 'z') {
+            return (c - 'a') + 10;
+        } else if (c >= 'A' && c <= 'Z') {
+            return (c - 'A') + 10;
+        }
+
+        return 0;
     }
 
     // Helper method to check if a cell is near a bang
@@ -783,7 +894,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         draw_sound_visualization(cr, width, grid_height);
     }
 
-    // New method to draw the sound visualization
+// New method to draw the sound visualization
     private void draw_sound_visualization(Cairo.Context cr, int width, int grid_height) {
         // Get visualization data from synth
         float[] amplitude_data;
@@ -1061,7 +1172,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         }
     }
 
-    // Add helper method to convert decimal to base-36
+// Add helper method to convert decimal to base-36
     private string int_to_base36(int value) {
         if (value < 0)return "0";
         if (value < 10)return value.to_string();
