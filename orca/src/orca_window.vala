@@ -335,9 +335,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         grid_x = (int) Math.fmin(Math.fmax(grid_x, 0), OrcaGrid.WIDTH - 1);
         grid_y = (int) Math.fmin(Math.fmax(grid_y, 0), OrcaGrid.HEIGHT - 1);
 
-        // Clear any existing selection
-        clear_selection();
-
         // Set cursor position
         cursor_x = grid_x;
         cursor_y = grid_y;
