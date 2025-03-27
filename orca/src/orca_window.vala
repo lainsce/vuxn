@@ -1,6 +1,3 @@
-using Gtk;
-using Cairo;
-
 public class OrcaWindow : Gtk.ApplicationWindow {
     private OrcaGrid grid;
     private OrcaEngine engine;
@@ -38,6 +35,14 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         set_title("ORCA");
         set_default_size(800, -1);
+        set_resizable(false);
+
+        theme_manager = Theme.Manager.get_default();
+        theme_manager.apply_to_display();
+        setup_theme_management();
+        theme_manager.theme_changed.connect(() => {
+            drawing_area.queue_draw();
+        });
 
         // Load CSS
         var provider = new Gtk.CssProvider();
@@ -47,9 +52,11 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         Gtk.StyleContext.add_provider_for_display(
                                                   Gdk.Display.get_default(),
                                                   provider,
-                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
         );
+    }
 
+    construct {
         grid = new OrcaGrid();
         synth = new OrcaSynth();
         engine = new OrcaEngine(grid, synth);
@@ -91,13 +98,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         key_controller.key_pressed.connect(on_key_pressed);
         main_box.add_controller(key_controller);
 
-        theme_manager = Theme.Manager.get_default();
-        theme_manager.apply_to_display();
-        setup_theme_management();
-        theme_manager.theme_changed.connect(() => {
-            drawing_area.queue_draw();
-        });
-
         // Add to OrcaWindow constructor after existing initialization
         initialize_midi_outputs();
 
@@ -118,7 +118,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         midi_outputs.append("System");
         midi_outputs.append("USB");
         midi_outputs.append("IAC Driver");
-        midi_outputs.append("Virtual");
+        midi_outputs.append("Virtual MIDI");
 
         // Set the first output as default
         synth.set_midi_output(midi_outputs.first().data);
@@ -487,8 +487,8 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         cr.set_antialias(Cairo.Antialias.NONE);
         cr.set_line_width(1);
-        cr.select_font_face("Log", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-        cr.set_font_size(16);
+        cr.select_font_face("Orca", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+        cr.set_font_size(17);
 
         for (int x = 0; x < OrcaGrid.WIDTH; x++) {
             for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
@@ -768,7 +768,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         int viz_width = 80; // Increased width for better visibility
         int viz_x = width - viz_width - 16;
         int viz_y = grid_height + 16;
-        int viz_height = 16;
 
         // Show more bars for a denser visualization
         int display_count = 8;

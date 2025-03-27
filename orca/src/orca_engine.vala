@@ -149,49 +149,15 @@ public class OrcaEngine {
 
                 if (nx >= 0 && nx < OrcaGrid.WIDTH && ny >= 0 && ny < OrcaGrid.HEIGHT) {
                     if (grid.get_char(nx, ny) == '*') {
+                        // Mark this bang as protected data when used as input
+                        // This is critical: only protect bangs when they're explicitly
+                        // checked by operators like =, !, ?, etc.
+                        grid.protect_cell_content(nx, ny, '*');
                         return true;
                     }
                 }
             }
         }
-        return false;
-    }
-
-    private void mark_special_params(int x, int y) {
-        char c = grid.get_char(x, y);
-
-        int max_params = 4; // Default
-
-        if (c == 'T') {
-            // For T, adjust max_params based on length parameter
-            int len = (x > 0) ? get_value(x - 1, y) : 1;
-            if (len <= 0)len = 1;
-            max_params = len;
-        }
-
-        // Mark parameters as data
-        for (int i = 1; i <= max_params; i++) {
-            int param_x = x + i;
-            if (param_x < OrcaGrid.WIDTH) {
-                grid.mark_as_data(param_x, y);
-
-                // For T operator, also lock and protect cell content
-                if (c == 'T') {
-                    grid.lock_cell(param_x, y);
-                    char cell_content = grid.get_char(param_x, y);
-                    grid.protect_cell_content(param_x, y, cell_content);
-                }
-            }
-        }
-    }
-
-    // Helper method to match the JS hasNeighbor behavior
-    private bool has_neighbor(int x, int y, char g) {
-        // Check the four adjacent cells (not diagonals)
-        if (x > 0 && grid.get_char(x - 1, y) == g)return true;
-        if (x < OrcaGrid.WIDTH - 1 && grid.get_char(x + 1, y) == g)return true;
-        if (y > 0 && grid.get_char(x, y - 1) == g)return true;
-        if (y < OrcaGrid.HEIGHT - 1 && grid.get_char(x, y + 1) == g)return true;
         return false;
     }
 
@@ -345,7 +311,6 @@ public class OrcaEngine {
             break;
         case '~': // Our custom play operator
             process_play(x, y);
-            break;
             break;
         case '*': // Bang
             process_bang_char(x, y);

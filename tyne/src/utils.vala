@@ -21,10 +21,10 @@ public class FontUtils {
     private const int[] DRAWING_ORDER_UF1_TALL = {0, 1};
     
     // UF2
-    private const int[] DRAWING_ORDER_UF2 = {0, 1, 2, 3};
+    private const int[] DRAWING_ORDER_UF2 = {0, 2, 1, 3};
     
     // UF3
-    private const int[] DRAWING_ORDER_UF3 = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    private const int[] DRAWING_ORDER_UF3 = {0, 3, 6, 1, 4, 7, 2, 5, 8};
     
     public void load_font_file(File file, Gtk.DrawingArea grid_area) {
         try {
@@ -156,16 +156,16 @@ public class FontUtils {
             // Calculate how many glyphs we actually have in the file
             int bytes_per_glyph = get_bytes_per_glyph();
             int data_size = font_data.length - HEADER_SIZE;
-            int actual_glyphs = (int)(data_size / bytes_per_glyph);
+            int actual_glyphs = data_size / bytes_per_glyph;
             
-            // We're going to output 224 characters (32-255)
-            data_stream.put_string("CHARS 224\n");
+            // Ensure we don't exceed the available data
+            int max_chars = (int)Math.fmin(actual_glyphs + 32, 256);
+            
+            // We're going to output characters 32 through max_chars-1
+            data_stream.put_string("CHARS %d\n".printf(max_chars - 32));
             
             // Write each glyph
-            for (int i = 32; i < 256; i++) {
-                // Skip if we don't have data for this glyph
-                if (i - 32 >= actual_glyphs) continue;
-                
+            for (int i = 32; i < max_chars; i++) {
                 // Get adjusted offset for this glyph
                 int adjusted_index = i - 32;
                 int offset = HEADER_SIZE + (adjusted_index * bytes_per_glyph);
@@ -179,7 +179,7 @@ public class FontUtils {
                 data_stream.put_string("STARTCHAR U+%04X\n".printf(i));
                 data_stream.put_string("ENCODING %d\n".printf(i));
                 data_stream.put_string(
-                    "SWIDTH %d 0\n".printf(actual_width * 1000 / GLYPH_WIDTH)
+                    "SWIDTH %d 0\n".printf((int)(actual_width * 1000 / GLYPH_WIDTH))
                 );
                 data_stream.put_string("DWIDTH %d 0\n".printf(actual_width));
                 data_stream.put_string(
@@ -190,7 +190,11 @@ public class FontUtils {
                 // Generate bitmap data based on format
                 switch (font_format) {
                     case 1:
-                        write_uf1_bitmap(data_stream, offset);
+                        if (is_uf1_tall) {
+                            write_uf1_tall_bitmap(data_stream, offset);
+                        } else {
+                            write_uf1_bitmap(data_stream, offset);
+                        }
                         break;
                     case 2:
                         write_uf2_bitmap(data_stream, offset);
@@ -219,30 +223,48 @@ public class FontUtils {
     
     private void write_uf1_bitmap(DataOutputStream stream, int offset) 
         throws IOError {
-        if (is_uf1_tall) {
-            // UF1 Tall format (8x16)
-            // Each row is 8 bits = 2 hex digits
-            int bytes_per_tile = 8;
+        // Standard UF1 (8x8)
+        // For BDF, we need to pad each row to an even number of hex digits
+        // For an 8x8 glyph, each row is already 8 bits, which is 2 hex digits
+        for (int y = 0; y < 8; y++) {
+            if (offset + y >= font_data.length) break;
             
-            for (int y = 0; y < 16; y++) {
-                int tile_idx = y / 8; // 0 for top half, 1 for bottom half
-                int row_in_tile = y % 8;
-                
-                // Calculate offset for this row
-                int row_offset = offset + (tile_idx * bytes_per_tile) + row_in_tile;
-                
-                if (row_offset >= font_data.length) break;
-                
+            stream.put_string("%02X\n".printf(font_data[offset + y]));
+        }
+        
+        // If we're exporting to a 16-height BDF, pad with zeros
+        if (GLYPH_HEIGHT > 8) {
+            for (int y = 8; y < GLYPH_HEIGHT; y++) {
+                stream.put_string("00\n");
+            }
+        }
+    }
+    
+    private void write_uf1_tall_bitmap(DataOutputStream stream, int offset) 
+        throws IOError {
+        // UF1 Tall format (8x16)
+        // Each row is 8 bits = 2 hex digits
+        int bytes_per_tile = 8;
+        
+        for (int y = 0; y < 16; y++) {
+            int tile_idx = y / 8; // 0 for top half, 1 for bottom half
+            int row_in_tile = y % 8;
+            
+            // Calculate offset for this row, following the tile drawing order
+            int tile_order_idx = DRAWING_ORDER_UF1_TALL[tile_idx];
+            int row_offset = offset + (tile_order_idx * bytes_per_tile) + row_in_tile;
+            
+            if (row_offset >= font_data.length) {
+                stream.put_string("00\n");
+            } else {
                 stream.put_string("%02X\n".printf(font_data[row_offset]));
             }
-        } else {
-            // Standard UF1 (8x8)
-            // For BDF, we need to pad each row to an even number of hex digits
-            // For an 8x8 glyph, each row is already 8 bits, which is 2 hex digits
-            for (int y = 0; y < 8; y++) {
-                if (offset + y >= font_data.length) break;
-                
-                stream.put_string("%02X\n".printf(font_data[offset + y]));
+        }
+        
+        // If we're exporting to a taller BDF, pad with zeros
+        if (GLYPH_HEIGHT > 16) {
+            for (int y = 16; y < GLYPH_HEIGHT; y++) {
+                stream.put_string("00\n");
             }
         }
     }
@@ -258,18 +280,16 @@ public class FontUtils {
             int row_in_tile = y % 8; // Row within the current 8x8 tile
             
             // For each 16-pixel row, we need data from two tiles side by side
-            int left_tile_idx = (tile_row == 0) ? 0 : 2;
-            int right_tile_idx = (tile_row == 0) ? 1 : 3;
+            int left_tile_idx = tile_row * 2;
+            int right_tile_idx = tile_row * 2 + 1;
             
             // Adjust for the drawing order
-            left_tile_idx = DRAWING_ORDER_UF2[tile_row * 2];
-            right_tile_idx = DRAWING_ORDER_UF2[tile_row * 2 + 1];
+            left_tile_idx = DRAWING_ORDER_UF2[left_tile_idx];
+            right_tile_idx = DRAWING_ORDER_UF2[right_tile_idx];
             
             // Calculate offsets for the two tiles
-            int left_offset = offset + (left_tile_idx * bytes_per_tile) + 
-                             row_in_tile;
-            int right_offset = offset + (right_tile_idx * bytes_per_tile) + 
-                              row_in_tile;
+            int left_offset = offset + (left_tile_idx * bytes_per_tile) + row_in_tile;
+            int right_offset = offset + (right_tile_idx * bytes_per_tile) + row_in_tile;
             
             // Get the byte data
             uint8 left_byte = (left_offset < font_data.length) ? 
@@ -279,6 +299,13 @@ public class FontUtils {
             
             // Output the combined 16 bits (4 hex digits)
             stream.put_string("%02X%02X\n".printf(left_byte, right_byte));
+        }
+        
+        // If we're exporting to a taller BDF, pad with zeros
+        if (GLYPH_HEIGHT > 16) {
+            for (int y = 16; y < GLYPH_HEIGHT; y++) {
+                stream.put_string("0000\n");
+            }
         }
     }
     
@@ -297,13 +324,15 @@ public class FontUtils {
             int middle_tile_idx = tile_row * 3 + 1; // 1, 4, or 7
             int right_tile_idx = tile_row * 3 + 2; // 2, 5, or 8
             
+            // Adjust for the drawing order
+            left_tile_idx = DRAWING_ORDER_UF3[left_tile_idx];
+            middle_tile_idx = DRAWING_ORDER_UF3[middle_tile_idx];
+            right_tile_idx = DRAWING_ORDER_UF3[right_tile_idx];
+            
             // Calculate offsets for the three tiles
-            int left_offset = offset + (left_tile_idx * bytes_per_tile) + 
-                             row_in_tile;
-            int middle_offset = offset + (middle_tile_idx * bytes_per_tile) + 
-                               row_in_tile;
-            int right_offset = offset + (right_tile_idx * bytes_per_tile) + 
-                              row_in_tile;
+            int left_offset = offset + (left_tile_idx * bytes_per_tile) + row_in_tile;
+            int middle_offset = offset + (middle_tile_idx * bytes_per_tile) + row_in_tile;
+            int right_offset = offset + (right_tile_idx * bytes_per_tile) + row_in_tile;
             
             // Get the byte data
             uint8 left_byte = (left_offset < font_data.length) ? 
@@ -331,7 +360,7 @@ public class FontUtils {
         if (data_size <= 0) return 0;
         
         // Calculate total number of glyphs in the file
-        int total_glyphs = (int)(data_size / bytes_per_glyph);
+        int total_glyphs = data_size / bytes_per_glyph;
         
         // Return total glyphs + 32 (to include the ASCII control characters)
         // This represents the total character range from 0-255
@@ -455,13 +484,13 @@ public class FontUtils {
         // Coordinates for each tile relative to glyph origin
         int[,] tile_coords = {
             {0, 0},    // Tile 0 (top-left)
-            {0, 8},    // Tile 1 (top-middle)
-            {0, 16},   // Tile 2 (top-right)
-            {8, 0},    // Tile 3 (middle-left)
+            {8, 0},    // Tile 1 (top-middle)
+            {16, 0},   // Tile 2 (top-right)
+            {0, 8},    // Tile 3 (middle-left)
             {8, 8},    // Tile 4 (middle-middle)
-            {8, 16},   // Tile 5 (middle-right)
-            {16, 0},   // Tile 6 (bottom-left)
-            {16, 8},   // Tile 7 (bottom-middle)
+            {16, 8},   // Tile 5 (middle-right)
+            {0, 16},   // Tile 6 (bottom-left)
+            {8, 16},   // Tile 7 (bottom-middle)
             {16, 16}   // Tile 8 (bottom-right)
         };
         
