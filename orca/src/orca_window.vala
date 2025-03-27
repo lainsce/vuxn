@@ -622,6 +622,12 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+                    } else if (is_data) {
+                        // Data cells
+                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
+                    } else if (is_commented) {
+                        // Commented cells
+                        cr.set_source_rgb(0.5, 0.5, 0.5);
                     } else if (is_t_active_input) {
                         // Active input to T operator - accent text color
                         cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
@@ -647,18 +653,12 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if (is_data) {
-                        // Data cells
-                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     } else if (outputs_bang(x, y) || (is_operator && !is_commented)) {
                         // Operators
                         cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
                         cr.rectangle(pos_x, pos_y, cell_width, cell_height);
                         cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if (is_commented) {
-                        // Commented cells
-                        cr.set_source_rgb(0.5, 0.5, 0.5);
                     } else {
                         // Default case
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
