@@ -297,6 +297,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         close_button.valign = Gtk.Align.CENTER;
         close_button.margin_start = 8;
         close_button.margin_top = 8;
+        close_button.margin_bottom = 8;
         close_button.clicked.connect(() => {
             close();
         });
