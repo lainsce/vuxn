@@ -972,10 +972,10 @@ namespace Theme {
             // Build CSS with modern string builder pattern
             sb.assign("");
             // Fixed mapping:
-	    sb.append_printf("@define-color theme_bg #%s;\n", colors[0]);
-	    sb.append_printf("@define-color theme_fg #%s;\n", colors[1]);
-	    sb.append_printf("@define-color theme_accent #%s;\n", colors[2]);
-	    sb.append_printf("@define-color theme_selection #%s;", colors[3]);
+            sb.append_printf("@define-color theme_bg #%s;\n", colors[0]);
+            sb.append_printf("@define-color theme_fg #%s;\n", colors[1]);
+            sb.append_printf("@define-color theme_accent #%s;\n", colors[2]);
+            sb.append_printf("@define-color theme_selection #%s;", colors[3]);
 
             string css = sb.str;
 
@@ -1093,10 +1093,10 @@ namespace Theme {
   <style name="text" foreground="fg" background="bg"/>
   <style name="cursor" foreground="accent"/>
   <style name="selection" background="accent"/>
-  <style name="current-line" background="selection" foreground="fg"/>
+  <style name="current-line" background="bg" foreground="selection"/>
   <style name="line-numbers" foreground="accent" background="bg"/>
   <style name="right-margin" foreground="fg" background="bg"/>
-  <style name="bracket-match" foreground="bg" background="fg"/>
+  <style name="bracket-match" foreground="fg" background="bg"/>
   <style name="bracket-mismatch" foreground="bg" background="fg"/>
   <style name="search-match" foreground="bg" background="accent"/>
 
