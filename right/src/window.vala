@@ -41,9 +41,24 @@ public class Window : He.ApplicationWindow {
         height_request = 600;
         width_request = 800;
 
-        // Setup main toolbar
+        // Setup main toolbar that will also act as titlebar
         var toolbar = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
         toolbar.add_css_class ("toolbar");
+
+        // Close button on the left
+        var close_button = new Gtk.Button ();
+        close_button.add_css_class ("close-button");
+        close_button.tooltip_text = "Close";
+        close_button.valign = Gtk.Align.CENTER;
+        close_button.clicked.connect (() => {
+            if (has_unsaved_changes () && !confirm_discard_changes ()) {
+                return;
+            }
+            this.close ();
+        });
+
+        // Add close button first
+        toolbar.append (close_button);
 
         // File menu
         var file_menu = new Gtk.MenuButton ();
@@ -98,13 +113,28 @@ public class Window : He.ApplicationWindow {
         view_menu_model.append ("Toggle Terminal", "app.toggle_terminal");
         view_menu.set_menu_model (view_menu_model);
 
+        // Add menu buttons
         toolbar.append (file_menu);
         toolbar.append (edit_menu);
         toolbar.append (search_menu);
         toolbar.append (view_menu);
 
+        // Create title label
+        title_label = new Gtk.Label (window_title);
+        title_label.add_css_class ("title-box");
+        title_label.hexpand = true;
+        title_label.valign = Gtk.Align.CENTER;
+        title_label.halign = Gtk.Align.START;
+
+        // Add title label
+        toolbar.append (title_label);
+
+        // Wrap toolbar in a WindowHandle to make it draggable
+        var winhandle = new Gtk.WindowHandle ();
+        winhandle.set_child (toolbar);
+
         // Setup unified search bar
-        setup_unified_search_bar();
+        setup_unified_search_bar ();
 
         // Setup text view
         setup_source_view ();
@@ -129,7 +159,7 @@ public class Window : He.ApplicationWindow {
 
         // Set minimal width for the symbol browser
         symbol_tree.set_size_request (200, -1);
-        
+
         // Hide symbol tree by default - only show when relevant
         symbol_tree.visible = false;
 
@@ -139,8 +169,7 @@ public class Window : He.ApplicationWindow {
 
         // Main layout
         var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
-        vbox.append (create_titlebar ());
-        vbox.append (toolbar);
+        vbox.append (winhandle);
         vbox.append (unified_search_bar);
         vbox.append (main_paned);
 
@@ -158,83 +187,83 @@ public class Window : He.ApplicationWindow {
         setup_actions ();
     }
 
-    private void setup_unified_search_bar() {
+    private void setup_unified_search_bar () {
         // Create unified search bar
-        unified_search_bar = new Gtk.SearchBar();
-        unified_search_bar.add_css_class("searchbar");
-        unified_search_bar.set_search_mode(false);
+        unified_search_bar = new Gtk.SearchBar ();
+        unified_search_bar.add_css_class ("searchbar");
+        unified_search_bar.set_search_mode (false);
 
         // Main container for all search bar content
-        var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        
+        var main_box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+
         // Top box for search functionality
-        var search_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
+        var search_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
         search_box.valign = Gtk.Align.CENTER;
         search_box.margin_start = search_box.margin_end = 4;
-        
+
         // Search entry
-        search_entry = new Gtk.Entry();
+        search_entry = new Gtk.Entry ();
         search_entry.valign = Gtk.Align.CENTER;
-        search_entry.set_placeholder_text("Search text...");
-        search_entry.set_hexpand(true);
-        search_entry.activate.connect(find_next);
+        search_entry.set_placeholder_text ("Search text...");
+        search_entry.set_hexpand (true);
+        search_entry.activate.connect (find_next);
 
         // Search buttons
-        var find_prev_button = new Gtk.Button.with_label("Prev");
+        var find_prev_button = new Gtk.Button.with_label ("Prev");
         find_prev_button.valign = Gtk.Align.CENTER;
-        find_prev_button.clicked.connect(find_previous);
-        
-        var find_next_button = new Gtk.Button.with_label("Next");
+        find_prev_button.clicked.connect (find_previous);
+
+        var find_next_button = new Gtk.Button.with_label ("Next");
         find_next_button.valign = Gtk.Align.CENTER;
-        find_next_button.clicked.connect(find_next);
-        
+        find_next_button.clicked.connect (find_next);
+
         // Close button
-        var close_button = new Gtk.Button.from_icon_name("window-close-symbolic");
+        var close_button = new Gtk.Button.from_icon_name ("window-close-symbolic");
         close_button.valign = Gtk.Align.CENTER;
-        close_button.clicked.connect(() => {
-            unified_search_bar.set_search_mode(false);
+        close_button.clicked.connect (() => {
+            unified_search_bar.set_search_mode (false);
         });
 
         // Add everything to the search box
-        search_box.append(search_entry);
-        search_box.append(find_prev_button);
-        search_box.append(find_next_button);
-        search_box.append(close_button);
+        search_box.append (search_entry);
+        search_box.append (find_prev_button);
+        search_box.append (find_next_button);
+        search_box.append (close_button);
 
         // Bottom box for replace functionality
-        replace_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
+        replace_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
         replace_box.valign = Gtk.Align.CENTER;
         replace_box.margin_start = replace_box.margin_end = 4;
         replace_box.margin_top = 4;
         replace_box.margin_bottom = 4;
         replace_box.visible = false; // Hidden by default
-        
+
         // Replace entry
-        replace_entry = new Gtk.Entry();
+        replace_entry = new Gtk.Entry ();
         replace_entry.valign = Gtk.Align.CENTER;
-        replace_entry.set_placeholder_text("Replace with...");
-        replace_entry.set_hexpand(true);
+        replace_entry.set_placeholder_text ("Replace with...");
+        replace_entry.set_hexpand (true);
 
         // Replace buttons
-        var replace_button = new Gtk.Button.with_label("Replace");
+        var replace_button = new Gtk.Button.with_label ("Replace");
         replace_button.valign = Gtk.Align.CENTER;
-        replace_button.clicked.connect(replace_current);
-        
-        var replace_all_button = new Gtk.Button.with_label("ReplAll");
+        replace_button.clicked.connect (replace_current);
+
+        var replace_all_button = new Gtk.Button.with_label ("ReplAll");
         replace_all_button.valign = Gtk.Align.CENTER;
-        replace_all_button.clicked.connect(replace_all);
+        replace_all_button.clicked.connect (replace_all);
 
         // Add everything to the replace box
-        replace_box.append(replace_entry);
-        replace_box.append(replace_button);
-        replace_box.append(replace_all_button);
+        replace_box.append (replace_entry);
+        replace_box.append (replace_button);
+        replace_box.append (replace_all_button);
 
         // Stack everything in the main box
-        main_box.append(search_box);
-        main_box.append(replace_box);
+        main_box.append (search_box);
+        main_box.append (replace_box);
 
         // Set the main box as the child of the unified search bar
-        unified_search_bar.set_child(main_box);
+        unified_search_bar.set_child (main_box);
     }
 
     private void setup_actions () {
@@ -335,29 +364,29 @@ public class Window : He.ApplicationWindow {
     }
 
     // Search functions
-    public void show_find_bar() {
-        unified_search_bar.set_search_mode(true);
+    public void show_find_bar () {
+        unified_search_bar.set_search_mode (true);
         replace_mode = false;
         replace_box.visible = false;
-        search_entry.grab_focus();
+        search_entry.grab_focus ();
 
         // Pre-populate with current selection if any
         Gtk.TextIter start, end;
-        if (buffer.get_selection_bounds(out start, out end)) {
-            search_entry.set_text(buffer.get_text(start, end, false));
+        if (buffer.get_selection_bounds (out start, out end)) {
+            search_entry.set_text (buffer.get_text (start, end, false));
         }
     }
 
-    public void show_replace_bar() {
-        unified_search_bar.set_search_mode(true);
+    public void show_replace_bar () {
+        unified_search_bar.set_search_mode (true);
         replace_mode = true;
         replace_box.visible = true;
-        search_entry.grab_focus();
+        search_entry.grab_focus ();
 
         // Pre-populate with current selection if any
         Gtk.TextIter start, end;
-        if (buffer.get_selection_bounds(out start, out end)) {
-            search_entry.set_text(buffer.get_text(start, end, false));
+        if (buffer.get_selection_bounds (out start, out end)) {
+            search_entry.set_text (buffer.get_text (start, end, false));
         }
     }
 
@@ -540,7 +569,7 @@ public class Window : He.ApplicationWindow {
 
         // Only show outline for supported file types
         if (supports_outline) {
-            refresh_symbols();
+            refresh_symbols ();
             symbol_tree.visible = true;
         } else {
             symbol_tree.visible = false;
@@ -552,7 +581,7 @@ public class Window : He.ApplicationWindow {
 
         if (ctrl_pressed) {
             switch (keyval) {
-            case Gdk.Key.f:
+            case Gdk.Key.f :
                 show_find_bar ();
                 return true;
 
@@ -583,11 +612,11 @@ public class Window : He.ApplicationWindow {
             find_next ();
             return true;
         } else if (keyval == Gdk.Key.Escape) {
-            if (unified_search_bar.get_search_mode()) {
-                unified_search_bar.set_search_mode(false);
+            if (unified_search_bar.get_search_mode ()) {
+                unified_search_bar.set_search_mode (false);
                 replace_mode = false;
                 replace_box.visible = false;
-                source_view.grab_focus();
+                source_view.grab_focus ();
                 return true;
             }
         }
@@ -601,40 +630,6 @@ public class Window : He.ApplicationWindow {
                 symbol_tree.update_symbols ();
             }
         }
-    }
-
-    // Title bar
-    private Gtk.Widget create_titlebar () {
-        // Create classic Mac-style title bar
-        var title_bar = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-        title_bar.add_css_class ("title-bar");
-
-        // Close button on the left
-        var close_button = new Gtk.Button ();
-        close_button.add_css_class ("close-button");
-        close_button.tooltip_text = "Close";
-        close_button.valign = Gtk.Align.CENTER;
-        close_button.margin_start = 8;
-        close_button.clicked.connect (() => {
-            if (has_unsaved_changes () && !confirm_discard_changes ()) {
-                return;
-            }
-            this.close ();
-        });
-
-        title_label = new Gtk.Label (window_title);
-        title_label.add_css_class ("title-box");
-        title_label.hexpand = true;
-        title_label.valign = Gtk.Align.CENTER;
-        title_label.halign = Gtk.Align.CENTER;
-
-        title_bar.append (close_button);
-        title_bar.append (title_label);
-
-        var winhandle = new Gtk.WindowHandle ();
-        winhandle.set_child (title_bar);
-
-        return winhandle;
     }
 
     // File operation methods

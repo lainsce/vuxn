@@ -1,7 +1,7 @@
 .toolbar {
     padding: 0;
-    margin: 0;
-    padding-left: 4px;
+    margin: 4px 0;
+    padding-left: 8px;
     border: none;
 }
 
@@ -11,6 +11,11 @@
     border: none;
     box-shadow: none;
     min-height: 16px;
+}
+
+.toolbar .title-box {
+    color: @theme_accent;
+    background: transparent;
 }
 
 popover {
