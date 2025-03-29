@@ -12,6 +12,8 @@
 }
 window {
     background: @theme_bg;
+    color: @theme_fg;
+    box-shadow: 0 0 0 2px @theme_fg;
 }
 
 /* Code editor area */
