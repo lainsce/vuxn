@@ -43,3 +43,9 @@ textview.code-editor {
     border: 1px solid @theme_fg;
     box-shadow: none;
 }
+.close-button:hover {
+    background: @theme_fg;
+}
+.close-button:active {
+    background: @theme_fg;
+}
