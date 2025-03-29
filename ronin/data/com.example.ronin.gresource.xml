@@ -2,6 +2,6 @@
 <gresources>
   <gresource prefix="/com/example/ronin/">
     <file alias="style.css">style.css</file>
-    <file>prelude.lisp</file>
+    <file alias="prelude.lisp">prelude.lisp</file>
   </gresource>
 </gresources>

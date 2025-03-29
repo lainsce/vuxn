@@ -1,22 +1,27 @@
 # Compile the GResource file
 ronin_resources = gnome.compile_resources(
-  app_id,
-  app_id + '.gresource.xml',
-  gresource_bundle: true,
-  install: true,
-  install_dir: get_option('datadir') / 'ronin',
+  'com.example.ronin.gresource.xml',
+  'com.example.ronin.gresource.xml',
+  source_dir: meson.current_build_dir(),
+  c_name: 'resources',
+  install_dir: get_option('datadir') / 'com.example.ronin',
+)
+
+add_project_arguments(
+  '--gresourcesdir', meson.current_build_dir(),
+  language: ['vala'],
 )
 
 # Install prelude
 install_data(
   'prelude.lisp',
-  install_dir: get_option('datadir') / 'ronin',
+  install_dir: get_option('datadir') / 'com.example.ronin',
 )
 
 # Install desktop file
 desktop_file = i18n.merge_file(
-  input: app_id + '.desktop.in',
-  output: app_id + '.desktop',
+  input: 'com.example.ronin.desktop.in',
+  output: 'com.example.ronin.desktop',
   type: 'desktop',
   po_dir: '../po',
   install: true,
@@ -31,6 +36,6 @@ endif
 
 # Install icons
 install_data(
-  'icons' / app_id + '.svg',
+  'icons' / 'com.example.ronin.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )

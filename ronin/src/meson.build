@@ -9,8 +9,9 @@ ronin_deps = dependencies
 
 # Create executable
 executable(
-  meson.project_name(),
-  ronin_sources + ronin_resources,
+  'com.example.ronin',
+  ronin_resources,
+  ronin_sources,
   vala_args: [
     '--target-glib=2.66',
   ],

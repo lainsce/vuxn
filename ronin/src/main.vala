@@ -2,7 +2,7 @@
  * Main application file for Ronin LISP graphics environment
  */
 public class RoninApp : Gtk.Application {
-    // Theme manager instance
+
     private Theme.Manager theme_manager;
 
     public RoninApp () {
@@ -12,31 +12,30 @@ public class RoninApp : Gtk.Application {
         );
     }
 
-    protected override void activate () {
-        var window = new RoninWindow (this);
-        window.present ();
+    protected override void startup () {
+        resource_base_path = "/com/example/ronin";
+
+        base.startup ();
     }
 
-    protected override void startup () {
-        base.startup ();
-
-        // Register resource bundle
-        try {
-            var resource = Resource.load ("data/com.example.ronin.gresource");
-            resources_register (resource);
-        } catch (Error e) {
-            warning ("Failed to register resource: %s", e.message);
-        }
-
-        // Initialize the theme manager
+    protected override void activate () {
+        // Get the theme manager instance
         theme_manager = Theme.Manager.get_default ();
-
-        // Apply the theme to the display
         theme_manager.apply_to_display ();
 
-        theme_manager.theme_changed.connect (() => {
-            print ("Theme changed\n");
-        });
+        // Load CSS
+        var provider = new Gtk.CssProvider ();
+        provider.load_from_resource ("/com/example/ronin/style.css");
+
+        // Apply CSS to the app
+        Gtk.StyleContext.add_provider_for_display (
+                                                   Gdk.Display.get_default (),
+                                                   provider,
+                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+
+        var window = new RoninWindow (this);
+        window.present ();
     }
 
     public static int main (string[] args) {
@@ -67,32 +66,21 @@ public class RoninWindow : Gtk.ApplicationWindow {
     public RoninWindow (RoninApp app) {
         Object (application: app);
 
-        print ("Creating RoninWindow...\n");
         set_default_size (900, 600);
         set_title ("Ronin");
 
+        var _tmp = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+        _tmp.visible = false;
+        titlebar = _tmp;
+
         // Get the theme manager instance
         theme_manager = Theme.Manager.get_default ();
-
         // Connect to theme change events to update UI
         theme_manager.theme_changed.connect (() => {
             // Queue a redraw of the canvas and status bar when theme changes
             canvas_area.queue_draw ();
             status_bar_area.queue_draw ();
         });
-
-        var provider = new Gtk.CssProvider ();
-        try {
-            provider.load_from_resource ("/com/example/ronin/style.css");
-            Gtk.StyleContext.add_provider_for_display (
-                                                       display,
-                                                       provider,
-                                                       Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
-            );
-            print ("Loaded CSS from resources\n");
-        } catch (Error e) {
-            warning ("Failed to load CSS: %s", e.message);
-        }
 
         // Initialize Ronin context for drawing operations first
         print ("Initializing RoninContext...\n");
@@ -191,6 +179,7 @@ public class RoninWindow : Gtk.ApplicationWindow {
         // Left side (code editor + status)
         left_pane = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
         left_pane.set_size_request (300, -1);
+        left_pane.append (create_titlebar ());
 
         // Code editor
         code_view = new Gtk.TextView ();
@@ -236,6 +225,33 @@ public class RoninWindow : Gtk.ApplicationWindow {
 
         // Set the main paned as the window's child
         set_child (main_box);
+    }
+
+    private Gtk.Widget create_titlebar () {
+        var title_bar = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+        title_bar.width_request = 300;
+
+        // Create close button
+        var close_button = new Gtk.Button ();
+        close_button.add_css_class ("close-button");
+        close_button.tooltip_text = "Close";
+        close_button.valign = Gtk.Align.CENTER;
+        close_button.margin_start = 8;
+        close_button.margin_top = 8;
+        close_button.clicked.connect (() => {
+            close ();
+        });
+
+        title_bar.append (close_button);
+
+        var winhandle = new Gtk.WindowHandle ();
+        winhandle.set_child (title_bar);
+
+        // Create vertical layout
+        var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+        vbox.append (winhandle);
+
+        return vbox;
     }
 
     private int64 get_monotonic_time () {

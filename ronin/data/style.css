@@ -4,7 +4,7 @@
     padding: 0;
     border: 0;
     border-radius: 0;
-    font-size: 14px;
+    font-size: 16px;
     font: inherit;
     box-shadow: none;
     border: none;
@@ -16,24 +16,28 @@ window {
 
 /* Code editor area */
 textview.code-editor {
-    font-family: "Log";
-    font-size: 16px;
     padding: 8px;
     background: @theme_bg;
     color: @theme_fg;
+    font-family: "Log";
+    font-size: 16px;
 }
 
 /* Canvas area */
 .canvas-area {
     background: @theme_bg;
-    border-left: 1px solid @theme_fg;
 }
 
 /* Status bar */
 .status-bar {
     background: @theme_bg;
-    border-top: 1px solid @theme_fg;
     padding: 4px 8px;
     font-size: 12px;
     color: @theme_fg;
+}
+
+.close-button {
+    background: transparent;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
 }
