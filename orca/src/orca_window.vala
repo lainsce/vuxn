@@ -43,17 +43,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         theme_manager.theme_changed.connect(() => {
             drawing_area.queue_draw();
         });
-
-        // Load CSS
-        var provider = new Gtk.CssProvider();
-        provider.load_from_resource("/com/example/orca/style.css");
-
-        // Apply CSS to the app
-        Gtk.StyleContext.add_provider_for_display(
-                                                  Gdk.Display.get_default(),
-                                                  provider,
-                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 10
-        );
     }
 
     construct {

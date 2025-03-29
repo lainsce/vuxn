@@ -9,12 +9,12 @@ window.csd {
 }
 .close-button {
     background: transparent;
-    border: 1px solid @theme_fg;
+    border: 1px solid @theme_bg;
     box-shadow: none;
 }
 .close-button:hover {
-    background: @theme_fg;
+    background: @theme_bg;
 }
 .close-button:active {
-    background: @theme_fg;
+    background: @theme_bg;
 }
