@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Ronin
+Comment=Procedural Graphics Environment
+Exec=com.example.ronin
+Icon=com.example.ronin
+Terminal=false
+Type=Application
+Categories=Graphics;Development;
+StartupNotify=true
+Keywords=graphics;drawing;programming;lisp;

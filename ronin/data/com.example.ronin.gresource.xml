@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gresources>
+  <gresource prefix="/com/example/ronin/">
+    <file alias="style.css">style.css</file>
+    <file>prelude.lisp</file>
+  </gresource>
+</gresources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="128"
+   height="128"
+   viewBox="0 0 33.866666 33.866666"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient
+       id="paint0_linear"
+       x1="16.933332"
+       y1="1.0583333"
+       x2="16.933332"
+       y2="32.808334"
+       gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3584e4"/>
+      <stop offset="1" stop-color="#1a5fb4"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <!-- Background -->
+    <rect
+       x="1.0583333"
+       y="1.0583333"
+       width="31.75"
+       height="31.75"
+       rx="3.175"
+       fill="url(#paint0_linear)"
+       stroke="#ffffff"
+       stroke-width="0.529167" />
+
+    <!-- R symbol -->
+    <path
+       d="m 8.4666666,8.4666666 v 16.9333334 h 2.6458334 v -7.408334 h 2.116666 c 0.529167,0 1.058334,0.264584 1.5875,0.79375 l 5.291667,6.614584 h 3.175 L 17.727083,18.256251 c -0.79375,-0.79375 -1.5875,-1.322917 -2.38125,-1.5875 1.5875,-0.529166 2.645833,-1.852083 2.645833,-3.439583 0,-2.116667 -1.5875,-4.7625004 -4.233333,-4.7625004 z m 2.6458334,2.1166664 h 3.439583 c 1.058334,0 1.852084,0.79375 1.852084,1.852084 0,1.058333 -0.79375,1.852083 -1.852084,1.852083 h -3.439583 z"
+       fill="#ffffff" />
+  </g>
+</svg>
