@@ -1,9 +1,20 @@
-/* Global styles */
+/**
+ * Classic Mac OS-style theme for GTK4
+ * -----------------------------------
+ * A retro theme with sharp edges and classic aesthetics
+ */
+
+/* ==========================================================================
+   COLOR DEFINITIONS
+   ========================================================================== */
 @define-color theme_bg #FFFFFF;
 @define-color theme_fg #000000;
 @define-color theme_selection #FFBB66;
 @define-color theme_accent #77DDCC;
 
+/* ==========================================================================
+   GLOBAL RESET & DEFAULTS
+   ========================================================================== */
 * {
     border-radius: 0;
     -gtk-icon-style: symbolic;
@@ -18,8 +29,8 @@
 }
 
 .monospace {
-    font-family: "Monaco";
-    font-size: 12px;
+    font-family: "Log";
+    font-size: 16px;
 }
 
 .background {
@@ -27,7 +38,32 @@
     color: @theme_fg;
 }
 
-/* Header bar (title bar) */
+/* ==========================================================================
+   WINDOW & CONTAINERS
+   ========================================================================== */
+window {
+    color: @theme_fg;
+    box-shadow: 0 0 0 2px @theme_fg;
+}
+
+dialog {
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+frame {
+    border: 1px solid @theme_fg;
+}
+
+separator {
+    background: @theme_fg;
+    min-height: 1px;
+    min-width: 1px;
+}
+
+/* ==========================================================================
+   HEADER & TITLE BARS
+   ========================================================================== */
 headerbar {
     background: @theme_selection;
     color: @theme_fg;
@@ -42,359 +78,6 @@ headerbar button.titlebutton {
     border: 1px solid @theme_fg;
     padding: 2px;
     margin: 2px;
-}
-
-/* Regular buttons */
-button {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-    padding: 4px 8px;
-    min-height: 16px;
-}
-
-button:hover {
-    background: @theme_selection;
-}
-
-button:active,
-button:checked {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Checkboxes and radio buttons */
-check,
-radio {
-    border: 1px solid @theme_fg;
-    min-width: 11px;
-    min-height: 11px;
-}
-
-check:checked,
-radio:checked {
-    background: @theme_accent;
-}
-
-/* Lists and trees */
-treeview,
-listview {
-    background: @theme_bg;
-    color: @theme_fg;
-}
-
-treeview:selected,
-listview:selected,
-row:selected {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Toggle buttons */
-button.toggle {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-}
-
-button.toggle:checked {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Text entries */
-entry {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-    padding: 4px;
-}
-
-entry:focus {
-    border: 1px solid @theme_accent;
-}
-
-/* Scrollbars - Classic Mac style */
-scrollbar {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-}
-
-scrollbar slider {
-    background: @theme_selection;
-    min-width: 4px;
-    min-height: 16px;
-}
-
-scrollbar slider:hover {
-    background: @theme_accent;
-    min-width: 16px;
-    min-height: 16px;
-}
-
-/* Classic Mac-style menu bar */
-menubar {
-    background: @theme_bg;
-    border-bottom: 1px solid @theme_fg;
-    padding: 1px;
-}
-
-menubar > menuitem {
-    padding: 1px 6px;
-}
-
-menubar > menuitem:hover {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-menu {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-    padding: 1px;
-}
-
-menu menuitem {
-    padding: 4px 6px;
-}
-
-menu menuitem:hover {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Notebooks (tabs) */
-notebook > header {
-    background: @theme_bg;
-    border-bottom: 1px solid @theme_fg;
-}
-
-notebook > header > tabs > tab {
-    background: @theme_selection;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-    padding: 4px 8px;
-}
-
-notebook > header > tabs > tab:checked {
-    background: @theme_bg;
-    border-bottom-color: @theme_bg;
-}
-
-/* Progress bars */
-progressbar trough {
-    background: @theme_bg;
-    min-height: 11px;
-}
-
-progressbar progress {
-    background: @theme_accent;
-}
-
-/* Sliders */
-scale trough {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-    min-height: 8px;
-    min-width: 8px;
-}
-
-scale slider {
-    background: @theme_selection;
-    border: 1px solid @theme_fg;
-    min-height: 16px;
-    min-width: 16px;
-}
-
-/* Frames and separators */
-frame {
-    border: 1px solid @theme_fg;
-}
-
-separator {
-    background: @theme_fg;
-    min-height: 1px;
-    min-width: 1px;
-}
-
-/* Dialogs */
-dialog {
-    border: 1px solid @theme_fg;
-}
-
-/* Tooltips */
-tooltip {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-}
-
-textview {
-    color: @theme_fg;
-    font-family: "Luxi Mono";
-    font-size: 14px;
-    background: @theme_bg;
-}
-
-textview text {
-    color: @theme_fg;
-    background: transparent;
-}
-
-textview:selected,
-textview text:selected {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Classic Mac-style text cursor */
-textview text {
-    caret-color: @theme_fg;
-}
-
-/* Combobox (dropdown) */
-combobox button.combo {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-}
-
-combobox menu {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-}
-
-combobox menu menuitem:hover {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Spinbutton */
-spinbutton {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-}
-
-spinbutton button {
-    border: none;
-    border-left: 1px solid @theme_fg;
-    margin: 0;
-    min-height: 0;
-    min-width: 0;
-    padding: 2px 4px;
-}
-
-/* Calendar */
-calendar {
-    background: @theme_bg;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-}
-
-calendar:selected {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-calendar.header {
-    background: @theme_selection;
-    color: @theme_fg;
-}
-
-/* Switch */
-switch {
-    background: @theme_selection;
-    border: 1px solid @theme_fg;
-}
-
-switch:checked {
-    background: @theme_accent;
-}
-
-switch slider {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-}
-
-/* InfoBar */
-infobar {
-    background: @theme_selection;
-    color: @theme_fg;
-    border: 1px solid @theme_fg;
-}
-
-infobar.warning {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Popover */
-popover {
-    background: @theme_bg;
-    border: 1px solid @theme_fg;
-}
-
-/* Link */
-*:link {
-    color: @theme_accent;
-}
-
-*:visited {
-    color: @theme_accent;
-}
-
-*:link:hover {
-    text-decoration: underline;
-}
-
-/* Sidebar */
-sidebar {
-    background: @theme_selection;
-    color: @theme_fg;
-    border-right: 1px solid @theme_fg;
-}
-
-sidebar list {
-    background: transparent;
-}
-
-sidebar row:selected {
-    background: @theme_accent;
-    color: @theme_bg;
-}
-
-/* Search entry */
-searchbar {
-    background: @theme_bg;
-    border-bottom: 1px solid @theme_fg;
-}
-
-/* Toolbar */
-toolbar {
-    background: @theme_bg;
-    border-bottom: 1px solid @theme_fg;
-    padding: 4px;
-}
-
-/* ActionBar */
-actionbar {
-    background: @theme_selection;
-    border-top: 1px solid @theme_fg;
-    padding: 4px;
-}
-
-/* Statusbar */
-statusbar {
-    background: @theme_bg;
-    border-top: 1px solid @theme_fg;
-    padding: 2px;
-    font-size: 0.9em;
-}
-
-/* Custom GTK stuff */
-window {
-    color: @theme_fg;
-    box-shadow: 0 0 0 2px @theme_fg;
 }
 
 .title-bar {
@@ -456,4 +139,592 @@ window {
 .close-button:hover,
 .close-button:active {
     color: @theme_fg;
+}
+
+/* ==========================================================================
+   BUTTONS & INTERACTIVE CONTROLS
+   ========================================================================== */
+button {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    min-height: 16px;
+}
+
+button:hover {
+    background: @theme_selection;
+}
+
+button:active,
+button:checked {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Toggle buttons */
+button.toggle {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+button.toggle:checked {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* Checkboxes and radio buttons */
+check,
+radio {
+    border: 1px solid @theme_fg;
+    min-width: 11px;
+    min-height: 11px;
+}
+
+check:checked,
+radio:checked {
+    background: @theme_accent;
+}
+
+/* Switch */
+switch {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+}
+
+switch:checked {
+    background: @theme_accent;
+}
+
+switch slider {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Scales and sliders */
+scale trough {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    min-height: 8px;
+    min-width: 8px;
+}
+
+scale slider {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    min-height: 16px;
+    min-width: 16px;
+}
+
+/* Spinbutton */
+spinbutton {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+spinbutton button {
+    border: none;
+    border-left: 1px solid @theme_fg;
+    margin: 0;
+    min-height: 0;
+    min-width: 0;
+    padding: 4px;
+}
+
+/* Progress bars */
+progressbar trough {
+    background: @theme_bg;
+    min-height: 11px;
+    border: 1px solid @theme_fg;
+}
+
+progressbar progress {
+    background: @theme_accent;
+    border: none;
+}
+
+/* Level bar */
+levelbar trough {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    min-height: 10px;
+}
+
+levelbar block {
+    background: @theme_accent;
+    border: none;
+}
+
+levelbar block.high,
+levelbar block.low {
+    background: @theme_selection;
+}
+
+/* Color button */
+colorbutton {
+    border: 1px solid @theme_fg;
+}
+
+/* ==========================================================================
+   TEXT & ENTRY CONTROLS
+   ========================================================================== */
+entry {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+entry:focus {
+    border: 1px solid @theme_accent;
+}
+
+textview {
+    color: @theme_fg;
+    font-family: "Log";
+    font-size: 16px;
+    background: @theme_bg;
+}
+
+textview text {
+    color: @theme_fg;
+    background: transparent;
+}
+
+textview:selected,
+textview text:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+textview text {
+    caret-color: @theme_fg;
+}
+
+/* Search entry */
+searchbar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+}
+
+/* ==========================================================================
+   MENUS & POPOVERS
+   ========================================================================== */
+/* Classic Mac-style menu bar */
+menubar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+menubar > menuitem {
+    padding: 4px 0;
+}
+
+menubar > menuitem > label {
+    padding: 0 4px;
+}
+
+menubar > menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+menu {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    padding: 4px 0;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+menu menuitem {
+    padding: 4px 0;
+}
+
+menu menuitem > label {
+    padding: 0 4px;
+}
+
+menu menuitem:hover,
+popover menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Popover */
+popover {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover > contents {
+    padding: 4px;
+}
+
+popover menuitem {
+    padding: 4px 0;
+}
+
+popover menuitem > label {
+    padding: 0 4px;
+}
+
+/* Combobox (dropdown) */
+combobox button.combo {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+combobox menu {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+combobox menu menuitem {
+    padding: 4px 0;
+}
+
+combobox menu menuitem > label {
+    padding: 0 4px;
+}
+
+combobox menu menuitem:hover {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+combobox > popover {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+/* Drop-down (popover) */
+dropdown {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+dropdown arrow {
+    color: @theme_fg;
+    background: @theme_bg;
+}
+
+dropdown popover {
+    padding: 0;
+}
+
+dropdown popover > contents {
+    padding: 0;
+}
+
+dropdown popover menuitem {
+    padding: 4px 0;
+}
+
+dropdown popover menuitem > label {
+    padding: 0 4px;
+}
+
+/* Tooltips */
+tooltip {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+/* ==========================================================================
+   LISTS, TREES & DATA VIEWS
+   ========================================================================== */
+treeview,
+listview {
+    background: @theme_bg;
+    color: @theme_fg;
+}
+
+treeview:selected,
+listview:selected,
+row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+listview row {
+    padding: 4px;
+    margin: 0;
+}
+
+/* ListView in GTK4 */
+listview.navigation-sidebar {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* FlowBox */
+flowbox {
+    background: @theme_bg;
+}
+
+flowbox flowboxchild {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+flowbox flowboxchild:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* ==========================================================================
+   SCROLLBARS
+   ========================================================================== */
+scrollbar {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+scrollbar slider {
+    background: @theme_selection;
+    min-width: 4px;
+    min-height: 16px;
+    border: none;
+}
+
+scrollbar slider:hover {
+    background: @theme_accent;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* Overlay scrolling */
+overshoot {
+    background: transparent;
+}
+
+undershoot {
+    background: transparent;
+}
+
+/* ==========================================================================
+   NOTEBOOKS & TABS
+   ========================================================================== */
+notebook > header {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+}
+
+notebook > header > tabs > tab {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+notebook > header > tabs > tab:checked {
+    background: @theme_bg;
+    border-bottom-color: @theme_bg;
+}
+
+/* Stack switcher */
+stackswitcher {
+    background: @theme_bg;
+}
+
+stackswitcher button {
+    margin: 4px;
+}
+
+/* ==========================================================================
+   TOOLBARS & STATUS BARS
+   ========================================================================== */
+toolbar {
+    background: @theme_bg;
+    border-bottom: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* ActionBar */
+actionbar {
+    background: @theme_selection;
+    border-top: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Statusbar */
+statusbar {
+    background: @theme_bg;
+    border-top: 1px solid @theme_fg;
+    padding: 4px;
+    font-size: 0.9em;
+}
+
+/* InfoBar */
+infobar {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+infobar.warning {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* ==========================================================================
+   SIDEBARS & NAVIGATION
+   ========================================================================== */
+sidebar {
+    background: @theme_selection;
+    color: @theme_fg;
+    border-right: 1px solid @theme_fg;
+}
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* GTK4 specific navigation elements */
+navigationview {
+    background: @theme_bg;
+}
+
+navigationview headerbar {
+    background: @theme_selection;
+}
+
+/* GTK4 Overlay split view */
+overlay splitview {
+    background: @theme_bg;
+}
+
+/* ==========================================================================
+   SPECIALIZED WIDGETS
+   ========================================================================== */
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Banner */
+banner {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Drop Target */
+.drop-target {
+    background: @theme_accent;
+    border: 1px dashed @theme_fg;
+}
+
+/* Shortcuts window */
+shortcuts-section {
+    padding: 4px;
+    margin: 4px;
+}
+
+shortcuts-group {
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Inspector for GTK4 */
+inspector-overlay {
+    border: 1px dashed @theme_accent;
+}
+
+/* Emoji chooser */
+emoji-chooser {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+emoji-chooser button:checked {
+    background: @theme_accent;
+}
+
+/* Picture */
+picture {
+    background: @theme_bg;
+}
+
+/* Spinner */
+spinner {
+    color: @theme_accent;
+}
+
+/* Maps */
+map {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Toast notifications */
+toast {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+toast button {
+    margin: 4px;
+}
+
+/* Center box (for header bars) */
+centerbox {
+    background: transparent;
+}
+
+/* Link styling */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Classic Mac drop shadows for overlay elements */
+.overlay-ui {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover.combo {
+    box-shadow: 2px 2px 0 @theme_fg;
 }
