@@ -103,7 +103,151 @@ headerbar button.titlebutton {
                 @theme_accent 6px,
                 @theme_accent 7px,
                 @theme_fg 7px,
-                @theme_fg 8px,
+                
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* GTK4 specific navigation elements */
+navigationview {
+    background: @theme_bg;
+}
+
+navigationview headerbar {
+    background: @theme_selection;
+}
+
+/* GTK4 Overlay split view */
+overlay splitview {
+    background: @theme_bg;
+}
+
+/* ==========================================================================
+   SPECIALIZED WIDGETS
+   ========================================================================== */
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Banner */
+banner {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Drop Target */
+.drop-target {
+    background: @theme_accent;
+    border: 1px dashed @theme_fg;
+}
+
+/* Shortcuts window */
+shortcuts-section {
+    padding: 4px;
+    margin: 4px;
+}
+
+shortcuts-group {
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Inspector for GTK4 */
+inspector-overlay {
+    border: 1px dashed @theme_accent;
+}
+
+/* Emoji chooser */
+emoji-chooser {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+emoji-chooser button:checked {
+    background: @theme_accent;
+}
+
+/* Picture */
+picture {
+    background: @theme_bg;
+}
+
+/* Spinner */
+spinner {
+    color: @theme_accent;
+}
+
+/* Maps */
+map {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Toast notifications */
+toast {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+toast button {
+    margin: 4px;
+}
+
+/* Center box (for header bars) */
+centerbox {
+    background: transparent;
+}
+
+/* Link styling */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Classic Mac drop shadows for overlay elements */
+.overlay-ui {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover.combo {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+@theme_fg 8px,
                 @theme_accent 8px,
                 @theme_accent 9px,
                 @theme_fg 9px,
@@ -181,6 +325,150 @@ radio {
     min-height: 11px;
 }
 
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* GTK4 specific navigation elements */
+navigationview {
+    background: @theme_bg;
+}
+
+navigationview headerbar {
+    background: @theme_selection;
+}
+
+/* GTK4 Overlay split view */
+overlay splitview {
+    background: @theme_bg;
+}
+
+/* ==========================================================================
+   SPECIALIZED WIDGETS
+   ========================================================================== */
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Banner */
+banner {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Drop Target */
+.drop-target {
+    background: @theme_accent;
+    border: 1px dashed @theme_fg;
+}
+
+/* Shortcuts window */
+shortcuts-section {
+    padding: 4px;
+    margin: 4px;
+}
+
+shortcuts-group {
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Inspector for GTK4 */
+inspector-overlay {
+    border: 1px dashed @theme_accent;
+}
+
+/* Emoji chooser */
+emoji-chooser {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+emoji-chooser button:checked {
+    background: @theme_accent;
+}
+
+/* Picture */
+picture {
+    background: @theme_bg;
+}
+
+/* Spinner */
+spinner {
+    color: @theme_accent;
+}
+
+/* Maps */
+map {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Toast notifications */
+toast {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+toast button {
+    margin: 4px;
+}
+
+/* Center box (for header bars) */
+centerbox {
+    background: transparent;
+}
+
+/* Link styling */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Classic Mac drop shadows for overlay elements */
+.overlay-ui {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover.combo {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
 check:checked,
 radio:checked {
     background: @theme_accent;
@@ -214,6 +502,150 @@ scale slider {
     border: 1px solid @theme_fg;
     min-height: 16px;
     min-width: 16px;
+}
+
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* GTK4 specific navigation elements */
+navigationview {
+    background: @theme_bg;
+}
+
+navigationview headerbar {
+    background: @theme_selection;
+}
+
+/* GTK4 Overlay split view */
+overlay splitview {
+    background: @theme_bg;
+}
+
+/* ==========================================================================
+   SPECIALIZED WIDGETS
+   ========================================================================== */
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Banner */
+banner {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Drop Target */
+.drop-target {
+    background: @theme_accent;
+    border: 1px dashed @theme_fg;
+}
+
+/* Shortcuts window */
+shortcuts-section {
+    padding: 4px;
+    margin: 4px;
+}
+
+shortcuts-group {
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Inspector for GTK4 */
+inspector-overlay {
+    border: 1px dashed @theme_accent;
+}
+
+/* Emoji chooser */
+emoji-chooser {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+emoji-chooser button:checked {
+    background: @theme_accent;
+}
+
+/* Picture */
+picture {
+    background: @theme_bg;
+}
+
+/* Spinner */
+spinner {
+    color: @theme_accent;
+}
+
+/* Maps */
+map {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Toast notifications */
+toast {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+toast button {
+    margin: 4px;
+}
+
+/* Center box (for header bars) */
+centerbox {
+    background: transparent;
+}
+
+/* Link styling */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Classic Mac drop shadows for overlay elements */
+.overlay-ui {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover.combo {
+    box-shadow: 2px 2px 0 @theme_fg;
 }
 
 /* Spinbutton */
@@ -392,6 +824,150 @@ combobox menu menuitem {
 combobox menu menuitem > label {
     padding: 0 4px;
 }
+
+sidebar list {
+    background: transparent;
+}
+
+sidebar row:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+/* GTK4 specific navigation elements */
+navigationview {
+    background: @theme_bg;
+}
+
+navigationview headerbar {
+    background: @theme_selection;
+}
+
+/* GTK4 Overlay split view */
+overlay splitview {
+    background: @theme_bg;
+}
+
+/* ==========================================================================
+   SPECIALIZED WIDGETS
+   ========================================================================== */
+/* Calendar */
+calendar {
+    background: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+}
+
+calendar:selected {
+    background: @theme_accent;
+    color: @theme_bg;
+}
+
+calendar.header {
+    background: @theme_selection;
+    color: @theme_fg;
+}
+
+/* Banner */
+banner {
+    background: @theme_selection;
+    border: 1px solid @theme_fg;
+    padding: 4px;
+}
+
+/* Drop Target */
+.drop-target {
+    background: @theme_accent;
+    border: 1px dashed @theme_fg;
+}
+
+/* Shortcuts window */
+shortcuts-section {
+    padding: 4px;
+    margin: 4px;
+}
+
+shortcuts-group {
+    border: 1px solid @theme_fg;
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+shortcuts-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Inspector for GTK4 */
+inspector-overlay {
+    border: 1px dashed @theme_accent;
+}
+
+/* Emoji chooser */
+emoji-chooser {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+emoji-chooser button:checked {
+    background: @theme_accent;
+}
+
+/* Picture */
+picture {
+    background: @theme_bg;
+}
+
+/* Spinner */
+spinner {
+    color: @theme_accent;
+}
+
+/* Maps */
+map {
+    background: @theme_bg;
+    border: 1px solid @theme_fg;
+}
+
+/* Toast notifications */
+toast {
+    background: @theme_selection;
+    color: @theme_fg;
+    border: 1px solid @theme_fg;
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+toast button {
+    margin: 4px;
+}
+
+/* Center box (for header bars) */
+centerbox {
+    background: transparent;
+}
+
+/* Link styling */
+*:link {
+    color: @theme_accent;
+}
+
+*:visited {
+    color: @theme_accent;
+}
+
+*:link:hover {
+    text-decoration: underline;
+}
+
+/* Classic Mac drop shadows for overlay elements */
+.overlay-ui {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
+popover.combo {
+    box-shadow: 2px 2px 0 @theme_fg;
+}
+
 
 combobox menu menuitem:hover {
     background: @theme_accent;
