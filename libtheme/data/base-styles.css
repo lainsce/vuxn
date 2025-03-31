@@ -1,9 +1,3 @@
-/**
- * Classic Mac OS-style theme for GTK4
- * -----------------------------------
- * A retro theme with sharp edges and classic aesthetics
- */
-
 /* ==========================================================================
    COLOR DEFINITIONS
    ========================================================================== */
@@ -115,6 +109,12 @@ headerbar button.titlebutton {
     border-bottom: 1px solid @theme_fg;
     color: @theme_fg;
     min-height: 17px;
+}
+
+.title-box {
+    background: @theme_accent;
+    color: @theme_fg;
+    padding: 0 8px;
 }
 
 sidebar list {
