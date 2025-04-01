@@ -158,7 +158,7 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         motion_controller.motion.connect(on_motion);
         unified_edit_area.add_controller(motion_controller);
         
-        // === SECTION 3: 16x16 Grid of character selection with fixed dimensions (513×273) ===
+        // === SECTION 3: 16x16 Grid of character selection with fixed dimensions (512x271) ===
         var selection_frame = new Frame(null);
         selection_frame.add_css_class("section-frame");
         selection_frame.add_css_class("character-grid");
@@ -186,53 +186,39 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
             for (int col = 0; col < 16; col++) {
                 int char_code = row * 16 + col;
                 
-                Button button;
+                // Create button with fixed size
+                var button = new Button() {
+                    width_request = 30,
+                    height_request = 30
+                };
                 
-                // For ASCII printable characters (32-127) and Latin-1 printable characters (160-255)
-                if ((char_code >= 32 && char_code < 128) || (char_code >= 160 && char_code <= 255)) {
-                    // Create a UTF-8 string for the character
-                    string char_text;
-                    
-                    if (char_code >= 32 && char_code < 128) {
-                        // Simple ASCII - direct conversion works fine
-                        char_text = "%c".printf(char_code);
-                    } else {
-                        // Latin-1 supplement - convert properly to UTF-8
-                        unichar uc = (unichar)char_code;
-                        char_text = uc.to_string();
-                    }
-                    
-                    button = new Button.with_label(char_text) {
-                        width_request = 30,
-                        height_request = 30
-                    };
-                } 
-                // For non-printable characters (0-31, 128-159), display a cross
-                else {
-                    button = new Button() {
-                        width_request = 30,
-                        height_request = 30
-                    };
-                    
-                    // Add a X mark as a child widget
-                    var cross_label = new Label("×") {
-                        halign = Align.CENTER,
-                        valign = Align.CENTER
-                    };
-                    cross_label.add_css_class("dim-label"); // Make it lighter gray
-                    button.set_child(cross_label);
-                }
+                // Create a DrawingArea for custom character rendering
+                var char_preview = new DrawingArea() {
+                    width_request = 16,
+                    height_request = 16,
+                    halign = Align.CENTER,
+                    valign = Align.CENTER
+                };
+                
+                // Set up the drawing function with character code
+                int code_for_closure = char_code;
+                char_preview.set_draw_func((area, cr, width, height) => {
+                    draw_character_preview(area, cr, width, height, code_for_closure);
+                });
+                
+                // Add the preview area to the button
+                button.set_child(char_preview);
                 
                 // Add tooltip with character info
                 button.set_tooltip_text("Code: %d (0x%02X)".printf(char_code, char_code));
                 
-                // Store character code
+                // Store character code for selection
                 int code = char_code;
                 button.clicked.connect(() => {
                     select_character(code);
                 });
                 
-                // Add dotted border style
+                // Add styling
                 button.add_css_class("ascii-button");
                 
                 // Highlight if it's the current character
@@ -245,7 +231,7 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
             }
         }
         
-        // === SECTION 4: Pangram preview area with fixed dimensions (513×14) ===
+        // === SECTION 4: Pangram preview area with fixed dimensions (512x16) ===
         var pangram_frame = new Frame(null);
         pangram_frame.add_css_class("section-frame");
         main_box.append(pangram_frame);
@@ -263,6 +249,109 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         };
         pangram_area.set_draw_func(draw_pangram_preview);
         pangram_box.append(pangram_area);
+    }
+    
+    private void draw_character_preview(DrawingArea area, Cairo.Context cr, int width, int height, int char_code) {
+        // Disable antialiasing for pixel-perfect rendering
+        cr.set_antialias(Cairo.Antialias.NONE);
+        
+        // Theme Manager stuff
+        Gdk.RGBA fg_color = theme.get_color("theme_fg");
+        Gdk.RGBA bg_color = theme.get_color("theme_bg");
+        
+        // Clear background
+        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+        cr.paint();
+        
+        // Get the baseline for this character
+        int baseline = app.character_baseline[char_code];
+        
+        // Check if this character has any pixels set
+        bool has_pixels = false;
+        for (int y = 0; y < 16 && !has_pixels; y++) {
+            if (app.character_data[char_code, y] > 0) {
+                has_pixels = true;
+            }
+        }
+        
+        // If no pixels are set, handle differently based on character type
+        if (!has_pixels) {
+            if ((char_code < 32) || (char_code >= 128 && char_code < 160)) {
+                // For non-printable characters, draw a cross
+                cr.set_source_rgb(fg_color.red * 0.7, fg_color.green * 0.7, fg_color.blue * 0.7);
+                cr.set_line_width(1);
+                
+                // Cross lines
+                cr.move_to(4, 4);
+                cr.line_to(12, 12);
+                cr.stroke();
+                
+                cr.move_to(12, 4);
+                cr.line_to(4, 12);
+                cr.stroke();
+            } else {
+                // For printable characters, draw the system font character in selection color
+                Gdk.RGBA sel_color = theme.get_color("theme_selection");
+                cr.set_source_rgb(sel_color.red, sel_color.green, sel_color.blue);
+                
+                // Create the character string
+                string char_text;
+                if (char_code >= 32 && char_code < 128) {
+                    // ASCII character
+                    char_text = "%c".printf(char_code);
+                } else {
+                    // Latin-1 character
+                    unichar uc = (unichar)char_code;
+                    char_text = uc.to_string();
+                }
+                
+                // Set up Chicago 12.1 font
+                cr.select_font_face("Chicago 12.1", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+                cr.set_font_size(12);
+                
+                // Center the text
+                Cairo.TextExtents extents;
+                cr.text_extents(char_text, out extents);
+                double x = (width - extents.width) / 2 - extents.x_bearing;
+                double y = (height + extents.height) / 2;
+                
+                // Draw the text
+                cr.move_to(x, y);
+                cr.show_text(char_text);
+            }
+            
+            return;
+        }
+        
+        // Draw the character bitmap
+        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+        
+        // Calculate scale factor to fit in the preview area
+        double scale = Math.fmin(width / 16.0, height / 16.0);
+        
+        // Center the character horizontally
+        double x_offset = (width - app.character_right_spacing[char_code] * scale) / 2;
+        if (x_offset < 0) x_offset = 0;
+        
+        // Center the character vertically based on baseline
+        double y_offset = (height - 16 * scale) / 2;
+        
+        for (int row = 0; row < 16; row++) {
+            uint16 row_data = app.character_data[char_code, row];
+            
+            for (int col = 0; col < 16; col++) {
+                // Check if this pixel is set
+                if ((row_data & (1 << (15 - col))) > 0) {
+                    // Calculate position with appropriate scaling
+                    double pixel_x = x_offset + col * scale;
+                    double pixel_y = y_offset + row * scale;
+                    
+                    // Draw the pixel
+                    cr.rectangle(pixel_x, pixel_y, scale, scale);
+                    cr.fill();
+                }
+            }
+        }
     }
     
         // Title bar
@@ -483,7 +572,7 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
         }
         
         // Add line height to total height
-        text_height += 12 * scale;
+        text_height += 16 * scale;
     }
     
     // Calculate starting position to center text

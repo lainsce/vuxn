@@ -117,8 +117,8 @@ public class FontMakerUtils {
         os.put_string("DWIDTH %d 0\n".printf(char_width + app.kerning));
         
         // Use character-specific baseline for y-offset calculation
-        // Treat the blue line as being 3px below when exporting
-        int baseline = app.character_baseline[char_code] + 3; // Add 3px offset for export
+        // Increased offset from 3px to 5px to fix vertical alignment
+        int baseline = app.character_baseline[char_code] + 1; // Add 1px offest for export
         
         // In BDF, the baseline is at Y=0, with positive Y values above baseline
         // and negative Y values below baseline
@@ -128,20 +128,60 @@ public class FontMakerUtils {
         // The y-offset is negative for pixels below the baseline
         int y_offset = -pixels_below_baseline;
         
-        // Bounding box using the global ascent and descent with character-specific y_offset
-        os.put_string("BBX %d %d 0 %d\n".printf(char_width, 16, y_offset));
+        // Find the leftmost column that has any pixels
+        int leftmost_col = char_width; // Initialize to max possible value
+        bool has_pixels = false;
+        
+        for (int row = 0; row < 16; row++) {
+            uint16 row_data = app.character_data[char_code, row];
+            
+            for (int col = 0; col < char_width; col++) {
+                if ((row_data & (1 << (15 - col))) > 0) {
+                    if (col < leftmost_col) {
+                        leftmost_col = col;
+                    }
+                    has_pixels = true;
+                    break; // Found the leftmost pixel in this row, move to next row
+                }
+            }
+        }
+        
+        // If no pixels are found, use default values
+        if (!has_pixels) {
+            leftmost_col = 0;
+        }
+        
+        // Calculate the actual width of the character (from leftmost pixel to right spacing)
+        int actual_width = char_width - leftmost_col;
+        
+        // Ensure actual_width is at least 1 (even for empty characters)
+        if (actual_width < 1) actual_width = 1;
+        
+        // The x-offset is the position of the leftmost pixel
+        int x_offset = leftmost_col;
+        
+        // Bounding box using the calculated width and offsets
+        os.put_string("BBX %d %d %d %d\n".printf(actual_width, 16, x_offset, y_offset));
         
         // Bitmap data
         os.put_string("BITMAP\n");
         
-        // Write 16 rows of bitmap data in hex format
+        // Write 16 rows of bitmap data in hex format with appropriate extraction
         for (int row = 0; row < 16; row++) {
             uint16 row_data = app.character_data[char_code, row];
             
-            // Only include data up to the character width
-            uint16 masked_data = row_data & (0xFFFF << (16 - char_width));
+            // Extract bits from leftmost_col to char_width - 1
+            uint16 extracted_data = 0;
             
-            os.put_string("%04X\n".printf(masked_data));
+            for (int col = leftmost_col; col < char_width; col++) {
+                if ((row_data & (1 << (15 - col))) > 0) {
+                    // Set the corresponding bit in the extracted data
+                    // Adjust the bit position to be at the MSB
+                    extracted_data |= (1 << (15 - (col - leftmost_col)));
+                }
+            }
+            
+            os.put_string("%04X\n".printf(extracted_data));
         }
         
         // End character definition
