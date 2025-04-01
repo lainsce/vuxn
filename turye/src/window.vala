@@ -9,10 +9,11 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
     private DrawingArea pangram_area;           // Pangram preview area
     private Label editing_label;                // Shows the current character being edited
     private Box main_box;
+    private DrawingArea[,] character_previews;
     
     // Preview texts (pangrams)
     private string[] preview_texts = {
-        "Sphinx of black quartz, judge my vow."
+        "Sphinx of black quartz, judge my vows."
     };
     
     // Track control dot dragging
@@ -61,41 +62,15 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         // Add keyboard shortcuts
         setup_keyboard_shortcuts();
         
-        // Add custom CSS for styling
-        var css_provider = new CssProvider();
-        css_provider.load_from_string("""
-            .ascii-button {
-                min-width: 16px;
-                min-heigh: 16px;
-            }
-            .small-label {
-                font-size: 8px;
-            }
-            .section-frame {
-                border: none;
-                border-radius: 0;
-                margin-left: 8px;
-                margin-bottom: 8px;
-                margin-right: 8px;
-            }
-            .character-grid {
-                border: 1px solid @theme_fg;
-            }
-            .character-grid button {
-                border-right: 1px dotted @theme_fg;
-                border-bottom: 1px dotted @theme_fg;
-                margin: 0;
-                margin-left: -1px;
-                margin-top: -1px;
-                border-radius: 0;
-                padding: 2px;
-            }
-        """);
+                // Load CSS
+        var provider = new Gtk.CssProvider();
+        provider.load_from_resource("/com/example/turye/style.css");
         
-        StyleContext.add_provider_for_display(
+        // Apply CSS to the app
+        Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
-            css_provider,
-            STYLE_PROVIDER_PRIORITY_APPLICATION
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         );
     }
     
@@ -181,6 +156,8 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         };
         selection_scroll.set_child(char_selection_grid);
         
+        character_previews = new DrawingArea[16, 16];
+        
         // Populate the 16x16 grid with all 256 characters
         for (int row = 0; row < 16; row++) {
             for (int col = 0; col < 16; col++) {
@@ -201,10 +178,11 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
                 };
                 
                 // Set up the drawing function with character code
-                int code_for_closure = char_code;
-                char_preview.set_draw_func((area, cr, width, height) => {
-                    draw_character_preview(area, cr, width, height, code_for_closure);
-                });
+                character_previews[row, col] = char_preview;
+                char_preview.set_data("char_code", char_code);
+                
+                // Set up the drawing function without character code closure
+                char_preview.set_draw_func(draw_character_preview);
                 
                 // Add the preview area to the button
                 button.set_child(char_preview);
@@ -251,7 +229,16 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         pangram_box.append(pangram_area);
     }
     
-    private void draw_character_preview(DrawingArea area, Cairo.Context cr, int width, int height, int char_code) {
+    private void refresh_character_preview(int char_code) {
+        int row = char_code / 16;
+        int col = char_code % 16;
+        character_previews[row, col].queue_draw();
+    }
+    
+    private void draw_character_preview(DrawingArea area, Cairo.Context cr, int width, int height) {
+        // Get the character code from the widget's data
+        int char_code = area.get_data("char_code");
+        
         // Disable antialiasing for pixel-perfect rendering
         cr.set_antialias(Cairo.Antialias.NONE);
         
@@ -354,7 +341,7 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         }
     }
     
-        // Title bar
+    // Title bar
     private Gtk.Widget create_titlebar() {
         // Create classic Mac-style title bar
         var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
@@ -534,96 +521,96 @@ public class FontMakerWindow : Gtk.ApplicationWindow {
         }
     }
     
-private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width, int height) {
-    // Disable antialiasing
-    cr.set_antialias(Cairo.Antialias.NONE);
-    
-    // Theme Manager stuff
-    Gdk.RGBA fg_color = theme.get_color("theme_fg");
-    Gdk.RGBA bg_color = theme.get_color("theme_bg");
-    
-    // Background
-    cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
-    cr.paint();
-    
-    // Calculate text dimensions first to center properly
-    double text_width = 0;
-    double text_height = 0;
-    double scale = 1;
-    
-    // First pass - calculate total width
-    foreach (string text in preview_texts) {
-        double line_width = 0;
+    private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width, int height) {
+        // Disable antialiasing
+        cr.set_antialias(Cairo.Antialias.NONE);
         
-        for (int i = 0; i < text.length; i++) {
-            int char_code = text[i];
+        // Theme Manager stuff
+        Gdk.RGBA fg_color = theme.get_color("theme_fg");
+        Gdk.RGBA bg_color = theme.get_color("theme_bg");
+        
+        // Background
+        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+        cr.paint();
+        
+        // Calculate text dimensions first to center properly
+        double text_width = 0;
+        double text_height = 0;
+        double scale = 1;
+        
+        // First pass - calculate total width
+        foreach (string text in preview_texts) {
+            double line_width = 0;
             
-            // Only consider valid characters
-            if (char_code >= 0 && char_code < 256) {
-                // Get the spacing for this character
-                int char_width = app.character_right_spacing[char_code];
-                line_width += char_width * scale;
-            }
-        }
-        
-        // Keep track of the longest line
-        if (line_width > text_width) {
-            text_width = line_width;
-        }
-        
-        // Add line height to total height
-        text_height += 16 * scale;
-    }
-    
-    // Calculate starting position to center text
-    double start_x = (width - text_width) / 2;
-    double start_y = (height - text_height) / 2 + 8; // Add baseline offset for proper vertical centering
-    
-    // Ensure we don't start too far left
-    if (start_x < 5) start_x = 5;
-    
-    // Second pass - actual drawing with centered position
-    cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-    double y_pos = start_y;
-    
-    foreach (string text in preview_texts) {
-        double x_pos = start_x;
-        
-        // Iterate through the text character by character
-        for (int i = 0; i < text.length; i++) {
-            int char_code = text[i];
-            
-            // Skip characters outside the range we can display
-            if (char_code < 0 || char_code >= 256) {
-                continue;
+            for (int i = 0; i < text.length; i++) {
+                int char_code = text[i];
+                
+                // Only consider valid characters
+                if (char_code >= 0 && char_code < 256) {
+                    // Get the spacing for this character
+                    int char_width = app.character_right_spacing[char_code];
+                    line_width += char_width * scale;
+                }
             }
             
-            // Only attempt to display if the character has a glyph
-            if ((char_code >= 32 && char_code < 128) || (char_code >= 160 && char_code <= 255)) {
-                // Check if this character has any pixels drawn
-                bool has_pixels = false;
-                for (int y = 0; y < 16 && !has_pixels; y++) {
-                    if (app.character_data[char_code, y] > 0) {
-                        has_pixels = true;
+            // Keep track of the longest line
+            if (line_width > text_width) {
+                text_width = line_width;
+            }
+            
+            // Add line height to total height
+            text_height += 16 * scale;
+        }
+        
+        // Calculate starting position to center text
+        double start_x = (width - text_width) / 2;
+        double start_y = (height - text_height) / 2 + 12; // Add baseline offset for proper vertical centering
+        
+        // Ensure we don't start too far left
+        if (start_x < 5) start_x = 5;
+        
+        // Second pass - actual drawing with centered position
+        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+        double y_pos = start_y;
+        
+        foreach (string text in preview_texts) {
+            double x_pos = start_x;
+            
+            // Iterate through the text character by character
+            for (int i = 0; i < text.length; i++) {
+                int char_code = text[i];
+                
+                // Skip characters outside the range we can display
+                if (char_code < 0 || char_code >= 256) {
+                    continue;
+                }
+                
+                // Only attempt to display if the character has a glyph
+                if ((char_code >= 32 && char_code < 128) || (char_code >= 160 && char_code <= 255)) {
+                    // Check if this character has any pixels drawn
+                    bool has_pixels = false;
+                    for (int y = 0; y < 16 && !has_pixels; y++) {
+                        if (app.character_data[char_code, y] > 0) {
+                            has_pixels = true;
+                        }
+                    }
+                    
+                    // Only draw if the character has pixels
+                    if (has_pixels) {
+                        // Draw the character
+                        draw_character(cr, char_code, x_pos, y_pos, scale);
                     }
                 }
                 
-                // Only draw if the character has pixels
-                if (has_pixels) {
-                    // Draw the character
-                    draw_character(cr, char_code, x_pos, y_pos, scale);
-                }
+                // Move to next character position using character-specific width
+                int char_width = app.character_right_spacing[char_code];
+                x_pos += char_width * scale;
             }
             
-            // Move to next character position using character-specific width
-            int char_width = app.character_right_spacing[char_code];
-            x_pos += char_width * scale;
+            // Move to next line
+            y_pos += 12 * scale;
         }
-        
-        // Move to next line
-        y_pos += 12 * scale;
     }
-}
 
     private void draw_character(Cairo.Context cr, int char_code, double x, double y, double scale) {
         // Ensure antialiasing is disabled
@@ -696,14 +683,17 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
                             // Clear pixel data that's now beyond the spacing
                             if (app.get_pixel_value(app.current_char, col, row) > 0) {
                                 app.toggle_pixel(app.current_char, col, row);
+                                unified_edit_area.queue_draw();
+                                pangram_area.queue_draw();
+                                refresh_character_preview(app.current_char);
                             }
                         }
                     }
                 }
                 
-                // Redraw everything 
                 unified_edit_area.queue_draw();
                 pangram_area.queue_draw();
+                refresh_character_preview(app.current_char);
             }
             return;
         }
@@ -770,14 +760,17 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
                 
                 // Set the pixel to the new state (toggle)
                 app.toggle_pixel(app.current_char, grid_x, grid_y);
+                unified_edit_area.queue_draw();
+                pangram_area.queue_draw();
+                refresh_character_preview(app.current_char);
                 
                 // Remember last position for drag operations
                 last_grid_x = grid_x;
                 last_grid_y = grid_y;
                 
-                // Redraw
                 unified_edit_area.queue_draw();
                 pangram_area.queue_draw();
+                refresh_character_preview(app.current_char);
             }
         }
     }
@@ -805,18 +798,24 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
             if (is_drawing && current_value == 0) {
                 // Turn pixel ON if we're drawing and it's currently off
                 app.toggle_pixel(app.current_char, grid_x, grid_y);
+                unified_edit_area.queue_draw();
+                pangram_area.queue_draw();
+                refresh_character_preview(app.current_char);
             } else if (is_erasing && current_value > 0) {
                 // Turn pixel OFF if we're erasing and it's currently on
                 app.toggle_pixel(app.current_char, grid_x, grid_y);
+                unified_edit_area.queue_draw();
+                pangram_area.queue_draw();
+                refresh_character_preview(app.current_char);
             }
             
             // Remember this cell
             last_grid_x = grid_x;
             last_grid_y = grid_y;
-            
-            // Redraw
+
             unified_edit_area.queue_draw();
             pangram_area.queue_draw();
+            refresh_character_preview(app.current_char);
         }
     }
     
@@ -857,6 +856,7 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
         // Redraw everything
         unified_edit_area.queue_draw();
         pangram_area.queue_draw();
+        refresh_character_preview(app.current_char);
     }
     
     private void setup_keyboard_shortcuts() {
@@ -996,6 +996,7 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
         // Update UI
         unified_edit_area.queue_draw();
         pangram_area.queue_draw();
+        refresh_character_preview(app.current_char);
         
         // Show notification in the editing label
         string orig_label = editing_label.get_label();
@@ -1035,6 +1036,7 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
         // Update UI
         unified_edit_area.queue_draw();
         pangram_area.queue_draw();
+        refresh_character_preview(app.current_char);
         
         // Show notification in the editing label
         string orig_label = editing_label.get_label();
@@ -1050,10 +1052,9 @@ private void draw_pangram_preview(DrawingArea area, Cairo.Context cr, int width,
     private void erase_glyph() {
         // Clear the current character
         app.clear_character(app.current_char);
-        
-        // Update UI
         unified_edit_area.queue_draw();
         pangram_area.queue_draw();
+        refresh_character_preview(app.current_char);
     }
     
     // Font file operations with fixed BDF loading
