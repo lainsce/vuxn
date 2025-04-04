@@ -1,7 +1,5 @@
 /*
  * Varvara Theme Configurator
- *
- * Main window implementation with ColorPickerWidget instead of ColorButton
  */
 
 using App.Utils;
@@ -251,7 +249,7 @@ namespace App {
             string fg_hex = get_color_picker_hex(fg_picker);
             string bg_hex = get_color_picker_hex(bg_picker);
 
-            hex_values_label.set_text("%s %s %s %s".printf(accent_hex, selection_hex, fg_hex, bg_hex));
+            hex_values_label.set_text("%s %s %s %s".printf(bg_hex, fg_hex, accent_hex, selection_hex));
         }
 
         /**
@@ -356,7 +354,7 @@ namespace App {
          */
         private void on_apply_clicked() {
             // Save theme to file
-            bool success = save_theme_file(
+            save_theme_file(
                                            theme_file_path,
                                            accent_picker,
                                            selection_picker,
@@ -364,17 +362,6 @@ namespace App {
                                            bg_picker,
                                            this
             );
-
-            // Only show a success dialog if it worked
-            if (success) {
-                // We still want the theme to apply, but don't want to crash
-                // Just wait a short time before showing the success dialog
-                // to allow the theme manager time to process
-                Timeout.add(100, () => {
-                    show_success_dialog("Varvara theme applied successfully!", this);
-                    return false; // Don't repeat
-                });
-            }
         }
     }
 }
