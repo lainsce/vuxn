@@ -40,7 +40,7 @@ namespace App {
             theme = Theme.Manager.get_default();
 
             // Get color from theme manager
-            pip_color = theme.get_color("theme_accent");
+            pip_color = theme.get_color("theme_selection");
 
             // Listen for theme changes
             theme.theme_changed.connect(update_colors);

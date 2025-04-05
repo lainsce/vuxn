@@ -1,0 +1,4 @@
+.ruler-window {
+    background: @theme_accent;
+    color: @theme_fg;
+}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories=Utility;TextEditor;GTK;
+Comment=A simple ruler inspired by classic Mac
+Exec=com.example.corda
+GenericName=Ruler
+Icon=com.example.corda
+MimeType=text/plain;
+Name=Corda
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0
