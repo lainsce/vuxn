@@ -1,0 +1,36 @@
+.mac-entry {
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+    border: none;
+    border-bottom: 1px solid @theme_fg;
+    margin: 0;
+    padding: 0 2px;
+}
+.mac-entry, .mac-entry text {
+  min-height: 0px;
+  -gtk-icon-size: 0px;
+  outline: none;
+  padding: 0 2px;
+}
+
+.mac-entry text,
+.mac-entry * {
+    margin: 0;
+    font-family: "Unifont", monospace;
+    font-size: 14px;
+}
+
+.close-button {
+    background: transparent;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
+}
+.close-button:hover {
+    background: @theme_fg;
+}
+.close-button:active {
+    background: @theme_fg;
+}

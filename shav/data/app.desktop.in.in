@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A Shavian keyboard inspired by classic Mac
+Exec=com.example.shav
+GenericName=Keyboard
+Icon=com.example.shav
+Name=Shav
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

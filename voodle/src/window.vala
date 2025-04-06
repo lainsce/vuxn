@@ -66,8 +66,6 @@ public class Window : Gtk.ApplicationWindow {
 
         main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
 
-        main_box.prepend(create_titlebar());
-
         // Create header bar with menu
         setup_tool_bar();
 
@@ -144,42 +142,6 @@ public class Window : Gtk.ApplicationWindow {
 
             return false; // Event not handled
         });
-    }
-
-    // Title bar
-    private Gtk.Widget create_titlebar() {
-        // Create classic Mac-style title bar
-        var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
-        title_bar.width_request = 800;
-        title_bar.add_css_class("title-bar");
-
-        // Close button on the left
-        var close_button = new Gtk.Button();
-        close_button.add_css_class("close-button");
-        close_button.tooltip_text = "Close";
-        close_button.valign = Gtk.Align.CENTER;
-        close_button.margin_start = 8;
-        close_button.clicked.connect(() => {
-            this.close();
-        });
-
-        var title_label = new Gtk.Label("Voodle");
-        title_label.add_css_class("title-box");
-        title_label.hexpand = true;
-        title_label.valign = Gtk.Align.CENTER;
-        title_label.halign = Gtk.Align.CENTER;
-
-        title_bar.append(close_button);
-        title_bar.append(title_label);
-
-        var winhandle = new Gtk.WindowHandle();
-        winhandle.set_child(title_bar);
-
-        // Main layout
-        var vbox = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        vbox.append(winhandle);
-
-        return vbox;
     }
 
     private void setup_theme_management() {
@@ -812,14 +774,31 @@ public class Window : Gtk.ApplicationWindow {
     private void setup_tool_bar() {
         // Create header bar
         tool_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-        main_box.append(tool_bar);
-        set_titlebar(new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6) { visible = false });
+        tool_bar.add_css_class("toolbar");
+        
+        var winhandle = new Gtk.WindowHandle ();
+        winhandle.set_child (tool_bar);
+        
+        main_box.append(winhandle);
+        set_titlebar(new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0) { visible = false });
+        
+        
+        // Close button on the left
+        var close_button = new Gtk.Button();
+        close_button.add_css_class("close-button");
+        close_button.tooltip_text = "Close";
+        close_button.margin_start = 4;
+        close_button.valign = Gtk.Align.CENTER;
+        close_button.clicked.connect(() => {
+            this.close();
+        });
+        tool_bar.append(close_button);
 
         // Create file menu button
         var file_button = new Gtk.MenuButton();
         file_button.direction = Gtk.ArrowType.NONE;
-        file_button.margin_start = 4;
         file_button.margin_top = 4;
+        file_button.margin_bottom = 4;
         file_button.set_label("File");
         file_button.add_css_class("flat");
         file_button.add_css_class("flat-menu-button");
