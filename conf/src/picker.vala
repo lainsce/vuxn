@@ -46,6 +46,9 @@ namespace App {
             
             theme = Theme.Manager.get_default();
             theme.apply_to_display();
+            theme.theme_changed.connect(() => {
+                bars_area.queue_draw();
+            });
             
             // Create the Cairo drawing area for the color bars
             create_color_bars();
