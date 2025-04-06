@@ -1,0 +1,30 @@
+.close-button {
+    background: transparent;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
+}
+.close-button:hover {
+    background: @theme_fg;
+}
+.close-button:active {
+    background: @theme_fg;
+}
+
+.action {
+    box-shadow: 0 0 0 1px @theme_fg,
+                inset 0 0 0 3px @theme_fg,
+                inset 0 0 0 2px @theme_bg;
+    border-radius: 8px;
+}
+
+.action:hover {
+    box-shadow: 0 0 0 1px @theme_fg,
+                inset 0 0 0 3px @theme_fg,
+                inset 0 0 0 2px @theme_selection;
+}
+
+.action:active {
+    box-shadow: 0 0 0 1px @theme_fg,
+                inset 0 0 0 3px @theme_fg,
+                inset 0 0 0 2px @theme_accent;
+}

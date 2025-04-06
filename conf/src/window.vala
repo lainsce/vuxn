@@ -18,13 +18,11 @@ namespace App {
 
         // Current colors
         private string accent_color = "#77ddcc";
-        private string selection_color = "#ffbb33";
+        private string selection_color = "#ffbb66";
         private string fg_color = "#000000";
         private string bg_color = "#ffffff";
 
         // UI elements
-        private Gtk.Label format_label;
-        private Gtk.Label hex_values_label;
         private Gtk.Box main_box;
 
         /**
@@ -33,9 +31,7 @@ namespace App {
         public Window(Gtk.Application app) {
             Object(
                    application: app,
-                   title: "Varvara Theme",
-                   default_width: GRID_UNIT * 64, // 512px - wider to accommodate the pickers
-                   default_height: GRID_UNIT * 48, // 384px
+                   title: "Confvara",
                    resizable: false
             );
 
@@ -58,7 +54,7 @@ namespace App {
                                  out bg_color)) {
                 // If loading failed, use default colors
                 accent_color = "#77ddcc";
-                selection_color = "#ffbb33";
+                selection_color = "#ffbb66";
                 fg_color = "#000000";
                 bg_color = "#ffffff";
             }
@@ -91,44 +87,6 @@ namespace App {
             var grid = create_color_controls_grid();
             main_box.append(grid);
 
-            // Create theme format preview
-            var format_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, GRID_UNIT) {
-                halign = Gtk.Align.CENTER,
-                margin_top = GRID_UNIT
-            };
-
-            var format_title = new Gtk.Label("Theme Format:") {
-                halign = Gtk.Align.START
-            };
-            format_box.append(format_title);
-
-            format_label = new Gtk.Label("") {
-                halign = Gtk.Align.CENTER,
-                selectable = true
-            };
-            format_box.append(format_label);
-
-            main_box.append(format_box);
-
-            // Add a real-time hex color preview labels
-            var hex_preview_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, GRID_UNIT) {
-                halign = Gtk.Align.CENTER,
-                margin_top = GRID_UNIT / 2
-            };
-
-            var hex_preview_label = new Gtk.Label("Full Colors:") {
-                halign = Gtk.Align.START
-            };
-            hex_preview_box.append(hex_preview_label);
-
-            hex_values_label = new Gtk.Label("") {
-                halign = Gtk.Align.START,
-                selectable = true
-            };
-            hex_preview_box.append(hex_values_label);
-
-            main_box.append(hex_preview_box);
-
             // Add a spacer
             main_box.append(new Gtk.Box(Gtk.Orientation.VERTICAL, 0) {
                 vexpand = true
@@ -140,10 +98,10 @@ namespace App {
             };
 
             var apply_button = new Gtk.Button.with_label("Apply Theme") {
-                width_request = GRID_UNIT * 12,
+                width_request = GRID_UNIT * 14,
                 height_request = GRID_UNIT * 4
             };
-            apply_button.add_css_class("suggested-action");
+            apply_button.add_css_class("action");
             apply_button.clicked.connect(on_apply_clicked);
 
             button_box.append(apply_button);
@@ -155,30 +113,6 @@ namespace App {
 
             // Add the main box to the window
             this.set_child(box2);
-
-            // Update hex values display
-            update_hex_values_display();
-
-            // Update theme format display
-            update_theme_format();
-
-            // Connect signals to update when colors change
-            accent_picker.color_set.connect(() => {
-                update_hex_values_display();
-                update_theme_format();
-            });
-            selection_picker.color_set.connect(() => {
-                update_hex_values_display();
-                update_theme_format();
-            });
-            fg_picker.color_set.connect(() => {
-                update_hex_values_display();
-                update_theme_format();
-            });
-            bg_picker.color_set.connect(() => {
-                update_hex_values_display();
-                update_theme_format();
-            });
         }
 
         /**
@@ -187,20 +121,7 @@ namespace App {
         private Gtk.Widget create_titlebar() {
             // Create classic Mac-style title bar
             var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
-            title_bar.width_request = 223;
-            title_bar.add_css_class("title-bar");
-
-            // Add event controller for right-click to toggle main_box visibility
-            var click_controller = new Gtk.GestureClick();
-            click_controller.set_button(1); // 1 = right mouse button
-            click_controller.released.connect(() => {
-                if (main_box.visible) {
-                    main_box.visible = false;
-                } else {
-                    main_box.visible = true;
-                }
-            });
-            title_bar.add_controller(click_controller);
+            title_bar.width_request = 352;
 
             // Close button on the left
             var close_button = new Gtk.Button();
@@ -208,25 +129,13 @@ namespace App {
             close_button.tooltip_text = "Close";
             close_button.valign = Gtk.Align.CENTER;
             close_button.margin_start = 8;
+            close_button.margin_top = 8;
+            close_button.margin_bottom = 8;
             close_button.clicked.connect(() => {
                 this.close();
             });
 
-            var title_label = new Gtk.Label("Varvara Theme Config");
-            title_label.add_css_class("title-box");
-            title_label.hexpand = true;
-            title_label.valign = Gtk.Align.CENTER;
-            title_label.halign = Gtk.Align.CENTER;
-
-            var fixed = new Gtk.Fixed();
-            fixed.valign = Gtk.Align.CENTER;
-            fixed.halign = Gtk.Align.CENTER;
-            fixed.margin_end = 8;
-            fixed.set_size_request(20, 0);
-
             title_bar.append(close_button);
-            title_bar.append(title_label);
-            title_bar.append(fixed);
 
             var winhandle = new Gtk.WindowHandle();
             winhandle.set_child(title_bar);
@@ -236,52 +145,6 @@ namespace App {
             vbox.append(winhandle);
 
             return vbox;
-        }
-
-        /**
-         * Updates the hex values display
-         */
-        private void update_hex_values_display() {
-            if (hex_values_label == null) return;
-
-            string accent_hex = get_color_picker_hex(accent_picker);
-            string selection_hex = get_color_picker_hex(selection_picker);
-            string fg_hex = get_color_picker_hex(fg_picker);
-            string bg_hex = get_color_picker_hex(bg_picker);
-
-            hex_values_label.set_text("%s %s %s %s".printf(bg_hex, fg_hex, accent_hex, selection_hex));
-        }
-
-        /**
-         * Updates the theme format display based on current colors
-         */
-        private void update_theme_format() {
-            if (format_label == null) return;
-
-            // Get current colors as specific position hex digits for the format display
-            // First group: first digit (position 0)
-            string a1 = get_color_hex_digit(bg_picker, 0);      // BG
-            string b1 = get_color_hex_digit(fg_picker, 0);      // FG
-            string c1 = get_color_hex_digit(accent_picker, 0);  // ACCENT
-            string d1 = get_color_hex_digit(selection_picker, 0); // SELECTION
-
-            // Second group: third digit (position 2)
-            string a2 = get_color_hex_digit(bg_picker, 2);      // BG
-            string b2 = get_color_hex_digit(fg_picker, 2);      // FG
-            string c2 = get_color_hex_digit(accent_picker, 2);  // ACCENT
-            string d2 = get_color_hex_digit(selection_picker, 2); // SELECTION
-
-            // Third group: fifth digit (position 4)
-            string a3 = get_color_hex_digit(bg_picker, 4);      // BG
-            string b3 = get_color_hex_digit(fg_picker, 4);      // FG
-            string c3 = get_color_hex_digit(accent_picker, 4);  // ACCENT
-            string d3 = get_color_hex_digit(selection_picker, 4); // SELECTION
-
-            // Format the content according to the pattern "ABCD ABCD ABCD"
-            string format_text = a1 + b1 + c1 + d1 + " " + a2 + b2 + c2 + d2 + " " + a3 + b3 + c3 + d3;
-
-            // Update format preview text
-            format_label.set_text(format_text);
         }
 
         /**
@@ -297,54 +160,30 @@ namespace App {
                 margin_top = GRID_UNIT,
                 margin_bottom = GRID_UNIT
             };
-            
-            // Create the background color row
-            var bg_label = new Gtk.Label("Background (#A):") {
-                halign = Gtk.Align.START,
-                width_request = GRID_UNIT * 12
-            };
+
             bg_picker = new ColorPickerWidget() {
                 halign = Gtk.Align.START
             };
             set_color_picker(bg_picker, bg_color);
-            grid.attach(bg_label, 0, 0, 1, 1);
-            grid.attach(bg_picker, 1, 0, 1, 1);
-            
-            // Create the foreground color row
-            var fg_label = new Gtk.Label("Foreground (#B):") {
-                halign = Gtk.Align.START,
-                width_request = GRID_UNIT * 12
-            };
+            grid.attach(bg_picker, 0, 0, 1, 1);
+
             fg_picker = new ColorPickerWidget() {
                 halign = Gtk.Align.START
             };
             set_color_picker(fg_picker, fg_color);
-            grid.attach(fg_label, 0, 1, 1, 1);
-            grid.attach(fg_picker, 1, 1, 1, 1);
+            grid.attach(fg_picker, 1, 0, 1, 1);
 
-            // Create the accent color row
-            var accent_label = new Gtk.Label("Accent (#C):") {
-                halign = Gtk.Align.START,
-                width_request = GRID_UNIT * 12
-            };
             accent_picker = new ColorPickerWidget() {
                 halign = Gtk.Align.START
             };
             set_color_picker(accent_picker, accent_color);
-            grid.attach(accent_label, 0, 2, 1, 1);
-            grid.attach(accent_picker, 1, 2, 1, 1);
+            grid.attach(accent_picker, 2, 0, 1, 1);
 
-            // Create the selection color row
-            var selection_label = new Gtk.Label("Selection (#D):") {
-                halign = Gtk.Align.START,
-                width_request = GRID_UNIT * 12
-            };
             selection_picker = new ColorPickerWidget() {
                 halign = Gtk.Align.START
             };
             set_color_picker(selection_picker, selection_color);
-            grid.attach(selection_label, 0, 3, 1, 1);
-            grid.attach(selection_picker, 1, 3, 1, 1);
+            grid.attach(selection_picker, 3, 0, 1, 1);
             
             return grid;
         }
@@ -355,12 +194,12 @@ namespace App {
         private void on_apply_clicked() {
             // Save theme to file
             save_theme_file(
-                                           theme_file_path,
-                                           accent_picker,
-                                           selection_picker,
-                                           fg_picker,
-                                           bg_picker,
-                                           this
+                theme_file_path,
+                accent_picker,
+                selection_picker,
+                fg_picker,
+                bg_picker,
+                this
             );
         }
     }

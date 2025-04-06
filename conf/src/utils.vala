@@ -1,7 +1,7 @@
 /*
  * Varvara Theme Configurator
  *
- * Modified utility functions to work with ColorPickerWidget
+ * Modified utility functions to work with reformulated ColorPickerWidget
  */
 
 namespace App.Utils {
@@ -31,16 +31,17 @@ namespace App.Utils {
 
     /**
      * Gets a specific digit from a color's hex representation
+     * Now uses the 3-character hex code directly
      */
     public string get_color_hex_digit(ColorPickerWidget picker, int position) {
-        // Get the full hex color without the # prefix
-        string hex = get_color_picker_hex(picker).substring(1);
-
-        // Make sure the position is valid (0-5)
-        if (position >= 0 && position < hex.length) {
-            return hex.substring(position, 1);
+        // Get the 3-character hex code
+        string hex_code = picker.get_hex_code();
+        
+        // Make sure the position is valid (0-2)
+        if (position >= 0 && position < hex_code.length) {
+            return hex_code.substring(position, 1);
         }
-
+        
         // Default fallback
         return "0";
     }
@@ -65,7 +66,7 @@ namespace App.Utils {
 
     /**
      * Loads the theme file and returns the parsed colors
-     * Updated to match the correct mapping:
+     * Updated to use the 3-character hex codes:
      * color0/BG = AAA
      * color1/FG = BBB
      * color2/ACCENT = CCC
@@ -77,10 +78,10 @@ namespace App.Utils {
                                 out string foreground,
                                 out string background) {
         // Set default values
-        accent = "#77ddcc";
-        selection = "#ffbb33";
-        foreground = "#000000";
-        background = "#ffffff";
+        accent = "#77ddcc";  // Expands to position 7,d,c
+        selection = "#ffbb33"; // Expands to position f,b,3
+        foreground = "#000000"; // Expands to position 0,0,0
+        background = "#ffffff"; // Expands to position f,f,f
 
         try {
             // Check if the theme file exists
@@ -113,11 +114,11 @@ namespace App.Utils {
                 string c3 = content.substring(12, 1);
                 string d3 = content.substring(13, 1);
 
-                // Interpret as 3-digit hex colors with corrected mapping
-                background = "#" + a1 + a2 + a3;     // BG = AAA
-                foreground = "#" + b1 + b2 + b3;     // FG = BBB
-                accent = "#" + c1 + c2 + c3;         // ACCENT = CCC
-                selection = "#" + d1 + d2 + d3;      // SELECTION = DDD
+                // Convert 3-digit hex codes to 6-digit hex colors
+                background = expand_hex_color(a1 + a2 + a3);     // BG = AAA
+                foreground = expand_hex_color(b1 + b2 + b3);     // FG = BBB
+                accent = expand_hex_color(c1 + c2 + c3);         // ACCENT = CCC
+                selection = expand_hex_color(d1 + d2 + d3);      // SELECTION = DDD
 
                 return true;
             }
@@ -129,12 +130,24 @@ namespace App.Utils {
     }
 
     /**
+     * Expands a 3-digit hex color to a 6-digit hex color
+     * For example, "7dc" becomes "#77ddcc"
+     */
+    private string expand_hex_color(string short_hex) {
+        if (short_hex.length != 3) return "#000000";
+        
+        // Expand each digit
+        char r = short_hex[0];
+        char g = short_hex[1];
+        char b = short_hex[2];
+
+        // Convert 0-f position to 00-ff hex
+        return "#%c%c%c%c%c%c".printf(r, r, g, g, b, b);
+    }
+
+    /**
      * Saves colors to the theme file
-     * Updated to match the correct mapping:
-     * color0/BG = AAA
-     * color1/FG = BBB
-     * color2/ACCENT = CCC
-     * color3/SELECTION = DDD
+     * Updated for the reformulated pickers
      */
     public bool save_theme_file(string file_path,
                                ColorPickerWidget accent_picker,
@@ -143,27 +156,18 @@ namespace App.Utils {
                                ColorPickerWidget bg_picker,
                                Gtk.Window? parent = null) {
         try {
-            // Get specific position digits for each color with corrected order
-            // First group: first digit (position 0)
-            string a1 = get_color_hex_digit(bg_picker, 0);         // BG
-            string b1 = get_color_hex_digit(fg_picker, 0);         // FG
-            string c1 = get_color_hex_digit(accent_picker, 0);     // ACCENT
-            string d1 = get_color_hex_digit(selection_picker, 0);  // SELECTION
-
-            // Second group: third digit (position 2)
-            string a2 = get_color_hex_digit(bg_picker, 2);         // BG
-            string b2 = get_color_hex_digit(fg_picker, 2);         // FG
-            string c2 = get_color_hex_digit(accent_picker, 2);     // ACCENT
-            string d2 = get_color_hex_digit(selection_picker, 2);  // SELECTION
-
-            // Third group: fifth digit (position 4)
-            string a3 = get_color_hex_digit(bg_picker, 4);         // BG
-            string b3 = get_color_hex_digit(fg_picker, 4);         // FG
-            string c3 = get_color_hex_digit(accent_picker, 4);     // ACCENT
-            string d3 = get_color_hex_digit(selection_picker, 4);  // SELECTION
-
+            // Get three-digit hex codes directly from the pickers
+            string a = bg_picker.get_hex_code();       // BG
+            string b = fg_picker.get_hex_code();       // FG
+            string c = accent_picker.get_hex_code();   // ACCENT
+            string d = selection_picker.get_hex_code(); // SELECTION
+            
             // Format the content according to the pattern "ABCD ABCD ABCD"
-            string content = a1 + b1 + c1 + d1 + " " + a2 + b2 + c2 + d2 + " " + a3 + b3 + c3 + d3;
+            string content = a[0].to_string() + b[0].to_string() + c[0].to_string() + d[0].to_string() +
+                           " " +
+                           a[1].to_string() + b[1].to_string() + c[1].to_string() + d[1].to_string() +
+                           " " + 
+                           a[2].to_string() + b[2].to_string() + c[2].to_string() + d[2].to_string();
 
             // Write to the theme file
             FileUtils.set_contents(file_path, content);
