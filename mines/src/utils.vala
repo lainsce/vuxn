@@ -34,29 +34,37 @@ public class MinesweeperUtils {
         // Set line width to 1px
         cr.set_line_width(1);
         
-        // Draw bevelled edges inset by 1 pixel
-        // White for top/left edges (inset by 1 pixel)
+        // Draw bevelled edges inset by 2 pixels
+        // White for top/left edges (inset by 2 pixels)
         set_color(cr, 0);
         // Top edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + width - 1, y + 1);
+        cr.move_to(x + 2, y + 2);
+        cr.line_to(x + width - 2, y + 2);
         cr.stroke();
         
         // Left edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + 1, y + height - 1);
+        cr.move_to(x + 2, y + 2);
+        cr.line_to(x + 2, y + height - 2);
         cr.stroke();
         
-        // Dark gray for bottom/right edges (inset by 1 pixel)
+        // Dark gray for bottom/right edges (inset by 2 pixels)
         set_color(cr, 2);
         // Bottom edge
         cr.move_to(x + 1, y + height - 1);
         cr.line_to(x + width - 1, y + height - 1);
+        cr.move_to(x + 2, y + height - 2);
+        cr.line_to(x + width - 2, y + height - 2);
         cr.stroke();
         
         // Right edge
         cr.move_to(x + width - 1, y + 1);
         cr.line_to(x + width - 1, y + height - 1);
+        cr.move_to(x + width - 2, y + 2);
+        cr.line_to(x + width - 2, y + height - 2);
         cr.stroke();
     }
     
@@ -81,64 +89,70 @@ public class MinesweeperUtils {
     }
     
     public static void draw_flag(Cairo.Context cr, int x, int y) {
-        // Using black for the flag
+        // Black parts (color 3)
         set_color(cr, 3);
-        
-        // Flag as a simple rectangle
-        cr.rectangle(x + 5, y + 4, 6, 4);
+        // Flag pole
+        cr.rectangle(x + 7, y + 4, 1, 6);
+
+        // Flag ground
+        cr.rectangle(x + 5, y + 10, 5, 1);
+        cr.rectangle(x + 4, y + 11, 7, 1);
         cr.fill();
         
-        // Flag pole as a vertical line
-        cr.set_line_width(1);
-        cr.move_to(x + 5, y + 4);
-        cr.line_to(x + 5, y + 12);
-        cr.stroke();
+        // Gray parts
+        // Flag triangle
+        set_color(cr, 2);
+        cr.rectangle(x + 6, y + 4, 1, 4);
+        cr.rectangle(x + 5, y + 4, 1, 3);
+        cr.rectangle(x + 4, y + 5, 1, 1);
+        cr.fill();
     }
     
     public static void draw_mine(Cairo.Context cr, int x, int y) {
         // Using black for the mine
         set_color(cr, 3);
         
-        // Draw mine as a "circle" made of rectangles
-        // Middle sections
-        cr.rectangle(x + 4, y + 6, 8, 4); // horizontal middle
-        cr.rectangle(x + 6, y + 4, 4, 8); // vertical middle
+        // Top stem
+        cr.rectangle(x + 7, y + 1, 1, 2);
+
+        // Upper body outline
+        cr.rectangle(x + 3, y + 3, 1, 1);
+        cr.rectangle(x + 5, y + 3, 5, 1);
+        cr.rectangle(x + 4, y + 4, 7, 1);
+        cr.rectangle(x + 11, y + 3, 1, 1);
+
+        // Left side 
+        cr.rectangle(x + 3, y + 5, 2, 2);
+
+        // Right side
+        cr.rectangle(x + 8, y + 5, 4, 2);
+
+        // Middle parts
+        cr.rectangle(x + 6, y + 5, 2, 1);
+        cr.rectangle(x + 6, y + 6, 2, 1);
+
+        // Horizontal middle line
+        cr.rectangle(x + 1, y + 7, 13, 1);
+
+        // Lower body
+        cr.rectangle(x + 3, y + 8, 9, 2);
+        cr.rectangle(x + 4, y + 10, 7, 1);
+        cr.rectangle(x + 3, y + 11, 1, 1);
+        cr.rectangle(x + 5, y + 11, 5, 1);
+        cr.rectangle(x + 11, y + 11, 1, 1);
         
-        // Corner pixels to make it appear rounded
-        cr.rectangle(x + 4, y + 4, 1, 1); // top-left
-        cr.rectangle(x + 10, y + 4, 1, 1); // top-right
-        cr.rectangle(x + 4, y + 10, 1, 1); // bottom-left
-        cr.rectangle(x + 10, y + 10, 1, 1); // bottom-right
-        
+        // Bottom stem
+        cr.rectangle(x + 7, y + 12, 1, 2);
         cr.fill();
-        
-        // Add spikes using simple lines
-        cr.set_line_width(1);
-        
-        // Horizontal spike
-        cr.move_to(x + 2, y + 8);
-        cr.line_to(x + 4, y + 8);
-        cr.stroke();
-        
-        cr.move_to(x + 12, y + 8);
-        cr.line_to(x + 14, y + 8);
-        cr.stroke();
-        
-        // Vertical spike
-        cr.move_to(x + 8, y + 2);
-        cr.line_to(x + 8, y + 4);
-        cr.stroke();
-        
-        cr.move_to(x + 8, y + 12);
-        cr.line_to(x + 8, y + 14);
-        cr.stroke();
-        
-        // Diagonal spikes (using single pixels)
-        cr.rectangle(x + 4, y + 4, 1, 1);
-        cr.rectangle(x + 10, y + 10, 1, 1);
-        cr.rectangle(x + 4, y + 10, 1, 1);
-        cr.rectangle(x + 10, y + 4, 1, 1);
+
+        // White "shine" spots
+        set_color(cr, 1);
+        cr.rectangle(x + 5, y + 4, 1, 1);
+        cr.rectangle(x + 4, y + 5, 1, 1);
+        cr.rectangle(x + 6, y + 5, 1, 1);
+        cr.rectangle(x + 5, y + 6, 1, 1);
         cr.fill();
+
     }
     
     public static void draw_number(Cairo.Context cr, int x, int y, int number) {
@@ -149,77 +163,90 @@ public class MinesweeperUtils {
         switch (number) {
             case 1:
                 // Vertical line in center
-                cr.rectangle(x + 8, y + 4, 1, 10);
+                cr.rectangle(x + 7, y + 3, 1, 9);
+                cr.rectangle(x + 6, y + 3, 1, 9);
                 cr.fill();
                 break;
             case 2:
                 // Top horizontal
-                cr.rectangle(x + 6, y + 4, 6, 1);
+                cr.rectangle(x + 4, y + 3, 6, 1);
                 // Middle horizontal
-                cr.rectangle(x + 6, y + 8, 6, 1);
+                cr.rectangle(x + 5, y + 7, 5, 1);
                 // Bottom horizontal
-                cr.rectangle(x + 6, y + 12, 6, 1);
+                cr.rectangle(x + 5, y + 11, 6, 1);
                 // Top-right vertical
-                cr.rectangle(x + 11, y + 4, 1, 4);
+                cr.rectangle(x + 9, y + 3, 1, 4);
+                cr.rectangle(x + 10, y + 3, 1, 5);
                 // Bottom-left vertical
-                cr.rectangle(x + 6, y + 8, 1, 4);
+                cr.rectangle(x + 4, y + 7, 1, 5);
+                cr.rectangle(x + 5, y + 7, 1, 4);
                 cr.fill();
                 break;
             case 3:
                 // Horizontals
-                cr.rectangle(x + 6, y + 4, 6, 1);
-                cr.rectangle(x + 6, y + 8, 6, 1);
-                cr.rectangle(x + 6, y + 13, 6, 1);
+                cr.rectangle(x + 4, y + 3, 6, 1);
+                cr.rectangle(x + 4, y + 7, 6, 1);
+                cr.rectangle(x + 4, y + 11, 6, 1);
                 // Right vertical
-                cr.rectangle(x + 11, y + 4, 1, 10);
+                cr.rectangle(x + 9, y + 3, 1, 9);
+                cr.rectangle(x + 10, y + 3, 1, 9);
                 cr.fill();
                 break;
             case 4:
                 // Left vertical (top half)
-                cr.rectangle(x + 6, y + 4, 1, 4);
+                cr.rectangle(x + 4, y + 3, 1, 4);
+                cr.rectangle(x + 5, y + 3, 1, 4);
                 // Middle horizontal
-                cr.rectangle(x + 6, y + 8, 6, 1);
+                cr.rectangle(x + 4, y + 7, 6, 1);
                 // Right vertical
-                cr.rectangle(x + 11, y + 4, 1, 10);
+                cr.rectangle(x + 9, y + 3, 1, 9);
+                cr.rectangle(x + 10, y + 3, 1, 9);
                 cr.fill();
                 break;
             case 5:
                 // Horizontals
-                cr.rectangle(x + 6, y + 4, 6, 1);
-                cr.rectangle(x + 6, y + 8, 6, 1);
-                cr.rectangle(x + 6, y + 12, 6, 1);
+                cr.rectangle(x + 5, y + 3, 7, 1);
+                cr.rectangle(x + 4, y + 7, 6, 1);
+                cr.rectangle(x + 4, y + 11, 7, 1);
                 // Top-left vertical
-                cr.rectangle(x + 6, y + 4, 1, 4);
+                cr.rectangle(x + 4, y + 3, 1, 4);
+                cr.rectangle(x + 5, y + 3, 1, 4);
                 // Bottom-right vertical
-                cr.rectangle(x + 11, y + 8, 1, 4);
+                cr.rectangle(x + 9, y + 7, 1, 4);
+                cr.rectangle(x + 10, y + 7, 1, 4);
                 cr.fill();
                 break;
             case 6:
                 // Horizontals
-                cr.rectangle(x + 6, y + 4, 6, 1);
-                cr.rectangle(x + 6, y + 8, 6, 1);
-                cr.rectangle(x + 6, y + 13, 6, 1);
+                cr.rectangle(x + 5, y + 3, 7, 1);
+                cr.rectangle(x + 5, y + 7, 6, 1);
+                cr.rectangle(x + 5, y + 11, 7, 1);
                 // Left vertical
-                cr.rectangle(x + 6, y + 4, 1, 10);
+                cr.rectangle(x + 4, y + 3, 1, 9);
+                cr.rectangle(x + 5, y + 3, 1, 9);
                 // Bottom-right vertical
-                cr.rectangle(x + 11, y + 8, 1, 4);
+                cr.rectangle(x + 9, y + 8, 1, 4);
+                cr.rectangle(x + 10, y + 8, 1, 4);
                 cr.fill();
                 break;
             case 7:
                 // Top horizontal
-                cr.rectangle(x + 6, y + 4, 6, 1);
+                cr.rectangle(x + 5, y + 3, 7, 1);
                 // Right vertical
-                cr.rectangle(x + 11, y + 4, 1, 10);
+                cr.rectangle(x + 9, y + 3, 1, 9);
+                cr.rectangle(x + 10, y + 3, 1, 9);
                 cr.fill();
                 break;
             case 8:
                 // Horizontals
-                cr.rectangle(x + 6, y + 4, 6, 1);
-                cr.rectangle(x + 6, y + 8, 6, 1);
-                cr.rectangle(x + 6, y + 13, 6, 1);
+                cr.rectangle(x + 5, y + 3, 7, 1);
+                cr.rectangle(x + 5, y + 7, 7, 1);
+                cr.rectangle(x + 5, y + 11, 7, 1);
                 // Verticals
-                cr.rectangle(x + 6, y + 4, 1, 10);
-                cr.rectangle(x + 11, y + 4, 1, 10);
+                cr.rectangle(x + 4, y + 3, 1, 9);
+                cr.rectangle(x + 5, y + 3, 1, 9);
+                cr.rectangle(x + 9, y + 3, 1, 9);
+                cr.rectangle(x + 10, y + 3, 1, 9);
                 cr.fill();
                 break;
             default:
@@ -239,28 +266,36 @@ public class MinesweeperUtils {
         cr.set_line_width(1);
         
         // Draw bevelled edges inset by 1 pixel
-        // White for top/left edges (inset by 1 pixel)
+        // White for top/left edges (inset by 2 pixels)
         set_color(cr, 2);
         // Top edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + width - 1, y + 1);
+        cr.move_to(x + 2, y + 2);
+        cr.line_to(x + width - 2, y + 2);
         cr.stroke();
         
         // Left edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + 1, y + height - 1);
+        cr.move_to(x + 2, y + 2);
+        cr.line_to(x + 2, y + height - 2);
         cr.stroke();
         
-        // Dark gray for bottom/right edges (inset by 1 pixel)
+        // Dark gray for bottom/right edges (inset by 2 pixels)
         set_color(cr, 0);
         // Bottom edge
         cr.move_to(x + 1, y + height - 1);
         cr.line_to(x + width - 1, y + height - 1);
+        cr.move_to(x + 2, y + height - 2);
+        cr.line_to(x + width - 2, y + height - 2);
         cr.stroke();
         
         // Right edge
         cr.move_to(x + width - 1, y + 1);
         cr.line_to(x + width - 1, y + height - 1);
+        cr.move_to(x + width - 2, y + 2);
+        cr.line_to(x + width - 2, y + height - 2);
         cr.stroke();
     }
     

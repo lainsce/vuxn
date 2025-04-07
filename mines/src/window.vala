@@ -8,7 +8,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     // Game variables
     private int rows = 8;
     private int cols = 8;
-    private int mines = 10;
+    private int mines = 30;
     private bool game_over = false;
     private bool first_click = true;
     private int remaining_tiles;
@@ -319,6 +319,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     }
     
     private void draw_game_area(Gtk.DrawingArea area, Cairo.Context cr, int width, int height) {
+        cr.set_antialias(Cairo.Antialias.NONE);
         // Clear background with alpha from our palette
         MinesweeperUtils.set_color(cr, 4);
         cr.paint();
@@ -358,6 +359,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     }
     
     private void draw_top_panel(Gtk.DrawingArea area, Cairo.Context cr, int width, int height) {
+        cr.set_antialias(Cairo.Antialias.NONE);
         // Draw sunken panel for the entire background
         MinesweeperUtils.draw_sunken_panel(cr, 0, 0, width, height);
         
