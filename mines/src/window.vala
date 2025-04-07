@@ -371,25 +371,35 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
         int face_y = height / 2 - 8;
 
         MinesweeperUtils.set_color(cr, 0);
-        cr.rectangle(face_x + 2, face_y + 2, 12, 12); // bottom-right
+        // Fill
+        cr.rectangle(face_x + 5, face_y + 2, 6, 1);
+        cr.rectangle(face_x + 3, face_y + 3, 10, 1);
+        cr.rectangle(face_x + 2, face_y + 4, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 5, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 6, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 7, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 8, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 9, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 10, 12, 1);
+        cr.rectangle(face_x + 2, face_y + 11, 12, 1);
+        cr.rectangle(face_x + 3, face_y + 12, 10, 1);
+        cr.rectangle(face_x + 5, face_y + 13, 6, 1);
         cr.fill();
+
         MinesweeperUtils.set_color(cr, 3); // Black
-        
-        // Top pixels
-        cr.rectangle(face_x + 3, face_y + 1, 10, 1);
-        // Bottom pixels
-        cr.rectangle(face_x + 3, face_y + 14, 10, 1);
-        // Left pixels
-        cr.rectangle(face_x + 1, face_y + 3, 1, 10);
-        // Right pixels
-        cr.rectangle(face_x + 14, face_y + 3, 1, 10);
-        
-        // Corner pixels
-        cr.rectangle(face_x + 2, face_y + 2, 1, 1); // top-left
-        cr.rectangle(face_x + 13, face_y + 2, 1, 1); // top-right
-        cr.rectangle(face_x + 2, face_y + 13, 1, 1); // bottom-left
-        cr.rectangle(face_x + 13, face_y + 13, 1, 1); // bottom-right
-        
+        // Border
+        cr.rectangle(face_x + 5, face_y + 1, 6, 1);
+        cr.rectangle(face_x + 3, face_y + 2, 2, 1);
+        cr.rectangle(face_x + 11, face_y + 2, 2, 1);
+        cr.rectangle(face_x + 2, face_y + 3, 1, 2);
+        cr.rectangle(face_x + 13, face_y + 3, 1, 2);
+        cr.rectangle(face_x + 1, face_y + 5, 1, 6);
+        cr.rectangle(face_x + 14, face_y + 5, 1, 6);
+        cr.rectangle(face_x + 2, face_y + 11, 1, 2);
+        cr.rectangle(face_x + 13, face_y + 11, 1, 2);
+        cr.rectangle(face_x + 3, face_y + 13, 2, 1);
+        cr.rectangle(face_x + 11, face_y + 13, 2, 1);
+        cr.rectangle(face_x + 5, face_y + 14, 6, 1);
         cr.fill();
         
         // Mouth
@@ -421,6 +431,59 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
             cr.rectangle(face_x + 11, face_y + 12, 1, 1);
             cr.rectangle(face_x + 10, face_y + 11, 1, 1);
             
+            cr.fill();
+        } else if (mines_left == 0) {
+            // Cool face
+            // Row 1
+            cr.rectangle(face_x + 5, face_y + 1, 6, 1);
+            // Row 2
+            cr.rectangle(face_x + 3, face_y + 2, 2, 1);
+            cr.rectangle(face_x + 11, face_y + 2, 2, 1);
+            // Row 3
+            cr.rectangle(face_x + 2, face_y + 3, 1, 1);
+            cr.rectangle(face_x + 13, face_y + 3, 1, 1);
+            // Row 4
+            cr.rectangle(face_x + 2, face_y + 4, 1, 1);
+            cr.rectangle(face_x + 13, face_y + 4, 1, 1);
+            // Row 5
+            cr.rectangle(face_x + 1, face_y + 5, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 5, 1, 1);
+            // Row 6
+            cr.rectangle(face_x + 1, face_y + 6, 1, 1);
+            cr.rectangle(face_x + 5, face_y + 6, 1, 1);
+            cr.rectangle(face_x + 10, face_y + 6, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 6, 1, 1);
+            // Row 7
+            cr.rectangle(face_x + 1, face_y + 7, 1, 1);
+            cr.rectangle(face_x + 4, face_y + 7, 1, 1);
+            cr.rectangle(face_x + 6, face_y + 7, 1, 1);
+            cr.rectangle(face_x + 9, face_y + 7, 1, 1);
+            cr.rectangle(face_x + 11, face_y + 7, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 7, 1, 1);
+            // Row 8
+            cr.rectangle(face_x + 1, face_y + 8, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 8, 1, 1);
+            // Row 9
+            cr.rectangle(face_x + 1, face_y + 9, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 9, 1, 1);
+            // Row 10
+            cr.rectangle(face_x + 1, face_y + 10, 1, 1);
+            cr.rectangle(face_x + 6, face_y + 10, 1, 1);
+            cr.rectangle(face_x + 9, face_y + 10, 1, 1);
+            cr.rectangle(face_x + 14, face_y + 10, 1, 1);
+            // Row 11
+            cr.rectangle(face_x + 2, face_y + 11, 1, 1);
+            cr.rectangle(face_x + 7, face_y + 11, 1, 1);
+            cr.rectangle(face_x + 8, face_y + 11, 1, 1);
+            cr.rectangle(face_x + 13, face_y + 11, 1, 1);
+            // Row 12
+            cr.rectangle(face_x + 2, face_y + 12, 1, 1);
+            cr.rectangle(face_x + 13, face_y + 12, 1, 1);
+            // Row 13
+            cr.rectangle(face_x + 3, face_y + 13, 2, 1);
+            cr.rectangle(face_x + 11, face_y + 13, 2, 1);
+            // Row 14
+            cr.rectangle(face_x + 5, face_y + 14, 6, 1);
             cr.fill();
         } else {
             // Happy face
