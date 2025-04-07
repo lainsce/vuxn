@@ -36,13 +36,13 @@
 }
 
 .cell:hover {
-    background: @theme_accent;
+    background: @theme_selection;
     color: @theme_fg;
 }
 
 .cell-header,
 .row-header {
-    background-color: @theme_selection;
+    background-color: @theme_accent;
     border-left: 1px dotted @theme_fg;
     border-top: 1px dotted @theme_fg;
     border-radius: 0;
@@ -120,7 +120,7 @@ scrollbar trough {
 
 .header-highlighted,
 .cell-selected {
-    background: @theme_accent;
+    background: @theme_selection;
 }
 
 .cell-formula {
@@ -139,7 +139,7 @@ scrollbar trough {
 }
 
 .cell-selected {
-    background: @theme_accent;
+    background: @theme_selection;
     border-radius: 0;
     padding: 0;
     margin: 0;

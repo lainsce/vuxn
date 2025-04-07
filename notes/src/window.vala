@@ -196,7 +196,7 @@ public class Window : Gtk.ApplicationWindow {
 
     private void draw_background(Gtk.DrawingArea area, Cairo.Context cr, int width, int height) {
         var bg_color = theme.get_color("theme_bg");
-        var sel_color = theme.get_color("theme_selection");
+        var ac_color = theme.get_color("theme_selection");
         var fg_color = theme.get_color("theme_fg");
         double square_size = 20;
         cr.set_antialias(Cairo.Antialias.NONE);
@@ -209,7 +209,7 @@ public class Window : Gtk.ApplicationWindow {
         cr.paint();
         
         // Draw triangle corner
-        cr.set_source_rgb(sel_color.red, sel_color.green, sel_color.blue);
+        cr.set_source_rgb(ac_color.red, ac_color.green, ac_color.blue);
         cr.new_path();
         cr.move_to(0, height - 27);
         cr.line_to(square_size, height - 27);

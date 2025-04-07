@@ -3,8 +3,8 @@
    ========================================================================== */
 @define-color theme_bg #FFFFFF;
 @define-color theme_fg #000000;
-@define-color theme_selection #FFBB66;
 @define-color theme_accent #77DDCC;
+@define-color theme_selection #FFBB66;
 
 /* ==========================================================================
    GLOBAL RESET AND DEFAULTS
@@ -75,43 +75,43 @@ headerbar button.titlebutton {
 
 .title-bar {
     background:
-        linear-gradient(@theme_accent, @theme_accent) top / 100% 3px
+        linear-gradient(@theme_selection, @theme_selection) top / 100% 3px
             no-repeat,
-        linear-gradient(@theme_accent, @theme_accent) bottom / 100% 3px
+        linear-gradient(@theme_selection, @theme_selection) bottom / 100% 3px
             no-repeat,
         repeating-linear-gradient(
                 to bottom,
-                @theme_accent 0px,
-                @theme_accent 1px,
+                @theme_selection 0px,
+                @theme_selection 1px,
                 @theme_fg 1px,
                 @theme_fg 2px,
-                @theme_accent 2px,
-                @theme_accent 3px,
+                @theme_selection 2px,
+                @theme_selection 3px,
                 @theme_fg 3px,
                 @theme_fg 4px,
-                @theme_accent 4px,
-                @theme_accent 5px,
+                @theme_selection 4px,
+                @theme_selection 5px,
                 @theme_fg 5px,
                 @theme_fg 6px,
-                @theme_accent 6px,
-                @theme_accent 7px,
+                @theme_selection 6px,
+                @theme_selection 7px,
                 @theme_fg 7px,
                 @theme_fg 8px,
-                @theme_accent 8px,
-                @theme_accent 9px,
+                @theme_selection 8px,
+                @theme_selection 9px,
                 @theme_fg 9px,
                 @theme_fg 10px,
-                @theme_accent 10px
+                @theme_selection 10px
             )
             0 0 / 100% 100% no-repeat;
-    box-shadow: inset 0 0 0 1px @theme_accent;
+    box-shadow: inset 0 0 0 1px @theme_selection;
     border-bottom: 1px solid @theme_fg;
     color: @theme_fg;
     min-height: 17px;
 }
 
 .title-box {
-    background: @theme_accent;
+    background: @theme_selection;
     color: @theme_fg;
     padding: 0 8px;
 }
@@ -259,14 +259,8 @@ popover.combo {
     box-shadow: 2px 2px 0 @theme_fg;
 }
 
-.title-box {
-    background: @theme_accent;
-    color: @theme_fg;
-    padding: 0 8px;
-}
-
 .close-button {
-    background: @theme_accent;
+    background: @theme_selection;
     border: none;
     color: @theme_fg;
     min-height: 11px;
@@ -275,7 +269,7 @@ popover.combo {
     margin: 0;
     box-shadow:
         inset 0 0 0 1px @theme_fg,
-        0 0 0 1px @theme_accent;
+        0 0 0 1px @theme_selection;
 }
 
 .close-button:hover,
