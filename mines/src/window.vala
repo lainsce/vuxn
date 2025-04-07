@@ -8,7 +8,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     // Game variables
     private int rows = 8;
     private int cols = 8;
-    private int mines = 30;
+    private int mines = 10;
     private bool game_over = false;
     private bool first_click = true;
     private int remaining_tiles;
