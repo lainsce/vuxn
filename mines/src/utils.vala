@@ -331,13 +331,13 @@ public class MinesweeperUtils {
 
         // Segment coordinates
         int[,] segmentCoords = {
-            {4, 1, 8, 2},                 // A: top horizontal
-            {13, 2, 2, 5},                 // B: top-right vertical
-            {13, 9, 2, 5},                 // C: bottom-right vertical
-            {4, 13, 8, 2},                // D: bottom horizontal
-            {1, 9, 2, 5},                  // E: bottom-left vertical
-            {1, 2, 2, 5},                  // F: top-left vertical
-            {4, 7, 8, 2}                  // G: middle horizontal
+            {3, 1, 9, 1},                 // A: top horizontal
+            {12, 2, 1, 5},                 // B: top-right vertical
+            {12, 8, 1, 5},                 // C: bottom-right vertical
+            {3, 13, 9, 1},                // D: bottom horizontal
+            {2, 8, 1, 5},                  // E: bottom-left vertical
+            {2, 2, 1, 5},                  // F: top-left vertical
+            {3, 7, 9, 1}                  // G: middle horizontal
         };
         
         // Background
@@ -354,8 +354,43 @@ public class MinesweeperUtils {
             int sw = segmentCoords[i,2];
             int sh = segmentCoords[i,3];
             
-            cr.rectangle(sx, sy, sw, sh);
-            cr.fill();
+            switch (i) {
+                case 0:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
+                   cr.fill();
+                   break;
+                case 1:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
+                   cr.fill();
+                   break;
+                case 2:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
+                   cr.fill();
+                   break;
+                case 3:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx + 1, sy - 1, sw - 2, sh);
+                   cr.fill();
+                   break;
+                case 4:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
+                   cr.fill();
+                   break;
+                case 5:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
+                   cr.fill();
+                   break;
+                case 6:
+                   cr.rectangle(sx, sy, sw, sh);
+                   cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
+                   cr.fill();
+                   break;
+            }
         }
         
         // Then draw lit segments (white)
@@ -368,8 +403,43 @@ public class MinesweeperUtils {
                 int sw = segmentCoords[i,2];
                 int sh = segmentCoords[i,3];
                 
-                cr.rectangle(sx, sy, sw, sh);
-                cr.fill();
+                switch (i) {
+                    case 0:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
+                       cr.fill();
+                       break;
+                    case 1:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
+                       cr.fill();
+                       break;
+                    case 2:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
+                       cr.fill();
+                       break;
+                    case 3:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx + 1, sy - 1, sw - 2, sh);
+                       cr.fill();
+                       break;
+                    case 4:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
+                       cr.fill();
+                       break;
+                    case 5:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
+                       cr.fill();
+                       break;
+                    case 6:
+                       cr.rectangle(sx, sy, sw, sh);
+                       cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
+                       cr.fill();
+                       break;
+                }
             }
         }
     }

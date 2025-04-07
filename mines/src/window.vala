@@ -1,7 +1,7 @@
 public class MinesweeperWindow : Gtk.ApplicationWindow {
     // Game constants
     private const int TILE_SIZE = 16;
-    private const int MARGIN = 16;
+    private const int MARGIN = 8;
     private const int DIGIT_WIDTH = 16;
     private const int DIGIT_HEIGHT = 16;
     
@@ -133,9 +133,9 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     
     private void create_ui() {
         main_grid = new Gtk.Grid();
-        main_grid.margin_bottom = MARGIN;
-        main_grid.margin_end = MARGIN;
-        main_grid.margin_start = MARGIN;
+        main_grid.margin_bottom = MARGIN + 6;
+        main_grid.margin_end = MARGIN + 6;
+        main_grid.margin_start = MARGIN + 6;
         
         // Create top panel as a single drawing area
         int panel_width = 132;
@@ -366,10 +366,10 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
         // Draw mine counter (left)
         int value = int.max(0, mines_left);
         value = int.min(999, value);
-        MinesweeperUtils.draw_seven_segment_number(cr, value, 10, 10);
+        MinesweeperUtils.draw_seven_segment_number(cr, value, 9, 10);
         
         // Draw face
-        int face_x = width / 2 - 8;
+        int face_x = width / 2 - 9;
         int face_y = height / 2 - 8;
 
         MinesweeperUtils.set_color(cr, 0);
@@ -506,7 +506,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
         cr.fill();
         
         // Draw timer (right)
-        int timer_x = DIGIT_WIDTH * 5 + 10;
+        int timer_x = DIGIT_WIDTH * 5 + 9;
         MinesweeperUtils.draw_seven_segment_number(cr, timer_value, timer_x - DIGIT_WIDTH, 10);
     }
 }
