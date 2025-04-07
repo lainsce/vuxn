@@ -1,5 +1,5 @@
 window {
-    background: @theme_selection;
+    background: @theme_accent;
     color: @theme_fg;
 }
 

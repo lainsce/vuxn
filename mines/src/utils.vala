@@ -11,10 +11,10 @@ public class MinesweeperUtils {
                 cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                 break;
             case 1: // Light Gray
-                cr.set_source_rgb(sel_color.red, sel_color.green, sel_color.blue);
+                cr.set_source_rgb(ac_color.red, ac_color.green, ac_color.blue);
                 break;
             case 2: // Dark Gray
-                cr.set_source_rgb(ac_color.red, ac_color.green, ac_color.blue);
+                cr.set_source_rgb(sel_color.red, sel_color.green, sel_color.blue);
                 break;
             case 3: // Black
                 cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
