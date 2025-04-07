@@ -9,7 +9,7 @@
 }
 
 .mac-button {
-    background-color: @theme_bg;
+    background: @theme_bg;
     color: @theme_fg;
     border-radius: 0;
     background: none;
@@ -29,11 +29,11 @@
 
 .mac-button:checked {
     color: @theme_fg;
-    background-color: @theme_accent;
+    background: @theme_selection;
 }
 
 .current-day-dot {
-    background-color: @theme_accent;
+    background: @theme_accent;
     min-height: 6px;
     min-width: 6px;
     border-radius: 999px;
@@ -42,16 +42,23 @@
 }
 
 .current-day {
-    background-color: @theme_fg;
-    color: @theme_selection;
+    background: @theme_fg;
 }
 .current-day.month-event {
-    color: @theme_fg;
+    background: @theme_fg;
+}
+.current-day.month-event label:nth-child(1) {
+    color: @theme_selection;
+}
+.current-day.month-event label:nth-child(2) {
+    color: @theme_accent;
+}
+.mac-button:checked .current-day.month-event {
+    color: @theme_accent;
 }
 
-
 .mac-entry {
-    background-color: @theme_bg;
+    background: @theme_bg;
     color: @theme_fg;
     border-radius: 0;
     box-shadow: none;
@@ -95,7 +102,7 @@
         radial-gradient(@theme_fg 0.5px, transparent 0.5px);
     background-position: 0 0, 4px 4px;
     background-size: 7px 7px;
-    background-color: @theme_bg;
+    background: @theme_bg;
 }
 .month-event.other-month-day {
     border: 1px solid @theme_fg;
@@ -106,17 +113,17 @@
         radial-gradient(@theme_fg 0.5px, transparent 0.5px);
     background-position: 0 0, 4px 4px;
     background-size: 7px 7px;
-    background-color: @theme_bg;
+    background: @theme_bg;
 }
 .month-event.other-month-day:hover {
-    background-color: @theme_accent;
+    background: @theme_accent;
     border: 1px solid @theme_fg;
     border-left: none;
     border-top: none;
 }
 
 .month-event.other-month-day:active {
-    background-color: @theme_accent;
+    background: @theme_accent;
 }
 
 .other-month-day:hover {
@@ -127,7 +134,7 @@
 }
 .other-month-day:checked {
     color: transparent;
-    background-color: @theme_bg;
+    background: @theme_bg;
 }
 
 .other-month-day:active {
@@ -135,7 +142,7 @@
 }
 
 .month-event {
-    background-color: @theme_selection;
+    background: @theme_accent;
     margin: 0;
     padding: 0;
 }
