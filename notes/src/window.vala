@@ -193,7 +193,7 @@ public class Window : Gtk.ApplicationWindow {
         text_view.toggle_line_marker(iter);
         save_file();
     }
-    
+
     private void draw_background(Gtk.DrawingArea area, Cairo.Context cr, int width, int height) {
         var bg_color = theme.get_color("theme_bg");
         var sel_color = theme.get_color("theme_selection");
