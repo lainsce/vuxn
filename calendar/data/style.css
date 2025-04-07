@@ -41,9 +41,22 @@
     padding: 0;
 }
 
+.mac-button.current-day:checked {
+    color: @theme_fg;
+    background: @theme_selection;
+}
+.mac-button.current-day:checked label:nth-child(1) {
+    color: @theme_fg;
+}
+
 .current-day {
     background: @theme_fg;
+    color: @theme_selection;
 }
+.current-day label:nth-child(1) {
+    color: @theme_selection;
+}
+
 .current-day.month-event {
     background: @theme_fg;
 }
