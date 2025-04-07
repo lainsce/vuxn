@@ -5,9 +5,9 @@ namespace ShavianKeyboard {
     // The main window class for the Shavian keyboard application
     public class ShavianWindow : Gtk.ApplicationWindow {
         // Constants
-        private const int KEY_WIDTH = 32;
-        private const int KEY_HEIGHT = 48;
-        private const int KEY_SPACING = 4;
+        private const int KEY_WIDTH = 30;
+        private const int KEY_HEIGHT = 46;
+        private const int KEY_SPACING = 2;
         private const int BORDER_RADIUS = 2;
         
         // UI Elements

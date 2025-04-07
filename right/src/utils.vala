@@ -177,141 +177,238 @@ public class RecentFilesManager {
         }
     }
 }
+
 public class Utils {
-    public static string get_data_path (string filename) {
-        var data_dir = GLib.Path.build_filename (GLib.Environment.get_user_data_dir (), "right-editor");
+    /**
+     * Gets the path to a data file in the application's data directory
+     */
+    public static string get_data_path(string filename) {
+        var data_dir = GLib.Path.build_filename(GLib.Environment.get_user_data_dir(), "right-editor");
 
         // Create the directory if it doesn't exist
-        var dir = File.new_for_path (data_dir);
-        if (!dir.query_exists ()) {
+        var dir = File.new_for_path(data_dir);
+        if (!dir.query_exists()) {
             try {
-                dir.make_directory_with_parents ();
+                dir.make_directory_with_parents();
             } catch (Error e) {
-                warning ("Could not create data directory: %s", e.message);
+                warning("Could not create data directory: %s", e.message);
             }
         }
 
-        return GLib.Path.build_filename (data_dir, filename);
+        return GLib.Path.build_filename(data_dir, filename);
     }
 
-    public static bool save_to_file (string filepath, string content) {
+    /**
+     * Saves content to a file with protection against corruption and concurrent access.
+     * Uses lock files, backup files, and atomic operations for safety.
+     */
+    public static bool save_to_file(string filepath, string content) {
+        // Use lock file to prevent concurrent access
+        string lock_path = filepath + ".lock";
+        File lock_file = File.new_for_path(lock_path);
+        bool locked = false;
+        
         try {
-            // Ensure parent directory exists
-            var file = File.new_for_path (filepath);
-            var parent = file.get_parent ();
-            if (parent != null && !parent.query_exists ()) {
-                parent.make_directory_with_parents ();
-            }
-            
-            // Create a temporary file for safe writing
-            string temp_filepath = filepath + ".tmp";
-            if (!FileUtils.set_contents (temp_filepath, content)) {
-                warning ("Failed to save temporary file during save operation");
+            // Try to acquire the lock with timeout handling
+            locked = acquire_lock(lock_file);
+            if (!locked) {
+                warning("File appears to be in use by another process: %s", filepath);
                 return false;
             }
             
-            // Check if temp file was created successfully
-            var temp_file = File.new_for_path (temp_filepath);
-            if (!temp_file.query_exists ()) {
-                warning ("Temporary file was not created properly");
-                return false;
+            var file = File.new_for_path(filepath);
+            
+            // Create parent directory if needed
+            var parent = file.get_parent();
+            if (parent != null && !parent.query_exists()) {
+                parent.make_directory_with_parents();
             }
             
-            // Create backup of existing file if it exists
-            var orig_file = File.new_for_path (filepath);
-            if (orig_file.query_exists ()) {
-                string backup_path = filepath + ".bak";
+            // Create backup if the file exists
+            if (file.query_exists()) {
                 try {
-                    var backup_file = File.new_for_path (backup_path);
-                    if (backup_file.query_exists ()) {
-                        backup_file.delete ();
+                    string backup_path = filepath + ".bak";
+                    File backup_file = File.new_for_path(backup_path);
+                    
+                    if (backup_file.query_exists()) {
+                        backup_file.delete();
                     }
-                    orig_file.copy (backup_file, FileCopyFlags.OVERWRITE);
+                    
+                    file.copy(backup_file, FileCopyFlags.OVERWRITE);
                 } catch (Error e) {
-                    warning ("Failed to create backup: %s", e.message);
-                    // Continue with save operation even if backup fails
+                    warning("Failed to create backup, continuing anyway: %s", e.message);
                 }
             }
             
-            // Move the temp file to the actual file
-            try {
-                temp_file.move (orig_file, FileCopyFlags.OVERWRITE);
-            } catch (Error e) {
-                warning ("Failed to move temporary file to final location: %s", e.message);
-                // Try to restore from backup if the move failed
-                string backup_path = filepath + ".bak";
-                var backup_file = File.new_for_path (backup_path);
-                if (backup_file.query_exists ()) {
-                    try {
-                        backup_file.copy (orig_file, FileCopyFlags.OVERWRITE);
-                        warning ("Restored from backup after failed save");
-                    } catch (Error restore_error) {
-                        warning ("Failed to restore from backup: %s", restore_error.message);
-                        return false;
-                    }
-                }
+            // Write to temporary file
+            string temp_path = filepath + ".tmp";
+            File temp_file = File.new_for_path(temp_path);
+            
+            if (!FileUtils.set_contents(temp_path, content)) {
+                warning("Failed to write to temporary file");
                 return false;
             }
             
-            return true;
+            // Move temp file to destination (atomic operation)
+            try {
+                temp_file.move(file, FileCopyFlags.OVERWRITE);
+                return true;
+            } catch (Error e) {
+                warning("Failed to move temporary file to destination: %s", e.message);
+                
+                // Try to restore from backup
+                try_restore_from_backup(filepath);
+                return false;
+            }
         } catch (Error e) {
-            warning ("Failed to save file: %s", e.message);
+            warning("Error during file save: %s", e.message);
             return false;
+        } finally {
+            // Always release the lock
+            if (locked) {
+                release_lock(lock_file);
+            }
         }
     }
-
-    public static bool load_from_file_improved (string filepath, out string content) {
+    
+    /**
+     * Loads content from a file with backup fallback if the main file is corrupted.
+     * Also handles potential concurrent access by waiting briefly if a write is in progress.
+     */
+    public static bool load_from_file_improved(string filepath, out string content) {
         content = "";
+        
+        // Check if there's a write in progress (active lock file)
+        string lock_path = filepath + ".lock";
+        File lock_file = File.new_for_path(lock_path);
+        
+        if (lock_file.query_exists()) {
+            // Wait briefly for potential write to complete
+            Thread.usleep(300000); // 300ms
+        }
+        
         try {
-            // Check if file exists first
-            var file = File.new_for_path (filepath);
-            if (!file.query_exists ()) {
-                warning ("File does not exist: %s", filepath);
-                return false;
-            }
-            
             // Try loading the main file
-            if (FileUtils.get_contents (filepath, out content)) {
+            if (FileUtils.get_contents(filepath, out content)) {
                 return true;
             }
             
-            // If main file loading failed, try backup
+            // If main file failed, try backup
             string backup_path = filepath + ".bak";
-            var backup_file = File.new_for_path (backup_path);
-            if (backup_file.query_exists ()) {
-                warning ("Attempting to load from backup file");
-                if (FileUtils.get_contents (backup_path, out content)) {
-                    // Successfully loaded from backup
-                    warning ("Loaded content from backup file");
+            File backup_file = File.new_for_path(backup_path);
+            
+            if (backup_file.query_exists()) {
+                warning("Loading from backup file after main file failed");
+                if (FileUtils.get_contents(backup_path, out content)) {
                     return true;
                 }
             }
             
-            warning ("Failed to load file or its backup: %s", filepath);
+            warning("Failed to load file or backup: %s", filepath);
             return false;
         } catch (Error e) {
-            warning ("Error loading file: %s", e.message);
+            warning("Error loading file: %s", e.message);
             return false;
         }
     }
     
-    // Keep the old method signature for compatibility
-    public static string load_from_file (string filepath) {
+    /**
+     * Compatibility method for the original API
+     */
+    public static string load_from_file(string filepath) {
         string content;
-        if (load_from_file_improved (filepath, out content)) {
+        if (load_from_file_improved(filepath, out content)) {
             return content;
         }
         return "";
     }
-
-    public static bool is_valid_file_type (string filename) {
+    
+    /**
+     * Tries to restore from backup after a failed save
+     */
+    private static void try_restore_from_backup(string filepath) {
+        try {
+            string backup_path = filepath + ".bak";
+            File backup_file = File.new_for_path(backup_path);
+            File orig_file = File.new_for_path(filepath);
+            
+            if (backup_file.query_exists()) {
+                backup_file.copy(orig_file, FileCopyFlags.OVERWRITE);
+                warning("Restored from backup after failed save");
+            }
+        } catch (Error e) {
+            warning("Failed to restore from backup: %s", e.message);
+        }
+    }
+    
+    /**
+     * Try to acquire a file lock with timeout
+     */
+    private static bool acquire_lock(File lock_file) throws Error {
+        // If lock exists, check if it's stale or wait for it
+        if (lock_file.query_exists()) {
+            // Check if it's a stale lock (over 30 seconds old)
+            FileInfo info = lock_file.query_info(FileAttribute.TIME_MODIFIED, 
+                                                FileQueryInfoFlags.NONE);
+                                                
+            int64 mod_time = info.get_modification_time().tv_sec;
+            int64 current_time = (int64)time_t();
+            
+            if (current_time - mod_time > 30) {
+                // Stale lock - try to delete it
+                lock_file.delete();
+            } else {
+                // Fresh lock - wait up to 3 seconds
+                int timeout_ms = 3000;
+                int wait_interval_ms = 100;
+                int waited_ms = 0;
+                
+                while (lock_file.query_exists() && waited_ms < timeout_ms) {
+                    Thread.usleep(wait_interval_ms * 1000);
+                    waited_ms += wait_interval_ms;
+                }
+                
+                // If it still exists after timeout, fail
+                if (lock_file.query_exists()) {
+                    return false;
+                }
+            }
+        }
+        
+        // Create lock file with timestamp and process info
+        string lock_content = "PID: %d\nTime: %s".printf(
+            Posix.getpid(),
+            new DateTime.now_local().format("%F %T")
+        );
+        
+        FileUtils.set_contents(lock_file.get_path(), lock_content);
+        return true;
+    }
+    
+    /**
+     * Release a file lock
+     */
+    private static void release_lock(File lock_file) {
+        try {
+            if (lock_file.query_exists()) {
+                lock_file.delete();
+            }
+        } catch (Error e) {
+            warning("Failed to release lock file: %s", e.message);
+        }
+    }
+    
+    /**
+     * Checks if the file has a supported extension for syntax highlighting
+     */
+    public static bool is_valid_file_type(string filename) {
         string[] supported_extensions = {
             ".txt", ".md", ".c", ".h", ".cpp", ".hpp", ".vala", ".vapi",
             ".py", ".js", ".html", ".css", ".xml", ".json", ".sh"
         };
 
         foreach (string ext in supported_extensions) {
-            if (filename.down ().has_suffix (ext)) {
+            if (filename.down().has_suffix(ext)) {
                 return true;
             }
         }
@@ -320,44 +417,50 @@ public class Utils {
         return true;
     }
 
-    public static string get_file_type_name (string filename) {
-        if (filename.has_suffix (".vala") || filename.has_suffix (".vapi")) {
+    /**
+     * Gets a human-readable name for a file type based on its extension
+     */
+    public static string get_file_type_name(string filename) {
+        if (filename.has_suffix(".vala") || filename.has_suffix(".vapi")) {
             return "Vala";
-        } else if (filename.has_suffix (".c") || filename.has_suffix (".h")) {
+        } else if (filename.has_suffix(".c") || filename.has_suffix(".h")) {
             return "C";
-        } else if (filename.has_suffix (".cpp") || filename.has_suffix (".hpp")) {
+        } else if (filename.has_suffix(".cpp") || filename.has_suffix(".hpp")) {
             return "C++";
-        } else if (filename.has_suffix (".js")) {
+        } else if (filename.has_suffix(".js")) {
             return "JavaScript";
-        } else if (filename.has_suffix (".py")) {
+        } else if (filename.has_suffix(".py")) {
             return "Python";
-        } else if (filename.has_suffix (".html") || filename.has_suffix (".htm")) {
+        } else if (filename.has_suffix(".html") || filename.has_suffix(".htm")) {
             return "HTML";
-        } else if (filename.has_suffix (".css")) {
+        } else if (filename.has_suffix(".css")) {
             return "CSS";
-        } else if (filename.has_suffix (".xml")) {
+        } else if (filename.has_suffix(".xml")) {
             return "XML";
-        } else if (filename.has_suffix (".json")) {
+        } else if (filename.has_suffix(".json")) {
             return "JSON";
-        } else if (filename.has_suffix (".md") || filename.has_suffix (".markdown")) {
+        } else if (filename.has_suffix(".md") || filename.has_suffix(".markdown")) {
             return "Markdown";
-        } else if (filename.has_suffix (".sh")) {
+        } else if (filename.has_suffix(".sh")) {
             return "Shell Script";
         } else {
             return "Plain Text";
         }
     }
 
-    public static void show_info_dialog (Gtk.Window parent, string title, string message) {
-        var dialog = new Gtk.AlertDialog ("");
-        dialog.set_message (title);
-        dialog.set_detail (message);
-        dialog.set_modal (true);
-        dialog.set_buttons ({ "OK" });
+    /**
+     * Shows an info dialog with an OK button
+     */
+    public static void show_info_dialog(Gtk.Window parent, string title, string message) {
+        var dialog = new Gtk.AlertDialog("");
+        dialog.set_message(title);
+        dialog.set_detail(message);
+        dialog.set_modal(true);
+        dialog.set_buttons({"OK"});
 
-        dialog.choose.begin (parent, null, (obj, res) => {
+        dialog.choose.begin(parent, null, (obj, res) => {
             try {
-                dialog.choose.end (res);
+                dialog.choose.end(res);
             } catch (Error e) {
                 // Ignore errors (like dismissal)
             }

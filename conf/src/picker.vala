@@ -12,8 +12,7 @@ namespace App {
         private const int BAR_WIDTH = 68;
         private const int BAR_HEIGHT = 14;
         private const int BAR_GAP = 1;
-        private const int FONT_MARGIN = 8;
-        private const int CHECKERBOARD_SIZE = 1;
+        private const int CHECKERBOARD_SIZE = 2;
         
         // UI elements
         private Gtk.DrawingArea bars_area;
@@ -41,7 +40,7 @@ namespace App {
         public ColorPickerWidget() {
             Object(
                 orientation: Gtk.Orientation.VERTICAL,
-                spacing: 8
+                spacing: 7
             );
             
             theme = Theme.Manager.get_default();
@@ -57,7 +56,6 @@ namespace App {
             // Create the hex code label
             hex_label = new Gtk.Label("000");
             hex_label.add_css_class("pixel-font");
-            hex_label.margin_top = FONT_MARGIN;
             hex_label.halign = Gtk.Align.START;
             
             // Add components to the main container
@@ -105,7 +103,7 @@ namespace App {
          * Creates the color bars drawing area
          */
         private void create_color_bars() {
-            int total_height = (BAR_HEIGHT * 3) + (BAR_GAP * 2);
+            int total_height = (BAR_HEIGHT * 3) + BAR_GAP;
             
             bars_area = new Gtk.DrawingArea() {
                 content_width = BAR_WIDTH,
@@ -115,9 +113,9 @@ namespace App {
             // Setup drawing function
             bars_area.set_draw_func((area, cr, width, height) => {
                 // Draw each color bar
-                draw_color_bar(cr, 0, 0, red_position, 0);                 // Red bar
-                draw_color_bar(cr, 0, BAR_HEIGHT + BAR_GAP, green_position, 1);  // Green bar
-                draw_color_bar(cr, 0, (BAR_HEIGHT + BAR_GAP) * 2, blue_position, 2);  // Blue bar
+                draw_color_bar(cr, 0, 0, red_position);                 // Red bar
+                draw_color_bar(cr, 0, BAR_HEIGHT - BAR_GAP, green_position);  // Green bar
+                draw_color_bar(cr, 0, (BAR_HEIGHT - BAR_GAP) * 2, blue_position);  // Blue bar
             });
             
             // Add click gesture
@@ -152,9 +150,8 @@ namespace App {
          * @param x X position
          * @param y Y position
          * @param position Current position (0-15)
-         * @param channel Color channel (0=red, 1=green, 2=blue)
          */
-        private void draw_color_bar(Cairo.Context cr, int x, int y, int position, int channel) {
+        private void draw_color_bar(Cairo.Context cr, int x, int y, int position) {
             // Calculate the active width based on position (0-15)
             float active_width = (position + 1) * (BAR_WIDTH / 16.0f);
             
