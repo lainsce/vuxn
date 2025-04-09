@@ -6,7 +6,6 @@ public class FontUtils {
     public int GLYPH_WIDTH = 16; // Will be set based on format
     public int GLYPH_HEIGHT = 16; // Will be set based on format
     public string current_filename = null;
-    public bool is_uf1_tall = false;  // Special case for UF1 with 2 vertical tiles
     
     public const int TILE_SIZE = 8;
     public const int GRID_SCALE = 2;    // Scale factor for grid display
@@ -16,9 +15,6 @@ public class FontUtils {
     // Drawing orders for different formats
     // UF1
     private const int[] DRAWING_ORDER_UF1 = {0};
-    
-    // UF1 Tall
-    private const int[] DRAWING_ORDER_UF1_TALL = {0, 1};
     
     // UF2
     private const int[] DRAWING_ORDER_UF2 = {0, 2, 1, 3};
@@ -45,45 +41,23 @@ public class FontUtils {
             // Store current filename
             current_filename = file.get_path();
             
-            // Reset the tall UF1 flag
-            is_uf1_tall = false;
-            
             // Determine font format based on file extension
             string path = file.get_path();
             if (path.has_suffix(".uf1")) {
                 font_format = 1;
-                
-                // Detect if this is a "tall" UF1 format (8x16 with 2 vertical tiles)
-                // We'll check based on file size
-                int expected_bytes = HEADER_SIZE + (224 * 8); 
-                // 224 characters with 8 bytes each
-                
-                if (size > expected_bytes + 100) { 
-                    // Add margin for potential extra data
-                    // This seems to be a tall UF1 (8x16) format
-                    is_uf1_tall = true;
-                    GLYPH_WIDTH = 8;
-                    GLYPH_HEIGHT = 16;
-                } else {
-                    // Standard UF1 format
-                    is_uf1_tall = false;
-                    GLYPH_WIDTH = 8;
-                    GLYPH_HEIGHT = 8;
-                }
+                GLYPH_WIDTH = 8;
+                GLYPH_HEIGHT = 8;
             } else if (path.has_suffix(".uf2")) {
                 font_format = 2;
-                is_uf1_tall = false;
                 GLYPH_WIDTH = 16;
                 GLYPH_HEIGHT = 16;
             } else if (path.has_suffix(".uf3")) {
                 font_format = 3;
-                is_uf1_tall = false;
                 GLYPH_WIDTH = 24;
                 GLYPH_HEIGHT = 24;
             } else {
                 warning("Unknown file format, defaulting to UF2");
                 font_format = 2;
-                is_uf1_tall = false;
                 GLYPH_WIDTH = 16;
                 GLYPH_HEIGHT = 16;
             }
@@ -159,15 +133,15 @@ public class FontUtils {
             int actual_glyphs = data_size / bytes_per_glyph;
             
             // Ensure we don't exceed the available data
-            int max_chars = (int)Math.fmin(actual_glyphs + 32, 256);
+            int max_chars = (int)Math.fmin(actual_glyphs, 256);
             
             // We're going to output characters 32 through max_chars-1
-            data_stream.put_string("CHARS %d\n".printf(max_chars - 32));
+            data_stream.put_string("CHARS %d\n".printf(max_chars));
             
             // Write each glyph
-            for (int i = 32; i < max_chars; i++) {
+            for (int i = 0; i < max_chars; i++) {
                 // Get adjusted offset for this glyph
-                int adjusted_index = i - 32;
+                int adjusted_index = i;
                 int offset = HEADER_SIZE + (adjusted_index * bytes_per_glyph);
                 
                 // Get the actual width of this glyph
@@ -190,11 +164,7 @@ public class FontUtils {
                 // Generate bitmap data based on format
                 switch (font_format) {
                     case 1:
-                        if (is_uf1_tall) {
-                            write_uf1_tall_bitmap(data_stream, offset);
-                        } else {
-                            write_uf1_bitmap(data_stream, offset);
-                        }
+                        write_uf1_bitmap(data_stream, offset);
                         break;
                     case 2:
                         write_uf2_bitmap(data_stream, offset);
@@ -224,48 +194,57 @@ public class FontUtils {
     private void write_uf1_bitmap(DataOutputStream stream, int offset) 
         throws IOError {
         // Standard UF1 (8x8)
-        // For BDF, we need to pad each row to an even number of hex digits
-        // For an 8x8 glyph, each row is already 8 bits, which is 2 hex digits
-        for (int y = 0; y < 8; y++) {
-            if (offset + y >= font_data.length) break;
-            
-            stream.put_string("%02X\n".printf(font_data[offset + y]));
-        }
+        // For BDF, we need to properly position the 8x8 data in the 8x16 format
+        // For 8x8 fonts, place the data at the top of the glyph, pad bottom with zeros
         
-        // If we're exporting to a 16-height BDF, pad with zeros
+        // Each row in BDF requires padding to full byte width (8px = 1 byte = 2 hex chars)
+        int row_bytes = (GLYPH_WIDTH + 7) / 8; // Ceiling division for bytes needed per row
+        
+        // For UF1, write the 8x8 glyph data starting from correct vertical position
+        // Calculate vertical centering for smaller glyphs in a taller BDF
+        int start_y = 0;
         if (GLYPH_HEIGHT > 8) {
-            for (int y = 8; y < GLYPH_HEIGHT; y++) {
-                stream.put_string("00\n");
-            }
+            // For 16 pixel height, position the glyph in the middle to upper half
+            start_y = (GLYPH_HEIGHT - 8) / 2;
         }
-    }
-    
-    private void write_uf1_tall_bitmap(DataOutputStream stream, int offset) 
-        throws IOError {
-        // UF1 Tall format (8x16)
-        // Each row is 8 bits = 2 hex digits
-        int bytes_per_tile = 8;
         
-        for (int y = 0; y < 16; y++) {
-            int tile_idx = y / 8; // 0 for top half, 1 for bottom half
-            int row_in_tile = y % 8;
-            
-            // Calculate offset for this row, following the tile drawing order
-            int tile_order_idx = DRAWING_ORDER_UF1_TALL[tile_idx];
-            int row_offset = offset + (tile_order_idx * bytes_per_tile) + row_in_tile;
-            
-            if (row_offset >= font_data.length) {
-                stream.put_string("00\n");
+        // First, write any top padding rows if needed
+        for (int y = 0; y < start_y; y++) {
+            for (int i = 0; i < row_bytes; i++) {
+                stream.put_string("00");
+            }
+            stream.put_string("\n");
+        }
+        
+        // Write the actual 8x8 glyph data
+        for (int y = 0; y < 8; y++) {
+            // Check if we're still within the font data
+            if (offset + y >= font_data.length) {
+                // Write an empty row
+                for (int i = 0; i < row_bytes; i++) {
+                    stream.put_string("00");
+                }
             } else {
-                stream.put_string("%02X\n".printf(font_data[row_offset]));
+                // Get the row data from the font
+                uint8 row_data = font_data[offset + y];
+                
+                // Write the first byte with the actual data
+                stream.put_string("%02X".printf(row_data));
+                
+                // Add any additional bytes if the glyph width > 8
+                for (int i = 1; i < row_bytes; i++) {
+                    stream.put_string("00");
+                }
             }
+            stream.put_string("\n");
         }
         
-        // If we're exporting to a taller BDF, pad with zeros
-        if (GLYPH_HEIGHT > 16) {
-            for (int y = 16; y < GLYPH_HEIGHT; y++) {
-                stream.put_string("00\n");
+        // Write any bottom padding rows if needed
+        for (int y = start_y + 8; y < GLYPH_HEIGHT; y++) {
+            for (int i = 0; i < row_bytes; i++) {
+                stream.put_string("00");
             }
+            stream.put_string("\n");
         }
     }
     
@@ -371,11 +350,7 @@ public class FontUtils {
         // Calculate bytes required for storing a glyph
         switch (font_format) {
             case 1: // UF1
-                if (is_uf1_tall) {
-                    return 16; // 16 bytes per 8x16 glyph (2 vertical tiles)
-                } else {
-                    return 8; // 8 bytes per 8x8 glyph (1 bit per pixel)
-                }
+                return 8; // 8 bytes per 8x8 glyph (1 bit per pixel)
             case 2: // UF2: 16x16 (4 tiles)
                 return 32; // 32 bytes per 16x16 glyph (1 bit per pixel)
             case 3: // UF3: 24x24 (9 tiles)
@@ -396,13 +371,8 @@ public class FontUtils {
         
         switch (font_format) {
             case 1:
-                if (is_uf1_tall) {
-                    draw_uf1_tall_glyph(cr, offset, x_offset, y_offset, 
-                                       scale, actual_width);
-                } else {
-                    draw_uf1_glyph(cr, offset, x_offset, y_offset, 
+                draw_uf1_glyph(cr, offset, x_offset, y_offset, 
                                   scale, actual_width);
-                }
                 break;
             case 2:
                 draw_uf2_glyph(cr, offset, x_offset, y_offset, 
@@ -424,31 +394,6 @@ public class FontUtils {
                                int scale, uint8 actual_width) {
         // UF1 is simple: just one 8x8 tile
         draw_tile(cr, offset, x_offset, y_offset, scale);
-    }
-    
-    private void draw_uf1_tall_glyph(Cairo.Context cr, int offset, 
-                                    int x_offset, int y_offset, 
-                                    int scale, uint8 actual_width) {
-        // Coordinates for each tile relative to glyph origin
-        int[,] tile_coords = {
-            {0, 0},  // Tile 0 (top)
-            {0, 8}   // Tile 1 (bottom)
-        };
-        
-        // Each 8x8 tile requires 8 bytes (1 bit per pixel)
-        int bytes_per_tile = 8;
-        
-        // Draw each tile in the correct order
-        foreach (int tile_idx in DRAWING_ORDER_UF1_TALL) {
-            int tile_x = tile_coords[tile_idx, 0] + x_offset;
-            int tile_y = tile_coords[tile_idx, 1] + y_offset;
-            
-            // Calculate offset for this tile in the font data
-            int tile_offset = offset + (tile_idx * bytes_per_tile);
-            
-            // Draw the 8x8 tile
-            draw_tile(cr, tile_offset, tile_x, tile_y, scale);
-        }
     }
     
     private void draw_uf2_glyph(Cairo.Context cr, int offset, 
