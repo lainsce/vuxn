@@ -412,6 +412,14 @@ public class MainWindow : Gtk.ApplicationWindow {
             open_file();
         });
         
+        menu_component.request_save_mono.connect(() => {
+            save_mono_file();
+        });
+
+        menu_component.request_open_mono.connect(() => {
+            open_mono_file();
+        });
+        
         menu_component.request_rename.connect(() => {
             // Show rename dialog or activate filename editor
             // For now, we'll just focus on the filename component to trigger editing
@@ -455,93 +463,108 @@ public class MainWindow : Gtk.ApplicationWindow {
     private bool on_key_pressed(Gtk.EventControllerKey controller, uint keyval, uint keycode, Gdk.ModifierType state) {
         // Handle keyboard shortcuts
         if ((state & Gdk.ModifierType.CONTROL_MASK) != 0) {
-            switch (keyval) {
-                case Gdk.Key.q:
-                    // Close window
-                    close();
-                    return true;
-                case Gdk.Key.s:
-                    // Save file
-                    save_chr_file();
-                    return true;
-                case Gdk.Key.o:
-                    // Open file
-                    open_file();
-                    return true;
-                case Gdk.Key.n:
-                    // New file
-                    editor_view.clear_editor();
-                    preview_view.clear_canvas();
-                    chr_data.filename = "untitled10x10.chr";
-                    return true;
-                case Gdk.Key.r:
-                    // Rename file
-                    bottom_toolbar.focus_filename();
-                    return true;
-                case Gdk.Key.a:
-                    // Select all
-                    editor_view.select_tile(0, 0);
-                    return true;
-                case Gdk.Key.c:
-                    // Copy - handled by menu component
-                    var action = lookup_action("copy") as SimpleAction;
-                    if (action != null) action.activate(null);
-                    return true;
-                case Gdk.Key.p:
-                    // Paste - handled by menu component
-                    var action = lookup_action("paste") as SimpleAction;
-                    if (action != null) action.activate(null);
-                    return true;
-                case Gdk.Key.x:
-                    // Cut - handled by menu component
-                    var action = lookup_action("cut") as SimpleAction;
-                    if (action != null) action.activate(null);
-                    return true;
-                case Gdk.Key.i:
-                    // Invert - handled by menu component
-                    var action = lookup_action("invert") as SimpleAction;
-                    if (action != null) action.activate(null);
-                    return true;
-                case Gdk.Key.k:
-                    // Colorize - handled by menu component
-                    var action = lookup_action("colorize") as SimpleAction;
-                    if (action != null) action.activate(null);
-                    return true;
-                case Gdk.Key.b:
-                    // Brush tool
-                    chr_data.selected_tool = 0;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.t:
-                    // Cursor tool
-                    chr_data.selected_tool = 1;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.e:
-                    // Zoom tool
-                    chr_data.selected_tool = 2;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.@0:
-                    // Background color
-                    chr_data.selected_color = 0;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.@1:
-                    // Color 1
-                    chr_data.selected_color = 1;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.@2:
-                    // Color 2
-                    chr_data.selected_color = 2;
-                    bottom_toolbar.queue_draw();
-                    return true;
-                case Gdk.Key.@3:
-                    // Color 3
-                    chr_data.selected_color = 3;
-                    bottom_toolbar.queue_draw();
-                    return true;
+            if ((state & Gdk.ModifierType.SHIFT_MASK) != 0) {
+                // Ctrl+Shift shortcuts
+                switch (keyval) {
+                    case Gdk.Key.S:
+                        // Save mono file
+                        save_mono_file();
+                        return true;
+                    case Gdk.Key.O:
+                        // Open mono file
+                        open_mono_file();
+                        return true;
+                }
+            } else {
+                // Ctrl shortcuts (no shift)
+                switch (keyval) {
+                    case Gdk.Key.q:
+                        // Close window
+                        close();
+                        return true;
+                    case Gdk.Key.s:
+                        // Save file
+                        save_chr_file();
+                        return true;
+                    case Gdk.Key.o:
+                        // Open file
+                        open_file();
+                        return true;
+                    case Gdk.Key.n:
+                        // New file
+                        editor_view.clear_editor();
+                        preview_view.clear_canvas();
+                        chr_data.filename = "untitled10x10.chr";
+                        return true;
+                    case Gdk.Key.r:
+                        // Rename file
+                        bottom_toolbar.focus_filename();
+                        return true;
+                    case Gdk.Key.a:
+                        // Select all
+                        editor_view.select_tile(0, 0);
+                        return true;
+                    case Gdk.Key.c:
+                        // Copy - handled by menu component
+                        var action = lookup_action("copy") as SimpleAction;
+                        if (action != null) action.activate(null);
+                        return true;
+                    case Gdk.Key.p:
+                        // Paste - handled by menu component
+                        var action = lookup_action("paste") as SimpleAction;
+                        if (action != null) action.activate(null);
+                        return true;
+                    case Gdk.Key.x:
+                        // Cut - handled by menu component
+                        var action = lookup_action("cut") as SimpleAction;
+                        if (action != null) action.activate(null);
+                        return true;
+                    case Gdk.Key.i:
+                        // Invert - handled by menu component
+                        var action = lookup_action("invert") as SimpleAction;
+                        if (action != null) action.activate(null);
+                        return true;
+                    case Gdk.Key.k:
+                        // Colorize - handled by menu component
+                        var action = lookup_action("colorize") as SimpleAction;
+                        if (action != null) action.activate(null);
+                        return true;
+                    case Gdk.Key.b:
+                        // Brush tool
+                        chr_data.selected_tool = 0;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.t:
+                        // Cursor tool
+                        chr_data.selected_tool = 1;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.e:
+                        // Zoom tool
+                        chr_data.selected_tool = 2;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.@0:
+                        // Background color
+                        chr_data.selected_color = 0;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.@1:
+                        // Color 1
+                        chr_data.selected_color = 1;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.@2:
+                        // Color 2
+                        chr_data.selected_color = 2;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                    case Gdk.Key.@3:
+                        // Color 3
+                        chr_data.selected_color = 3;
+                        bottom_toolbar.queue_draw();
+                        return true;
+                }
             }
         }
         
@@ -553,8 +576,11 @@ public class MainWindow : Gtk.ApplicationWindow {
             var file = (File)value;
             string path = file.get_path();
             
-            if (path.has_suffix(".chr")) {
+            if (path.down().has_suffix(".chr")) {
                 file_handler.load_from_file(path);
+                return true;
+            } else if (path.down().has_suffix(".icn")) {
+                file_handler.load_from_mono_file(path);
                 return true;
             }
         }
@@ -613,6 +639,63 @@ public class MainWindow : Gtk.ApplicationWindow {
                 
                 // Load the file
                 file_handler.load_from_file(path);
+            } catch (Error e) {
+                // User probably canceled the dialog
+            }
+        });
+    }
+    
+    private void save_mono_file() {
+        var save_dialog = new Gtk.FileDialog();
+        save_dialog.set_title("Save ICN file");
+        
+        var filter = new Gtk.FileFilter();
+        filter.set_filter_name("ICN Files");
+        filter.add_pattern("*.icn");
+        
+        var filters = new ListStore(typeof(Gtk.FileFilter));
+        filters.append(filter);
+        save_dialog.set_filters(filters);
+        
+        save_dialog.save.begin(this, null, (obj, res) => {
+            try {
+                var file = save_dialog.save.end(res);
+                string path = file.get_path();
+                
+                // Ensure .icn extension
+                if (!path.has_suffix(".icn")) {
+                    path += ".icn";
+                }
+                
+                // Save the file
+                if (file_handler.save_to_mono_file(path)) {
+                    chr_data.filename = File.new_for_path(path).get_basename();
+                }
+            } catch (Error e) {
+                // User probably canceled the dialog
+            }
+        });
+    }
+
+    private void open_mono_file() {
+        var open_dialog = new Gtk.FileDialog();
+        open_dialog.set_title("Open ICN file");
+        
+        var filter = new Gtk.FileFilter();
+        filter.set_filter_name("ICN Files");
+        filter.add_pattern("*.icn");
+        
+        var filters = new ListStore(typeof(Gtk.FileFilter));
+        filters.append(filter);
+        open_dialog.set_filters(filters);
+        
+        open_dialog.open.begin(this, null, (obj, res) => {
+            try {
+                var file = open_dialog.open.end(res);
+                string path = file.get_path();
+                
+                // Load the file
+                file_handler.load_from_mono_file(path);
             } catch (Error e) {
                 // User probably canceled the dialog
             }

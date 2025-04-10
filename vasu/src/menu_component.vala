@@ -9,6 +9,8 @@ public class MenuComponent : Gtk.Box {
     // Signals that will be connected to main window
     public signal void request_save();
     public signal void request_open();
+    public signal void request_save_mono();  // New signal for saving ICN
+    public signal void request_open_mono();  // New signal for opening ICN
     public signal void request_rename();
     public signal void request_exit();
     public signal void tool_or_color_changed();
@@ -63,7 +65,9 @@ public class MenuComponent : Gtk.Box {
         file_menu.append("New (Ctrl-N)", "app.new");
         file_menu.append("Rename (Ctrl-R)", "app.rename");
         file_menu.append("Open (Ctrl-O)", "app.open");
+        file_menu.append("Open Mono (Ctrl-Shift-O)", "app.open-mono");
         file_menu.append("Save (Ctrl-S)", "app.save");
+        file_menu.append("Save Mono (Ctrl-Shift-S)", "app.save-mono");
         file_menu.append("Exit (Ctrl-Q)", "app.exit");
         menu_bar.append_submenu("File", file_menu);
         
@@ -133,12 +137,26 @@ public class MenuComponent : Gtk.Box {
             request_open();
         });
         action_group.add_action(open_action);
+
+        // New ICN open action
+        var open_mono_action = new SimpleAction("open-mono", null);
+        open_mono_action.activate.connect(() => {
+            request_open_mono();
+        });
+        action_group.add_action(open_mono_action);
         
         var save_action = new SimpleAction("save", null);
         save_action.activate.connect(() => {
             request_save();
         });
         action_group.add_action(save_action);
+
+        // New ICN save action
+        var save_mono_action = new SimpleAction("save-mono", null);
+        save_mono_action.activate.connect(() => {
+            request_save_mono();
+        });
+        action_group.add_action(save_mono_action);
         
         var exit_action = new SimpleAction("exit", null);
         exit_action.activate.connect(() => {
