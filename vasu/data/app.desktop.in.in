@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A simple CHR editor inspired by classic Mac
+Exec=com.example.vasu
+GenericName=CHR Editor
+Icon=com.example.vasu
+Name=Vasu
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0
