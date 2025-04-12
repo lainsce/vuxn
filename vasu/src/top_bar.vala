@@ -22,6 +22,9 @@ public class TopBarComponent : Gtk.Box {
     public int click_x = 0;
     public int click_y = 0;
     
+    private int[,] original_sprite_colors = null;
+    private int last_applied_pattern = -1;
+    
     // Delegate for drawing functions
     private delegate void DrawFunc(Cairo.Context cr, int width, int height);
     
@@ -80,18 +83,18 @@ public class TopBarComponent : Gtk.Box {
 
         // Connect mirror status changes
         chr_data.notify["mirror_horizontal"].connect(() => {
-            update_mirror_status();
+            update_mirror_status(0);
             pattern_area.queue_draw();
         });
 
         chr_data.notify["mirror_vertical"].connect(() => {
-            update_mirror_status();
+            update_mirror_status(0);
             pattern_area.queue_draw();
         });
 
         chr_data.notify["selected_pattern_tile"].connect(() => {
-            update_mirror_status();
-            update_pattern_tile(mirror_status);
+            mirror_status.set_text(""); // Clear it first
+            update_mirror_status(0); // Then update with current value
             pattern_area.queue_draw();
         });
         
@@ -104,7 +107,7 @@ public class TopBarComponent : Gtk.Box {
         // Create UI components
         var sprite_view_component = create_sprite_view_component();
         var sprite_size_component = create_sprite_size_component();
-        color_picker = new ColorPickerWidget();
+        color_picker = new ColorPickerWidget(chr_data);
         var pattern_preview_component = create_pattern_preview_component();
         hex_data = create_hex_data_display("0000");
         
@@ -336,7 +339,7 @@ public class TopBarComponent : Gtk.Box {
         cr.set_antialias(Cairo.Antialias.NONE);
         
         // Constants for checkerboard
-        const int CHECKERBOARD_SIZE = 2;
+        const int CHECKERBOARD_SIZE = 1;
         
         // First draw the checkerboard background
         for (int y = 0; y < height; y += CHECKERBOARD_SIZE) {
@@ -344,7 +347,7 @@ public class TopBarComponent : Gtk.Box {
                 bool is_light = ((x / CHECKERBOARD_SIZE) + (y / CHECKERBOARD_SIZE)) % 2 == 0;
                 
                 if (is_light) {
-                    Gdk.RGBA bg_color = chr_data.get_color(3);
+                    Gdk.RGBA bg_color = chr_data.get_color(1);
                     cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                 } else {
                     Gdk.RGBA bg_color = chr_data.get_color(0);
@@ -371,18 +374,67 @@ public class TopBarComponent : Gtk.Box {
             chr_data.sprite_height * block_height);
         cr.fill();
         
-        // Draw the sprite pixels
-        for (int y = 0; y < chr_data.sprite_height * block_height; y++) {
-            for (int x = 0; x < chr_data.sprite_width * block_width; x++) {
-                // Get original color value from the pattern
-                int color = editor_view.get_pixel(x, y);
+        // Get the selected tile coordinates
+        int selected_tile_x = editor_view.selected_tile_x;
+        int selected_tile_y = editor_view.selected_tile_y;
+        
+        // Calculate sprite bounds based on sprite size
+        int sprite_width = chr_data.sprite_width;
+        int sprite_height = chr_data.sprite_height;
+        
+        // Determine if we should apply a pattern
+        int pattern_tile = chr_data.selected_pattern_tile;
+        bool apply_pattern = (last_applied_pattern != -1);
+        int pattern_row = apply_pattern ? pattern_tile / 4 : 0;
+        int pattern_col = apply_pattern ? pattern_tile % 4 : 0;
+
+        // Draw the sprite tiles
+        for (int tile_y = 0; tile_y < sprite_height; tile_y++) {
+            for (int tile_x = 0; tile_x < sprite_width; tile_x++) {
+                int source_tile_x = selected_tile_x + tile_x;
+                int source_tile_y = selected_tile_y + tile_y;
                 
-                // Draw the pixel with the appropriate color
-                Gdk.RGBA pixel_color = chr_data.get_color(color);
-                cr.set_source_rgb(pixel_color.red, pixel_color.green, pixel_color.blue);
-                
-                cr.rectangle(x, y, 1, 1);
-                cr.fill();
+                // Draw each pixel in the tile
+                for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
+                    for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+                        // Calculate source position with mirroring if needed
+                        int source_x = x;
+                        int source_y = y;
+                        
+                        if (chr_data.mirror_horizontal) {
+                            source_x = VasuData.TILE_WIDTH - 1 - x;
+                        }
+                        
+                        if (chr_data.mirror_vertical) {
+                            source_y = VasuData.TILE_HEIGHT - 1 - y;
+                        }
+                        
+                        // Get the editor pixel
+                        int editor_x = source_tile_x * VasuData.TILE_WIDTH + source_x;
+                        int editor_y = source_tile_y * VasuData.TILE_HEIGHT + source_y;
+                        int original_color = editor_view.get_pixel(editor_x, editor_y);
+                        
+                        // Apply pattern transform if needed
+                        int final_color = original_color;
+                        if (apply_pattern) {
+                            final_color = apply_pattern_transform(original_color, pattern_row, pattern_col);
+                        }
+                        
+                        // Skip transparent pixels
+                        if (final_color == 0) continue;
+                        
+                        // Draw the pixel
+                        Gdk.RGBA color = chr_data.get_color(final_color);
+                        cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
+                        
+                        // Calculate destination position
+                        float dest_x = (tile_x * VasuData.TILE_WIDTH + x) * scale_factor;
+                        float dest_y = (tile_y * VasuData.TILE_HEIGHT + y) * scale_factor;
+                        
+                        cr.rectangle(dest_x, dest_y, scale_factor, scale_factor);
+                        cr.fill();
+                    }
+                }
             }
         }
     }
@@ -408,7 +460,7 @@ public class TopBarComponent : Gtk.Box {
         
         h_mirror_button.clicked.connect(() => {
             chr_data.mirror_horizontal = !chr_data.mirror_horizontal;
-            update_mirror_status(mirror_status);
+            update_mirror_status(0);
             pattern_area.queue_draw();
             editor_view.queue_draw();
             preview_view.queue_draw();
@@ -423,7 +475,7 @@ public class TopBarComponent : Gtk.Box {
         
         v_mirror_button.clicked.connect(() => {
             chr_data.mirror_vertical = !chr_data.mirror_vertical;
-            update_mirror_status(mirror_status);
+            update_mirror_status(0);
             pattern_area.queue_draw();
             editor_view.queue_draw();
             preview_view.queue_draw();
@@ -438,24 +490,111 @@ public class TopBarComponent : Gtk.Box {
         pattern_area.set_size_request(32, 32);
         pattern_area.set_draw_func(draw_pattern_area);
         
-        // Add click gesture to pattern_area for tile selection
+        // Initialize original sprite colors storage
+        original_sprite_colors = new int[chr_data.sprite_width * 8, chr_data.sprite_height * 8];
+        
+        // Add click gesture to pattern_area for selecting patterns
         var pattern_click = new Gtk.GestureClick();
+        pattern_click.set_button(1); // Left mouse button
         pattern_click.pressed.connect((n_press, x, y) => {
-            click_x = (int)x;
-            click_y = (int)y;
-            select_pattern_tile(x, y, mirror_status);
-            update_mirror_status(mirror_status);
+            handle_pattern_click(x, y);
         });
         pattern_area.add_controller(pattern_click);
+        
+        // Add right-click gesture for alternate pattern functionality
+        var pattern_right_click = new Gtk.GestureClick();
+        pattern_right_click.set_button(3); // Right mouse button
+        pattern_right_click.pressed.connect((n_press, x, y) => {
+            handle_pattern_right_click(x, y);
+        });
+        pattern_area.add_controller(pattern_right_click);
         
         // Build the component
         pattern_preview.append(pattern_area);
         pattern_preview.append(mirror_box);
         
         // Initialize mirror status
-        update_mirror_status(mirror_status);
+        update_mirror_status(0);
         
         return pattern_preview;
+    }
+    
+    // Handle left-click on pattern area
+    private void handle_pattern_click(double x, double y) {
+        // Calculate which pattern was clicked
+        int width = pattern_area.get_width();
+        int height = pattern_area.get_height();
+        int cell_width = width / 4;
+        int cell_height = height / 4;
+        
+        int col = (int)(x / cell_width);
+        int row = (int)(y / cell_height);
+        
+        // Clamp to valid range
+        col = (int)Math.fmax(0, Math.fmin(3, col));
+        row = (int)Math.fmax(0, Math.fmin(3, row));
+        
+        // Calculate tile index (0-15, or 0-f in hex)
+        int tile_index = row * 4 + col;
+        
+        // Update the mirror status display
+        update_mirror_status(tile_index);
+        
+        // Apply the pattern to the sprite area
+        if (last_applied_pattern == tile_index) {
+            // Toggle back to original colors
+            restore_sprite_original_colors();
+            last_applied_pattern = -1;
+        } else {
+            // Store original colors if this is a new pattern application
+            if (last_applied_pattern != tile_index) {
+                store_sprite_original_colors();
+            }
+            
+            // Apply the new pattern
+            apply_pattern_to_sprite_area();
+            last_applied_pattern = tile_index;
+        }
+        
+        pattern_area.queue_draw();
+        editor_view.queue_draw();
+        preview_view.queue_draw();
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
+    }
+
+    // Handle right-click on pattern area
+    private void handle_pattern_right_click(double x, double y) {
+        // Calculate which pattern was clicked
+        int width = pattern_area.get_width();
+        int height = pattern_area.get_height();
+        int cell_width = width / 4;
+        int cell_height = height / 4;
+        
+        int col = (int)(x / cell_width);
+        int row = (int)(y / cell_height);
+        
+        // Clamp to valid range
+        col = (int)Math.fmax(0, Math.fmin(3, col));
+        row = (int)Math.fmax(0, Math.fmin(3, row));
+        
+        // Calculate tile index (0-15, or 0-f in hex)
+        int tile_index = row * 4 + col;
+        
+        // Update the mirror status display
+        update_mirror_status(tile_index);
+        
+        // If there's an applied pattern, restore original colors
+        if (last_applied_pattern != -1) {
+            restore_sprite_original_colors();
+            last_applied_pattern = -1;
+        }
+        
+        pattern_area.queue_draw();
+        editor_view.queue_draw();
+        preview_view.queue_draw();
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     // Draw the horizontal mirror button
@@ -626,8 +765,113 @@ public class TopBarComponent : Gtk.Box {
         int cell_width = width / 4;
         int cell_height = height / 4;
         
-        // Define color mappings for each cell in the 4x4 grid
-        // [row, col][original_color] = mapped_color
+        // For each of the 4x4 grid cells
+        for (int ch = 0; ch < 4; ch++) {
+            for (int col = 0; col < 4; col++) {
+                // Calculate cell position
+                double cell_x = col * cell_width;
+                double cell_y = ch * cell_height;
+                
+                // Draw the tile with the correct color mapping and mirroring
+                for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
+                    for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+                        // Apply mirroring to get source coordinates
+                        int source_x = x;
+                        int source_y = y;
+                        
+                        if (chr_data.mirror_horizontal) {
+                            source_x = VasuData.TILE_WIDTH - 1 - x;
+                        }
+                        
+                        if (chr_data.mirror_vertical) {
+                            source_y = VasuData.TILE_HEIGHT - 1 - y;
+                        }
+                        
+                        // Get original color from the current CHR tile
+                        int color = chr_data.get_pixel(source_x, source_y);
+                        
+                        // Apply pattern transform
+                        int final_color = apply_pattern_transform(color, ch, col);
+                        
+                        // Skip transparent pixels
+                        if (final_color == 0) continue;
+                        
+                        // Draw the pixel with transformed color
+                        Gdk.RGBA pixel_color = chr_data.get_color(final_color);
+                        cr.set_source_rgba(pixel_color.red, pixel_color.green, pixel_color.blue, pixel_color.alpha);
+                        
+                        // Calculate pixel position and scale to fit cell
+                        double pixel_size_x = cell_width / VasuData.TILE_WIDTH;
+                        double pixel_size_y = cell_height / VasuData.TILE_HEIGHT;
+                        double pixel_x = cell_x + (x * pixel_size_x);
+                        double pixel_y = cell_y + (y * pixel_size_y);
+                        
+                        cr.rectangle(pixel_x, pixel_y, pixel_size_x, pixel_size_y);
+                        cr.fill();
+                    }
+                }
+                
+                // Highlight currently selected pattern
+                if (ch * 4 + col == chr_data.selected_pattern_tile) {
+                    cr.set_source_rgba(1.0, 1.0, 1.0, 0.3); // Semi-transparent white
+                    cr.rectangle(cell_x, cell_y, cell_width, cell_height);
+                    cr.stroke();
+                }
+            }
+        }
+    }
+    
+    // Method to store original sprite colors before transformation
+    private void store_sprite_original_colors() {
+        int sprite_width = chr_data.sprite_width;
+        int sprite_height = chr_data.sprite_height;
+        
+        // Resize array if needed
+        if (original_sprite_colors.length[0] != sprite_width * 8 || 
+            original_sprite_colors.length[1] != sprite_height * 8) {
+            original_sprite_colors = new int[sprite_width * 8, sprite_height * 8];
+        }
+        
+        // Get the selected tile coordinates
+        int selected_tile_x = editor_view.selected_tile_x;
+        int selected_tile_y = editor_view.selected_tile_y;
+        
+        // Store all pixel colors from the sprite area
+        for (int y = 0; y < sprite_height * 8; y++) {
+            for (int x = 0; x < sprite_width * 8; x++) {
+                // Calculate source position in the editor
+                int source_x = selected_tile_x * 8 + x;
+                int source_y = selected_tile_y * 8 + y;
+                
+                // Stay within bounds
+                if (source_x < editor_view.GRID_WIDTH * 8 && source_y < editor_view.GRID_HEIGHT * 8) {
+                    original_sprite_colors[x, y] = editor_view.get_pixel(source_x, source_y);
+                } else {
+                    original_sprite_colors[x, y] = 0; // Default to transparent
+                }
+            }
+        }
+    }
+    
+    // Method to restore original sprite colors
+    private void restore_sprite_original_colors() {
+        // Refresh the sprite display
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
+    }
+
+    // Method to apply pattern to sprite area
+    private void apply_pattern_to_sprite_area() {
+        // Force redraw of the sprite area with the pattern applied
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
+    }
+    
+    public int apply_pattern_transform(int original_color, int pattern_row, int pattern_col) {
+        // Create a mapping index
+        int mapping_index = pattern_row * 4 + pattern_col;
+        
+        // Use the same mapping logic from the original draw_pattern_area method
         int[,] color_mappings = {
             // Row 1 (ch=0)
             {0, 0, 1, 2}, // Col 1 (col=0): 0->0, 1->0, 2->1, 3->2
@@ -654,128 +898,11 @@ public class TopBarComponent : Gtk.Box {
             {0, 3, 1, 2}  // Col 4 (col=3): 0->0, 1->3, 2->1, 3->2
         };
         
-        // Tile dimensions in pixels
-        const int TILE_WIDTH = 8;
-        const int TILE_HEIGHT = 8;
-        
-        // For each of the 4x4 grid cells
-        for (int ch = 0; ch < 4; ch++) {
-            for (int col = 0; col < 4; col++) {
-                // Calculate cell position
-                double cell_x = col * cell_width;
-                double cell_y = ch * cell_height;
-                
-                // Calculate the mapping index
-                int mapping_index = ch * 4 + col;
-                
-                // Draw the tile with the correct color mapping and mirroring
-                for (int y = 0; y < TILE_HEIGHT; y++) {
-                    for (int x = 0; x < TILE_WIDTH; x++) {
-                        // Apply mirroring to get source coordinates
-                        int source_x = x;
-                        int source_y = y;
-                        
-                        if (chr_data.mirror_horizontal) {
-                            // Horizontally mirrored: flip x within tile bounds
-                            source_x = TILE_WIDTH - 1 - x;
-                        }
-                        
-                        if (chr_data.mirror_vertical) {
-                            // Vertically mirrored: flip y within tile bounds
-                            source_y = TILE_HEIGHT - 1 - y;
-                        }
-                        
-                        // Get original color value from the pattern with mirrored coordinates
-                        int color = chr_data.get_pixel(source_x, source_y);
-                        
-                        // Map the color using our defined mapping
-                        int final_color = color_mappings[mapping_index, color];
-                        
-                        // Draw the pixel with the mapped color
-                        Gdk.RGBA pixel_color = chr_data.get_color(final_color);
-                        cr.set_source_rgba(pixel_color.red, pixel_color.green, pixel_color.blue, pixel_color.alpha);
-                        
-                        // Calculate pixel position within the cell
-                        double pixel_x = cell_x + (x * cell_width / TILE_WIDTH);
-                        double pixel_y = cell_y + (y * cell_height / TILE_HEIGHT);
-                        double pixel_width = Math.fmax(1.0, cell_width / TILE_WIDTH);
-                        double pixel_height = Math.fmax(1.0, cell_height / TILE_HEIGHT);
-                        
-                        cr.rectangle(pixel_x, pixel_y, pixel_width, pixel_height);
-                        cr.fill();
-                    }
-                }
-            }
-        }
+        // Map the color using the original mapping logic
+        return color_mappings[mapping_index, original_color];
     }
     
-    // Select a pattern tile based on click coordinates
-    private void select_pattern_tile(double x, double y, Gtk.Label mirror_status) {
-        // Calculate which pattern tile was clicked
-        int width = pattern_area.get_width();
-        int height = pattern_area.get_height();
-        int cell_width = width / 4;
-        int cell_height = height / 4;
-        
-        int col = (int)(x / cell_width);
-        int row = (int)(y / cell_height);
-        
-        // Clamp to valid range
-        col = (int)Math.fmax(0, Math.fmin(3, col));
-        row = (int)Math.fmax(0, Math.fmin(3, row));
-        
-        // Calculate tile index (0-15, or 0-f in hex)
-        int tile_index = row * 4 + col;
-        
-        // Update selected pattern tile
-        chr_data.selected_pattern_tile = tile_index;
-        
-        // Update mirror status
-        update_mirror_status(mirror_status);
-        update_pattern_tile(mirror_status);
-        
-        // Redraw
-        pattern_area.queue_draw();
-    }
-    
-    private void update_pattern_tile(Gtk.Label mirror_status) {
-        // Calculate which pattern tile was clicked
-        int width = pattern_area.get_width();
-        int height = pattern_area.get_height();
-        int cell_width = width / 4;
-        int cell_height = height / 4;
-        
-        int col = (int)(click_x / cell_width);
-        int row = (int)(click_y / cell_height);
-        
-        // Clamp to valid range
-        col = (int)Math.fmax(0, Math.fmin(3, col));
-        row = (int)Math.fmax(0, Math.fmin(3, row));
-        
-        // Calculate tile index (0-15, or 0-f in hex)
-        int tile_index = row * 4 + col;
-        
-        // Update selected pattern tile
-        chr_data.selected_pattern_tile = tile_index;
-        
-        // Update mirror status
-        update_mirror_status(mirror_status);
-        
-        // Redraw
-        pattern_area.queue_draw();
-    }
-    
-    // Update the mirror status display
-    private void update_mirror_status(Gtk.Label? label = null) {
-        if (label == null) {
-            // Find the mirror status label in the container
-            var mirror_box = pattern_area.get_parent().get_first_child();
-            if (mirror_box == null) return;
-            
-            label = mirror_box.get_first_child() as Gtk.Label;
-            if (label == null) return;
-        }
-        
+    private void force_pattern_label_update() {
         // First hex digit: 8 (no mirror), 9 (h-mirror), a (v-mirror), b (both)
         char first_char = '8';
         if (chr_data.mirror_horizontal && chr_data.mirror_vertical) {
@@ -787,11 +914,34 @@ public class TopBarComponent : Gtk.Box {
         }
         
         // Second hex digit: selected tile index (0-f)
-        int second_char = chr_data.selected_pattern_tile < 10 ? 
-                         '0' + chr_data.selected_pattern_tile : 
-                         'a' + (chr_data.selected_pattern_tile - 10);
+        int second_char_val = chr_data.selected_pattern_tile;
+        var second_char = second_char_val < 10 ? 
+                         '0' + second_char_val : 
+                         'a' + (second_char_val - 10);
         
-        label.set_text("%c%c".printf(first_char, (char)second_char));
+        // Set text directly
+        string new_text = "%c%c".printf(first_char, second_char);
+        mirror_status.set_text(new_text);
+        
+        pattern_area.queue_draw();
+        editor_view.queue_draw();
+        preview_view.queue_draw();
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
+    }
+    
+    // Update the mirror status display
+    private void update_mirror_status(int pattern_index) {
+        // Update data model first
+        chr_data.selected_pattern_tile = pattern_index;
+        
+        // Directly update UI
+        force_pattern_label_update();
+        pattern_area.queue_draw();
+        editor_view.queue_draw();
+        preview_view.queue_draw();
+        sprite_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     // Update sprite size based on click/drag coordinates

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A simple CHR/ICN Viewer inspired by classic Mac
+Exec=com.example.icnchr
+GenericName=ICN/CHR Editor
+Icon=com.example.icnchr
+Name=Iconchar
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

@@ -42,19 +42,13 @@ public class VasuFileHandler {
                             
                             // Get the pixel color (0-3) from the appropriate source
                             int pixel_color;
-                            if (tile_x == 0 && tile_y == 0) {
-                                // For the first tile, use the CHR data directly
+                            if (tile_x == editor_view.selected_tile_x && tile_y == editor_view.selected_tile_y) {
+                                // For the currently selected tile, use CHR data directly
                                 pixel_color = chr_data.get_pixel(col, row);
                             } else {
                                 // For other tiles, use the editor grid
                                 pixel_color = editor_view.get_pixel(pixel_x, pixel_y);
                             }
-                            
-                            // Set bits in the appropriate channels based on the color
-                            // Color 0 (00): Both channels 0
-                            // Color 1 (01): Channel 1 set, Channel 2 unset
-                            // Color 2 (10): Channel 1 unset, Channel 2 set
-                            // Color 3 (11): Both channels set
                             
                             // Extract individual bits (channels)
                             bool bit0 = (pixel_color & 0x01) != 0; // First channel
@@ -248,8 +242,8 @@ public class VasuFileHandler {
                             
                             // Get the pixel color (0-3) from the appropriate source
                             int pixel_color;
-                            if (tile_x == 0 && tile_y == 0) {
-                                // For the first tile, use the CHR data directly
+                            if (tile_x == editor_view.selected_tile_x && tile_y == editor_view.selected_tile_y) {
+                                // For the currently selected tile, use CHR data directly
                                 pixel_color = chr_data.get_pixel(col, row);
                             } else {
                                 // For other tiles, use the editor grid

@@ -12,16 +12,16 @@ public class VasuData : Object {
     // Mirroring flags
     public bool mirror_horizontal { get; set; default = false; }
     public bool mirror_vertical { get; set; default = false; }
-    public int selected_pattern_tile { get; set; default = 1; } // Tile index in pattern preview (0-f)
+    public int selected_pattern_tile { get; set; } // Tile index in pattern preview (0-f)
     
     // Signal for when mirroring changes
     public signal void mirroring_changed();
     
     public int selected_color { get; set; default = 1; } // Default to first usable color (not bg/alpha)
-    public int selected_tool { get; set; default = 0; } // 0=pen, 1=cursor, 2=zoom
+    public int selected_tool { get; set; default = 1; } // 0=pen, 1=cursor, 2=zoom
     public int zoom_level { get; set; default = 8; }
-    public int sprite_width { get; set; default = 3; } // 3 for 3x2 sprite size
-    public int sprite_height { get; set; default = 2; } // 2
+    public int sprite_width { get; set; default = 1; } // 1 for default 1x1 sprite size
+    public int sprite_height { get; set; default = 1; } // 1
     
     public string filename { get; set; default = "untitled10x10.chr"; }
     

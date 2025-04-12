@@ -3,7 +3,7 @@ public class ColorPickerWidget : Gtk.Box {
     private const int BAR_WIDTH = 34;
     private const int BAR_HEIGHT = 8;
     private const int BAR_GAP = 1;
-    private const int CHECKERBOARD_SIZE = 2;
+    private const int CHECKERBOARD_SIZE = 1;
     
     // UI elements
     private Gtk.DrawingArea bars_area;
@@ -20,7 +20,7 @@ public class ColorPickerWidget : Gtk.Box {
     private float blue_value = 0;
     
     // Theme Manager
-    private Theme.Manager theme;
+    private VasuData chr_data;
 
     // Color change signal
     public signal void color_set();
@@ -28,21 +28,16 @@ public class ColorPickerWidget : Gtk.Box {
     /**
      * Constructor
      */
-    public ColorPickerWidget() {
+    public ColorPickerWidget(VasuData data) {
         Object(
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 14
         );
         
-        theme = Theme.Manager.get_default();
-        theme.apply_to_display();
-        theme.theme_changed.connect(() => {
-            bars_area.queue_draw();
-        });
+        chr_data = data;
         
         // Create the Cairo drawing area for the color bars
         create_color_bars();
-        setup_theme_management();
         
         // Create the hex code label
         hex_label = new Gtk.Label("000");
@@ -53,16 +48,34 @@ public class ColorPickerWidget : Gtk.Box {
         this.append(bars_area);
         this.append(hex_label);
         
+        // Initialize values
+        update_label();
         // Apply CSS for pixel font styling
+        setup_style ();
+        
+        chr_data.palette_changed.connect(() => {
+            setup_style ();
+        });
+    }
+    
+    
+    public void setup_style () {
         var css_provider = new Gtk.CssProvider();
         try {
-            css_provider.load_from_data("""
+            Gdk.RGBA fg_color = chr_data.get_color(3);
+            int r = (int)Math.floor(fg_color.red * 255.0f + 0.5f);
+            int g = (int)Math.floor(fg_color.green * 255.0f + 0.5f);
+            int b = (int)Math.floor(fg_color.blue * 255.0f + 0.5f);
+            
+            var fg_color_hex = "#%02x%02x%02x".printf(r, g, b);
+            string cdata = """
                 .pixel-font {
                     font-family: "atari8", monospace;
                     font-size: 8px;
-                    color: @theme_bg;
+                    color: %s;
                 }
-            """.data);
+            """.printf(fg_color_hex);
+            css_provider.load_from_data(cdata.data);
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),
                 css_provider,
@@ -71,24 +84,6 @@ public class ColorPickerWidget : Gtk.Box {
         } catch (Error e) {
             warning("Failed to load CSS: %s", e.message);
         }
-        
-        // Initialize values
-        update_label();
-    }
-    
-    private void setup_theme_management() {
-        string theme_file = GLib.Path.build_filename(Environment.get_home_dir(), ".theme");
-        
-        Timeout.add(10, () => {
-            if (FileUtils.test(theme_file, FileTest.EXISTS)) {
-                try {
-                    theme.load_theme_from_file(theme_file);
-                } catch (Error e) {
-                    warning("Theme load failed: %s", e.message);
-                }
-            }
-            return true;
-        });
     }
     
     /**
@@ -151,8 +146,8 @@ public class ColorPickerWidget : Gtk.Box {
         draw_checkerboard(cr, x + 1, y + 1, BAR_WIDTH - 2, BAR_HEIGHT - 2);
         
         // Draw active part of the bar
-        var se_color = theme.get_color ("theme_bg");
-        cr.set_source_rgb(se_color.red, se_color.green, se_color.blue);
+        Gdk.RGBA bg_color = chr_data.get_color(2);
+        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
         cr.rectangle(x + 1, y + 1, active_width - 2, BAR_HEIGHT - 2);
         cr.fill();
     }
@@ -169,12 +164,12 @@ public class ColorPickerWidget : Gtk.Box {
             for (int cx = x; cx < x + width; cx += CHECKERBOARD_SIZE) {
                 bool is_light = ((cx / CHECKERBOARD_SIZE) + (cy / CHECKERBOARD_SIZE)) % 2 == 0;
                 
-                var ac_color = theme.get_color ("theme_bg");
-                var bg_color = theme.get_color ("theme_fg");
+                Gdk.RGBA bg_color = chr_data.get_color(0);
+                Gdk.RGBA fg_color = chr_data.get_color(2);
                 if (is_light) {
-                    cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
+                    cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                 } else {
-                    cr.set_source_rgb(ac_color.red, ac_color.green, ac_color.blue);
+                    cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                 }
                 
                 double cell_width = Math.fmin(CHECKERBOARD_SIZE, x + width - cx);

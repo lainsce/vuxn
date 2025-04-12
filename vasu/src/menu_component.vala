@@ -18,12 +18,113 @@ public class MenuComponent : Gtk.Box {
     // Action group for window actions
     private GLib.SimpleActionGroup action_group;
     
+    private class ClipboardData {
+        public int width;
+        public int height;
+        public int[,] pixels;
+        
+        public ClipboardData(int w, int h) {
+            width = w;
+            height = h;
+            pixels = new int[w * 8, h * 8];
+        }
+
+         // Load data from a file - infer dimensions from file size
+        public bool load_from_file(string filename) {
+            try {
+                var file = File.new_for_path(filename);
+                if (!file.query_exists()) {
+                    return false;
+                }
+
+                // Get file size to determine dimensions
+                var file_info = file.query_info("*", FileQueryInfoFlags.NONE);
+                int64 file_size = file_info.get_size();
+                
+                // Each 8x8 tile is 64 pixels, each pixel is 1 byte
+                int total_pixels = (int)file_size;
+                int total_tiles = total_pixels / 64;
+                
+                // Determine dimensions based on common tile arrangements
+                if (total_tiles == 1) {
+                    width = 1;
+                    height = 1;
+                } else if (total_tiles == 2) {
+                    width = 2;
+                    height = 1;
+                } else if (total_tiles == 4) {
+                    width = 2;
+                    height = 2;
+                } else {
+                    // Try to make it as square as possible
+                    int sqrt_tiles = (int)Math.sqrt(total_tiles);
+                    if (sqrt_tiles * sqrt_tiles == total_tiles) {
+                        width = sqrt_tiles;
+                        height = sqrt_tiles;
+                    } else {
+                        // Find factors
+                        for (int i = (int)Math.fmin(16, total_tiles); i >= 1; i--) {
+                            if (total_tiles % i == 0) {
+                                width = i;
+                                height = total_tiles / i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Recreate the pixel array with inferred dimensions
+                pixels = new int[width * 8, height * 8];
+                
+                // Read all pixels
+                var input = new DataInputStream(file.read());
+                for (int y = 0; y < height * 8; y++) {
+                    for (int x = 0; x < width * 8; x++) {
+                        int color = input.read_byte();
+                        pixels[x, y] = color;
+                    }
+                }
+                
+                input.close();
+                return true;
+            } catch (Error e) {
+                print("Error loading clipboard data: %s\n", e.message);
+                return false;
+            }
+        }
+        
+        // Save data to a file - just write the raw pixels
+        public bool save_to_file(string filename) {
+            try {
+                var file = File.new_for_path(filename);
+                var output = new DataOutputStream(file.replace(null, false, FileCreateFlags.REPLACE_DESTINATION));
+                
+                // Write all pixels directly, no header needed
+                for (int y = 0; y < height * 8; y++) {
+                    for (int x = 0; x < width * 8; x++) {
+                        output.put_byte((uint8)pixels[x, y]);
+                    }
+                }
+                
+                output.close();
+                return true;
+            } catch (Error e) {
+                print("Error saving clipboard data: %s\n", e.message);
+                return false;
+            }
+        }
+    }
+    
+    // Clipboard for copy/paste operations
+    private ClipboardData? clipboard_data = null;
+    
     public MenuComponent(VasuData data, VasuEditorView editor, VasuPreviewView preview, TopBarComponent top_bar) {
         Object(orientation: Gtk.Orientation.VERTICAL, spacing: 0);
         
         chr_data = data;
         editor_view = editor;
         preview_view = preview;
+        this.top_bar = top_bar;
 
         margin_start = 4;
         margin_end = 8;
@@ -61,56 +162,52 @@ public class MenuComponent : Gtk.Box {
         
         // File menu
         var file_menu = new GLib.Menu();
-        file_menu.append("About…", "app.about");
-        file_menu.append("New (Ctrl-N)", "app.new");
-        file_menu.append("Rename (Ctrl-R)", "app.rename");
-        file_menu.append("Open (Ctrl-O)", "app.open");
-        file_menu.append("Open Mono (Ctrl-Shift-O)", "app.open-mono");
-        file_menu.append("Save (Ctrl-S)", "app.save");
-        file_menu.append("Save Mono (Ctrl-Shift-S)", "app.save-mono");
-        file_menu.append("Exit (Ctrl-Q)", "app.exit");
+        file_menu.append("About…", "win.about");
+        file_menu.append("New (Ctrl-N)", "win.new");
+        file_menu.append("Rename (Ctrl-R)", "win.rename");
+        file_menu.append("Open (Ctrl-O)", "win.open");
+        file_menu.append("Open Mono (Ctrl-Shift-O)", "win.open-mono");
+        file_menu.append("Save (Ctrl-S)", "win.save");
+        file_menu.append("Save Mono (Ctrl-Shift-S)", "win.save-mono");
+        file_menu.append("Exit (Ctrl-Q)", "win.exit");
         menu_bar.append_submenu("File", file_menu);
         
         // Edit menu
         var edit_menu = new GLib.Menu();
-        edit_menu.append("Copy (Ctrl-C)", "app.copy");
-        edit_menu.append("Paste (Ctrl-V)", "app.paste");
-        edit_menu.append("Cut (Ctrl-X)", "app.cut");
-        edit_menu.append("Erase", "app.erase");
-        edit_menu.append("Invert (Ctrl-I)", "app.invert");
-        edit_menu.append("Colorize (Ctrl-K)", "app.colorize");
-        edit_menu.append("Mirror Horizontal", "app.mirror-h");
-        edit_menu.append("Mirror Vertical", "app.mirror-v");
+        edit_menu.append("Copy (Ctrl-C)", "win.copy");
+        edit_menu.append("Paste (Ctrl-V)", "win.paste");
+        edit_menu.append("Cut (Ctrl-X)", "win.cut");
+        edit_menu.append("Erase", "win.erase");
+        edit_menu.append("Invert (Ctrl-I)", "win.invert");
+        edit_menu.append("Colorize (Ctrl-K)", "win.colorize");
+        edit_menu.append("Mirror Horizontal", "win.mirror-h");
+        edit_menu.append("Mirror Vertical", "win.mirror-v");
         menu_bar.append_submenu("Edit", edit_menu);
         
         // View menu
         var view_menu = new GLib.Menu();
-        view_menu.append("Zoom", "app.zoom");
-        view_menu.append("Shift Horizontal", "app.shift-h");
-        view_menu.append("Shift Vertical", "app.shift-v");
-        view_menu.append("Shift Reset", "app.shift-reset");
-        view_menu.append("Select All (Ctrl-A)", "app.select-all");
+        view_menu.append("Zoom", "win.zoom");
+        view_menu.append("Shift Horizontal", "win.shift-h");
+        view_menu.append("Shift Vertical", "win.shift-v");
+        view_menu.append("Shift Reset", "win.shift-reset");
+        view_menu.append("Select All (Ctrl-A)", "win.select-all");
         menu_bar.append_submenu("View", view_menu);
         
         // Tool menu
         var tool_menu = new GLib.Menu();
-        tool_menu.append("Brush (Ctrl-B)", "app.tool-brush");
-        tool_menu.append("Cursor (Ctrl-T)", "app.tool-cursor");
-        tool_menu.append("Zoom (Ctrl-E)", "app.tool-zoom");
-        tool_menu.append("Background (Ctrl-0)", "app.color-0");
-        tool_menu.append("Color 1 (Ctrl-1)", "app.color-1");
-        tool_menu.append("Color 2 (Ctrl-2)", "app.color-2");
-        tool_menu.append("Color 3 (Ctrl-3)", "app.color-3");
+        tool_menu.append("Brush (Ctrl-B)", "win.tool-brush");
+        tool_menu.append("Cursor (Ctrl-T)", "win.tool-cursor");
+        tool_menu.append("Zoom (Ctrl-E)", "win.tool-zoom");
+        tool_menu.append("Background (Ctrl-0)", "win.color-0");
+        tool_menu.append("Color 1 (Ctrl-1)", "win.color-1");
+        tool_menu.append("Color 2 (Ctrl-2)", "win.color-2");
+        tool_menu.append("Color 3 (Ctrl-3)", "win.color-3");
         menu_bar.append_submenu("Tool", tool_menu);
         
         return menu_bar;
     }
     
     private void add_actions() {
-        // Get the application
-        var app = GLib.Application.get_default() as Gtk.Application;
-        if (app == null) return;
-        
         // File menu actions
         var about_action = new SimpleAction("about", null);
         about_action.activate.connect(() => {
@@ -308,16 +405,48 @@ public class MenuComponent : Gtk.Box {
         });
         action_group.add_action(color_3_action);
         
-        // Add the action group to the application
-        app.set_action_group(action_group);
-        
         // When the widget is attached to a window, insert the action group
         realize.connect(() => {
             var window = get_root() as Gtk.Window;
             if (window != null) {
-                window.insert_action_group("app", action_group);
+                window.insert_action_group("win", action_group);
+                add_keyboard_shortcuts(window);
             }
         });
+    }
+    
+    private void add_keyboard_shortcuts(Gtk.Window window) {
+        // Define keyboard shortcuts
+        var app = window.get_application();
+        if (app == null) return;
+        
+        // File menu shortcuts
+        app.set_accels_for_action("win.new", {"<Control>n"});
+        app.set_accels_for_action("win.open", {"<Control>o"});
+        app.set_accels_for_action("win.open-mono", {"<Control><Shift>o"});
+        app.set_accels_for_action("win.save", {"<Control>s"});
+        app.set_accels_for_action("win.save-mono", {"<Control><Shift>s"});
+        app.set_accels_for_action("win.rename", {"<Control>r"});
+        app.set_accels_for_action("win.exit", {"<Control>q"});
+        
+        // Edit menu shortcuts
+        app.set_accels_for_action("win.copy", {"<Control>c"});
+        app.set_accels_for_action("win.paste", {"<Control>v"});
+        app.set_accels_for_action("win.cut", {"<Control>x"});
+        app.set_accels_for_action("win.invert", {"<Control>i"});
+        app.set_accels_for_action("win.colorize", {"<Control>k"});
+        
+        // View menu shortcuts
+        app.set_accels_for_action("win.select-all", {"<Control>a"});
+        
+        // Tool menu shortcuts
+        app.set_accels_for_action("win.tool-brush", {"<Control>b"});
+        app.set_accels_for_action("win.tool-cursor", {"<Control>t"});
+        app.set_accels_for_action("win.tool-zoom", {"<Control>e"});
+        app.set_accels_for_action("win.color-0", {"<Control>0"});
+        app.set_accels_for_action("win.color-1", {"<Control>1"});
+        app.set_accels_for_action("win.color-2", {"<Control>2"});
+        app.set_accels_for_action("win.color-3", {"<Control>3"});
     }
     
     // Implementation of menu actions
@@ -335,50 +464,164 @@ public class MenuComponent : Gtk.Box {
         about_dialog.present();
     }
     
-    // Clipboard for copy/paste operations
-    private int[,] clipboard_tile = null;
-    
     private void copy_selected_tile() {
-        // Get the selected tile
-        int tile_x = editor_view.selected_tile_x;
-        int tile_y = editor_view.selected_tile_y;
+        // Get the selection bounds
+        int sel_left, sel_top, sel_width, sel_height;
+        editor_view.get_selection_bounds(out sel_left, out sel_top, out sel_width, out sel_height);
         
-        // Create a new tile for the clipboard
-        clipboard_tile = new int[8, 8];
+        // Create clipboard data to match selection size
+        clipboard_data = new ClipboardData(sel_width, sel_height);
         
-        // Copy the selected tile data to the clipboard
-        for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-                int editor_x = tile_x * 8 + x;
-                int editor_y = tile_y * 8 + y;
+        // Copy all pixels from the selected region
+        for (int y = 0; y < sel_height * 8; y++) {
+            for (int x = 0; x < sel_width * 8; x++) {
+                int editor_x = sel_left * 8 + x;
+                int editor_y = sel_top * 8 + y;
                 int color = editor_view.get_pixel(editor_x, editor_y);
-                clipboard_tile[x, y] = color;
+                clipboard_data.pixels[x, y] = color;
             }
         }
+        
+        // Save to .snarf file
+        string snarf_path = Path.build_filename(Environment.get_home_dir(), ".snarf");
+        clipboard_data.save_to_file(snarf_path);
+        
+        print("Copied %dx%d tile selection to %s\n", sel_width, sel_height, snarf_path);
     }
     
     private void paste_to_selected_tile() {
-        if (clipboard_tile == null) return;
-        
-        // Get the selected tile
-        int tile_x = editor_view.selected_tile_x;
-        int tile_y = editor_view.selected_tile_y;
-        
-        // Paste the clipboard data to the selected tile
-        for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-                int editor_x = tile_x * 8 + x;
-                int editor_y = tile_y * 8 + y;
-                int color = clipboard_tile[x, y];
-                editor_view.set_pixel(editor_x, editor_y, color);
+        // First try to load from .snarf file if we don't have clipboard data
+        if (clipboard_data == null) {
+            clipboard_data = new ClipboardData(1, 1);
+            string snarf_path = Path.build_filename(Environment.get_home_dir(), ".snarf");
+            if (!clipboard_data.load_from_file(snarf_path)) {
+                print("No clipboard data available.\n");
+                return;
             }
         }
         
-        // If this is the currently active tile, update the CHR data as well
-        if (tile_x == 0 && tile_y == 0) {
-            for (int y = 0; y < 8; y++) {
-                for (int x = 0; x < 8; x++) {
-                    chr_data.set_pixel(x, y, clipboard_tile[x, y]);
+        // Get the current selection as paste target
+        int sel_left, sel_top, sel_width, sel_height;
+        editor_view.get_selection_bounds(out sel_left, out sel_top, out sel_width, out sel_height);
+        
+        // Get source dimensions
+        int src_width = clipboard_data.width;
+        int src_height = clipboard_data.height;
+        int src_tiles = src_width * src_height;
+        
+        // Get target dimensions
+        int tgt_width = sel_width;
+        int tgt_height = sel_height;
+        int tgt_tiles = tgt_width * tgt_height;
+        
+        print("Flex paste: source %dx%d (%d tiles) to target %dx%d (%d tiles)\n", 
+              src_width, src_height, src_tiles, 
+              tgt_width, tgt_height, tgt_tiles);
+        
+        // Initialize arrays to track source and target tiles
+        int[] src_tile_indices = new int[src_tiles];
+        int[] src_tile_x = new int[src_tiles];
+        int[] src_tile_y = new int[src_tiles];
+        
+        int[] tgt_tile_indices = new int[tgt_tiles];
+        int[] tgt_tile_x = new int[tgt_tiles];
+        int[] tgt_tile_y = new int[tgt_tiles];
+        
+        // Fill source arrays
+        for (int y = 0; y < src_height; y++) {
+            for (int x = 0; x < src_width; x++) {
+                int index = y * src_width + x;
+                src_tile_indices[index] = index;
+                src_tile_x[index] = x;
+                src_tile_y[index] = y;
+            }
+        }
+        
+        // Fill target arrays
+        for (int y = 0; y < tgt_height; y++) {
+            for (int x = 0; x < tgt_width; x++) {
+                int index = y * tgt_width + x;
+                tgt_tile_indices[index] = index;
+                tgt_tile_x[index] = x;
+                tgt_tile_y[index] = y;
+            }
+        }
+        
+        // Determine how many tiles to actually paste
+        int tiles_to_paste = int.min(src_tiles, tgt_tiles);
+        
+        // Track which tiles have been pasted
+        bool[] pasted = new bool[tgt_tiles];
+        for (int i = 0; i < tgt_tiles; i++) {
+            pasted[i] = false;
+        }
+        
+        // Intelligently map from source to target
+        for (int i = 0; i < tiles_to_paste; i++) {
+            // Get source tile coordinate
+            int src_x = src_tile_x[i];
+            int src_y = src_tile_y[i];
+            
+            // Try to match relative position
+            // Calculate normalized position (0-1 range)
+            float src_norm_x = (float)src_x / (src_width > 1 ? (src_width - 1) : 1);
+            float src_norm_y = (float)src_y / (src_height > 1 ? (src_height - 1) : 1);
+            
+            // Map to target dimensions
+            int mapped_x = (int)(src_norm_x * (tgt_width > 1 ? (tgt_width - 1) : 0));
+            int mapped_y = (int)(src_norm_y * (tgt_height > 1 ? (tgt_height - 1) : 0));
+            
+            // Calculate target index
+            int tgt_index = mapped_y * tgt_width + mapped_x;
+            
+            // If the target position is already taken, find nearest available space
+            if (tgt_index >= tgt_tiles || pasted[tgt_index]) {
+                // Find first available space with a simple approach
+                for (int j = 0; j < tgt_tiles; j++) {
+                    if (!pasted[j]) {
+                        tgt_index = j;
+                        break;
+                    }
+                }
+            }
+            
+            // Mark as pasted
+            if (tgt_index < tgt_tiles) {
+                pasted[tgt_index] = true;
+                
+                // Get target coordinates
+                int tgt_x = tgt_index % tgt_width;
+                int tgt_y = tgt_index / tgt_width;
+                
+                // Paste the tile
+                paste_single_tile(clipboard_data, src_x, src_y, sel_left + tgt_x, sel_top + tgt_y);
+            }
+        }
+        
+        print("Pasted %d tiles from %dx%d source to %dx%d target selection\n", 
+              tiles_to_paste, src_width, src_height, tgt_width, tgt_height);
+    }
+    
+    private void paste_single_tile(ClipboardData data, int src_tile_x, int src_tile_y, int dst_tile_x, int dst_tile_y) {
+        for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+                // Calculate source position in clipboard
+                int clip_x = src_tile_x * 8 + x;
+                int clip_y = src_tile_y * 8 + y;
+                
+                // Calculate destination position in editor
+                int editor_x = dst_tile_x * 8 + x;
+                int editor_y = dst_tile_y * 8 + y;
+                
+                // Get color from clipboard
+                int color = data.pixels[clip_x, clip_y];
+                
+                // Set pixel in editor
+                editor_view.set_pixel(editor_x, editor_y, color);
+                
+                // If this is targeting the current CHR tile, update it directly
+                if (dst_tile_x == editor_view.selected_tile_x && dst_tile_y == editor_view.selected_tile_y) {
+                    chr_data.set_pixel(x, y, color);
                 }
             }
         }
@@ -393,22 +636,30 @@ public class MenuComponent : Gtk.Box {
     }
     
     private void erase_selected_tile() {
-        // Get the selected tile
-        int tile_x = editor_view.selected_tile_x;
-        int tile_y = editor_view.selected_tile_y;
+        // Get the selection bounds
+        int sel_left, sel_top, sel_width, sel_height;
+        editor_view.get_selection_bounds(out sel_left, out sel_top, out sel_width, out sel_height);
         
-        // Clear the selected tile
-        for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-                int editor_x = tile_x * 8 + x;
-                int editor_y = tile_y * 8 + y;
-                editor_view.set_pixel(editor_x, editor_y, 0); // Set to background color
+        // Clear all tiles in the selection
+        for (int tile_y = 0; tile_y < sel_height; tile_y++) {
+            for (int tile_x = 0; tile_x < sel_width; tile_x++) {
+                int editor_tile_x = sel_left + tile_x;
+                int editor_tile_y = sel_top + tile_y;
+                
+                // Clear the tile
+                for (int y = 0; y < 8; y++) {
+                    for (int x = 0; x < 8; x++) {
+                        int editor_x = editor_tile_x * 8 + x;
+                        int editor_y = editor_tile_y * 8 + y;
+                        editor_view.set_pixel(editor_x, editor_y, 0); // Set to background color
+                    }
+                }
+                
+                // If this is the currently active tile, update the CHR data as well
+                if (editor_tile_x == editor_view.selected_tile_x && editor_tile_y == editor_view.selected_tile_y) {
+                    chr_data.clear_tile();
+                }
             }
-        }
-        
-        // If this is the currently active tile, update the CHR data as well
-        if (tile_x == 0 && tile_y == 0) {
-            chr_data.clear_tile();
         }
     }
     

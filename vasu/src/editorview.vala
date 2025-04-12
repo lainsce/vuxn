@@ -2,8 +2,8 @@ public class VasuEditorView : Gtk.DrawingArea {
     private VasuData chr_data;
     
     // Display a 10x10 grid of 8x8 tiles
-    private const int GRID_WIDTH = 16;
-    private const int GRID_HEIGHT = 16;
+    public int GRID_WIDTH = 16;
+    public int GRID_HEIGHT = 16;
     
     // Editor pixel data
     private int[,] editor_pixels;
@@ -16,12 +16,26 @@ public class VasuEditorView : Gtk.DrawingArea {
     private double view_scale = 1.0;
     private double view_offset_x = 0.0;
     private double view_offset_y = 0.0;
+
+    // Fields to track left-click drag for drawing
+    private bool is_dragging = false;
     private int prev_x = -1;
     private int prev_y = -1;
-    private bool is_dragging = false;
+    
+    // Fields to track right-click drag for erasing
+    private bool is_right_dragging = false;
+    private int right_prev_x = -1;
+    private int right_prev_y = -1;
 
+    // For multi-tile selection
     public int selected_tile_x = 0;
     public int selected_tile_y = 0;
+    private int selection_start_tile_x = -1;
+    private int selection_start_tile_y = -1;
+    private int selection_end_tile_x = -1;
+    private int selection_end_tile_y = -1;
+    private bool is_selecting = false;
+
     private int zoom_origin_x = 0;
     private int zoom_origin_y = 0;
 
@@ -81,6 +95,13 @@ public class VasuEditorView : Gtk.DrawingArea {
         drag_controller.drag_update.connect(on_drag_update);
         drag_controller.drag_end.connect(on_drag_end);
         add_controller(drag_controller);
+        
+        var right_drag_controller = new Gtk.GestureDrag();
+        right_drag_controller.button = 3; // Right mouse button
+        right_drag_controller.drag_begin.connect(on_right_drag_begin);
+        right_drag_controller.drag_update.connect(on_right_drag_update);
+        right_drag_controller.drag_end.connect(on_right_drag_end);
+        add_controller(right_drag_controller);
         
         // Update when data changes
         chr_data.tile_changed.connect(() => {
@@ -235,34 +256,238 @@ public class VasuEditorView : Gtk.DrawingArea {
                 cr.fill();
             }
         }
-
+        
         // Draw selection tile indicators
         // Calculate the current selected tile position
         int tile_x = selected_tile_x; 
         int tile_y = selected_tile_y;
         
-        // Draw a selection box around the selected tile
+        // Draw the single tile selection first
         Gdk.RGBA color = chr_data.get_color(1);
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
         cr.rectangle(tile_x * 8, tile_y * 8, 8, 8);
         cr.fill();
         
-        // Draw the selection with inverted colors (0→1, 1→2, 2→3, 3→0)
-        for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-                int pixel_x = tile_x * 8 + x;
-                int pixel_y = tile_y * 8 + y;
-                
-                // Get original color and invert it
-                int color_idx = editor_pixels[pixel_x, pixel_y];
-                int inverted_color_idx = chr_data.invert_color(color_idx);
-                
-                // Draw with inverted color
-                Gdk.RGBA inverted_color = chr_data.get_color(inverted_color_idx);
-                cr.set_source_rgba(inverted_color.red, inverted_color.green, inverted_color.blue, inverted_color.alpha);
-                cr.rectangle(pixel_x, pixel_y, 1, 1);
-                cr.fill();
+        if (selection_start_tile_x != -1 && selection_end_tile_x != -1) {
+            // Calculate selection bounds
+            int sel_left = int.min(selection_start_tile_x, selection_end_tile_x);
+            int sel_top = int.min(selection_start_tile_y, selection_end_tile_y);
+            int sel_right = int.max(selection_start_tile_x, selection_end_tile_x);
+            int sel_bottom = int.max(selection_start_tile_y, selection_end_tile_y);
+            
+            // Calculate selection dimensions
+            int sel_width = sel_right - sel_left + 1;
+            int sel_height = sel_bottom - sel_top + 1;
+
+            // Now invert all colors inside the selection
+            for (int y = sel_top * 8; y < (sel_bottom + 1) * 8; y++) {
+                for (int x = sel_left * 8; x < (sel_right + 1) * 8; x++) {
+                    // Get original color and invert it
+                    int color_idx = editor_pixels[x, y];
+                    int inverted_color_idx = (color_idx + 2) % 4; // Simple inversion formula
+                    
+                    // Draw with inverted color
+                    Gdk.RGBA inverted_color = chr_data.get_color(inverted_color_idx);
+                    cr.set_source_rgba(inverted_color.red, inverted_color.green, inverted_color.blue, inverted_color.alpha);
+                    cr.rectangle(x, y, 1, 1);
+                    cr.fill();
+                }
             }
+            
+            // Draw multi-tile selection if active
+            if (selection_start_tile_x != -1 && selection_end_tile_x != -1) {
+                // If selection spans more than 2 tiles horizontally and vertically,
+                // draw the hex dimensions at the bottom-right
+                if (sel_width > 2 && sel_height > 2) {
+                    // Convert dimensions to hex
+                    string dim_hex = "%x%x".printf(sel_width, sel_height);
+                    
+                    // Draw the background
+                    Gdk.RGBA bg_color = chr_data.get_color(1);
+                    cr.set_source_rgba(bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha);
+                    cr.rectangle((sel_left * 8), (sel_bottom * 8) + 7, 12, 7);
+                    cr.fill();
+                    
+                    // Draw each digit of the hex value
+                    Gdk.RGBA fg_color = chr_data.get_color(0);
+                    cr.set_source_rgba(fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha);
+                    
+                    // First digit (width)
+                    draw_hex_digit(cr, dim_hex.substring(0, 1), (sel_left * 8) + 6, (sel_bottom * 8) + 7);
+
+                    // Second digit (height)
+                    draw_hex_digit(cr, dim_hex.substring(1, 1), (sel_left * 8) + 1, (sel_bottom * 8) + 7);
+                }
+            }
+        }
+    }
+    
+    // Helper method to draw a hex digit in pixel art style
+    private void draw_hex_digit(Cairo.Context cr, string digit, int x, int y) {
+        // Pixel patterns for hex digits (0-F)
+        bool[,] digit_patterns = {
+            // 0
+            { false, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              true, false, false, true,
+              true, false, false, true,
+              false, true, true, false },
+            // 1
+            { false, false, true, false,
+              false, true, true, false,
+              false, false, true, false,
+              false, false, true, false,
+              false, false, true, false,
+              false, true, true, true },
+            // 2
+            { false, true, true, false,
+              true, false, false, true,
+              false, false, false, true,
+              false, false, true, false,
+              false, true, false, false,
+              true, true, true, true },
+            // 3
+            { false, true, true, false,
+              true, false, false, true,
+              false, false, true, false,
+              false, false, false, true,
+              true, false, false, true,
+              false, true, true, false },
+            // 4
+            { false, false, true, false,
+              false, true, true, false,
+              true, false, true, false,
+              true, true, true, true,
+              false, false, true, false,
+              false, false, true, false },
+            // 5
+            { true, true, true, true,
+              true, false, false, false,
+              true, true, true, false,
+              false, false, false, true,
+              true, false, false, true,
+              false, true, true, false },
+            // 6
+            { false, true, true, false,
+              true, false, false, false,
+              true, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              false, true, true, false },
+            // 7
+            { true, true, true, true,
+              false, false, false, true,
+              false, false, true, false,
+              false, true, false, false,
+              false, true, false, false,
+              false, true, false, false },
+            // 8
+            { false, true, true, false,
+              true, false, false, true,
+              false, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              false, true, true, false },
+            // 9
+            { false, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              false, true, true, true,
+              false, false, false, true,
+              false, true, true, false },
+            // A
+            { false, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              true, true, true, true,
+              true, false, false, true,
+              true, false, false, true },
+            // B
+            { true, true, true, false,
+              true, false, false, true,
+              true, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              true, true, true, false },
+            // C
+            { false, true, true, false,
+              true, false, false, true,
+              true, false, false, false,
+              true, false, false, false,
+              true, false, false, true,
+              false, true, true, false },
+            // D
+            { true, true, true, false,
+              true, false, false, true,
+              true, false, false, true,
+              true, false, false, true,
+              true, false, false, true,
+              true, true, true, false },
+            // E
+            { true, true, true, true,
+              true, false, false, false,
+              true, true, true, false,
+              true, false, false, false,
+              true, false, false, false,
+              true, true, true, true },
+            // F
+            { true, true, true, true,
+              true, false, false, false,
+              true, true, true, false,
+              true, false, false, false,
+              true, false, false, false,
+              true, false, false, false }
+        };
+        
+        // Determine which pattern to use
+        int pattern_index;
+        if (digit == "0") pattern_index = 0;
+        else if (digit == "1") pattern_index = 1;
+        else if (digit == "2") pattern_index = 2;
+        else if (digit == "3") pattern_index = 3;
+        else if (digit == "4") pattern_index = 4;
+        else if (digit == "5") pattern_index = 5;
+        else if (digit == "6") pattern_index = 6;
+        else if (digit == "7") pattern_index = 7;
+        else if (digit == "8") pattern_index = 8;
+        else if (digit == "9") pattern_index = 9;
+        else if (digit == "a" || digit == "A") pattern_index = 10;
+        else if (digit == "b" || digit == "B") pattern_index = 11;
+        else if (digit == "c" || digit == "C") pattern_index = 12;
+        else if (digit == "d" || digit == "D") pattern_index = 13;
+        else if (digit == "e" || digit == "E") pattern_index = 14;
+        else if (digit == "f" || digit == "F") pattern_index = 15;
+        else return; // Invalid hex digit
+        
+        // Draw the digit
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (digit_patterns[pattern_index, row * 4 + col]) {
+                    cr.rectangle(x + col, y + row, 1, 1);
+                }
+            }
+        }
+        cr.fill();
+    }
+    
+    public void get_selection_bounds(out int left, out int top, out int width, out int height) {
+        if (selection_start_tile_x != -1 && selection_end_tile_x != -1) {
+            int sel_left = int.min(selection_start_tile_x, selection_end_tile_x);
+            int sel_top = int.min(selection_start_tile_y, selection_end_tile_y);
+            int sel_right = int.max(selection_start_tile_x, selection_end_tile_x);
+            int sel_bottom = int.max(selection_start_tile_y, selection_end_tile_y);
+            
+            left = sel_left;
+            top = sel_top;
+            width = sel_right - sel_left + 1;
+            height = sel_bottom - sel_top + 1;
+        } else {
+            // Default to the currently selected single tile
+            left = selected_tile_x;
+            top = selected_tile_y;
+            width = 1;
+            height = 1;
         }
     }
     
@@ -328,11 +553,34 @@ public class VasuEditorView : Gtk.DrawingArea {
         
         // Handle drawing during motion if dragging with pen tool
         if (is_dragging && chr_data.selected_tool == 0 && prev_x != -1 && prev_y != -1) {
-            set_pixel(grid_x, grid_y, chr_data.selected_color);
-            
+            // Only allow pen tool if zoomed in
+            if (chr_data.zoom_level == 16) {
+                set_pixel(grid_x, grid_y, chr_data.selected_color);
+                // Update previous position
+                prev_x = grid_x;
+                prev_y = grid_y;
+            }
+        }
+        
+        // Handle erasing during right-click drag
+        if (is_right_dragging && right_prev_x != -1 && right_prev_y != -1) {
+            set_pixel(grid_x, grid_y, 0);
             // Update previous position
-            prev_x = grid_x;
-            prev_y = grid_y;
+            right_prev_x = grid_x;
+            right_prev_y = grid_y;
+        }
+        
+        // If we're using the cursor tool, update selection
+        if (chr_data.selected_tool == 1 && is_selecting) {
+            // Convert pixel coordinates to tile coordinates
+            int tile_x = grid_x / 8;
+            int tile_y = grid_y / 8;
+            
+            // Update the selection end
+            selection_end_tile_x = tile_x;
+            selection_end_tile_y = tile_y;
+            
+            queue_draw();
         }
     }
     
@@ -353,13 +601,20 @@ public class VasuEditorView : Gtk.DrawingArea {
         prev_y = grid_y;
         
         // Handle based on selected tool
-        if (chr_data.selected_tool == 0) {  // Pen tool
+        if (chr_data.selected_tool == 0 && chr_data.zoom_level == 16) { // Pen tool (only works zoomed)
             set_pixel(grid_x, grid_y, chr_data.selected_color);
             queue_draw();
         } else if (chr_data.selected_tool == 1) { // Cursor tool
-            // Calculate which tile was clicked
+            // Start selection mode for multiselect
             int tile_x = grid_x / 8;
             int tile_y = grid_y / 8;
+            
+            // Begin selection (will be adjusted during drag)
+            selection_start_tile_x = tile_x;
+            selection_start_tile_y = tile_y;
+            selection_end_tile_x = tile_x;
+            selection_end_tile_y = tile_y;
+            is_selecting = true;
             
             // Update the selected tile
             selected_tile_x = tile_x;
@@ -380,6 +635,7 @@ public class VasuEditorView : Gtk.DrawingArea {
                     }
                 }
             }
+            queue_draw();
         } else if (chr_data.selected_tool == 2) { // Zoom tool
             // Snap to 8×8 logical areas
             // Each area is 16×16 pixels (128/8 × 128/8)
@@ -422,6 +678,48 @@ public class VasuEditorView : Gtk.DrawingArea {
         is_dragging = false;
     }
     
+    // Handle right-click dragging (for erasing)
+    private void on_right_drag_begin(double start_x, double start_y) {
+        int grid_x, grid_y;
+        if (!window_to_grid(start_x, start_y, out grid_x, out grid_y)) {
+            return;
+        }
+        
+        is_right_dragging = true;
+        right_prev_x = grid_x;
+        right_prev_y = grid_y;
+        
+        // Erase the starting pixel
+        set_pixel(grid_x, grid_y, 0);
+    }
+
+    private void on_right_drag_update(double offset_x, double offset_y) {
+        if (!is_right_dragging) return;
+        
+        int current_x, current_y;
+        if (!window_to_grid(get_event_widget().get_allocated_width() / 2.0 + offset_x,
+                            get_event_widget().get_allocated_height() / 2.0 + offset_y,
+                            out current_x, out current_y)) {
+            return;  // Outside drawable area
+        }
+        
+        // Skip if position hasn't changed
+        if (current_x == right_prev_x && current_y == right_prev_y) return;
+        
+        // Erase at the new position
+        set_pixel(current_x, current_y, 0);
+        
+        // Update previous position
+        right_prev_x = current_x;
+        right_prev_y = current_y;
+    }
+
+    private void on_right_drag_end(double offset_x, double offset_y) {
+        is_right_dragging = false;
+        right_prev_x = -1;
+        right_prev_y = -1;
+    }
+    
     private void on_drag_begin(double start_x, double start_y) {
         int grid_x, grid_y;
         if (!window_to_grid(start_x, start_y, out grid_x, out grid_y)) {
@@ -433,6 +731,7 @@ public class VasuEditorView : Gtk.DrawingArea {
         prev_y = grid_y;
     }
     
+    // Add handlers for multi-tile selection
     private void on_drag_update(double offset_x, double offset_y) {
         if (!is_dragging) return;
         
@@ -451,6 +750,11 @@ public class VasuEditorView : Gtk.DrawingArea {
         is_dragging = false;
         prev_x = -1;
         prev_y = -1;
+        
+        // Finalize selection if using cursor tool
+        if (chr_data.selected_tool == 1 && is_selecting) {
+            is_selecting = false;
+        }
     }
     
     private Gtk.Widget? get_event_widget() {
