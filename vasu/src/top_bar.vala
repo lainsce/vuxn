@@ -1040,7 +1040,6 @@ public class TopBarComponent : Gtk.Box {
         return hex_data;
     }
     
-    // Update the hex data display
     public void update_hex_data() {
         // Get position of the currently selected tile
         int sel_tile_x = editor_view.selected_tile_x;
@@ -1080,10 +1079,12 @@ public class TopBarComponent : Gtk.Box {
         // Display as 4-digit hex words, pairing consecutive rows
         for (int i = 0; i < 4; i++) {
             // Left column: pair of bytes from low bit plane
-            uint16 left_word = (uint16)((low_bytes[i*2+1] << 8) | low_bytes[i*2]);
+            // Fix byte order: first byte should be in high position
+            uint16 left_word = (uint16)((low_bytes[i*2] << 8) | low_bytes[i*2+1]);
             
             // Right column: pair of bytes from high bit plane
-            uint16 right_word = (uint16)((high_bytes[i*2+1] << 8) | high_bytes[i*2]);
+            // Fix byte order: first byte should be in high position
+            uint16 right_word = (uint16)((high_bytes[i*2] << 8) | high_bytes[i*2+1]);
             
             // Update the display
             var left_label = hex_data.get_child_at(0, i) as Gtk.Label;
