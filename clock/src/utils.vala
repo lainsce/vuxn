@@ -17,12 +17,12 @@ public class Clock : Gtk.DrawingArea {
         var radius = double.min (width, height) / 2.5;
 
         // Get theme colors (BG and FG are inverted for style purposes)
-        var fg_color = theme.get_color ("theme_bg");
+        var bg_color = theme.get_color ("theme_bg");
         var accent_color = theme.get_color ("theme_accent");
         var sel_color = theme.get_color ("theme_selection");
 
         // Draw clock border (dotted)
-        cr.set_source_rgba (fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha);
+        cr.set_source_rgba (bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha);
         cr.set_line_width (1);
         cr.set_antialias (Cairo.Antialias.NONE);
         cr.set_dash (new double[] { 1, 8 }, 1);
@@ -51,10 +51,10 @@ public class Clock : Gtk.DrawingArea {
         double seconds = now.get_second ();
 
         // Draw hour hand
-        draw_hand (cr, center_x, center_y, hours * 30, radius * 0.5, 4, accent_color);
+        draw_hand (cr, center_x, center_y, hours * 30, radius * 0.5, 1, accent_color);
 
         // Draw minute hand
-        draw_hand (cr, center_x, center_y, minutes * 6, radius * 0.7, 3, accent_color);
+        draw_hand (cr, center_x, center_y, minutes * 6, radius * 0.7, 1, accent_color);
 
         // Draw second hand
         draw_hand (cr, center_x, center_y, seconds * 6, radius * 0.8, 1, sel_color);

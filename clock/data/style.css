@@ -1,20 +1,11 @@
-window {
-    background: @theme_fg;
-    color: @theme_bg;
-}
-window.csd {
-    box-shadow:
-        inset 0 0 0 1px @theme_bg,
-        0 0 0 2px @theme_fg;
-}
 .close-button {
     background: transparent;
-    border: 1px solid @theme_bg;
+    border: 1px solid @theme_fg;
     box-shadow: none;
 }
 .close-button:hover {
-    background: @theme_bg;
+    background: @theme_fg;
 }
 .close-button:active {
-    background: @theme_bg;
+    background: @theme_fg;
 }
