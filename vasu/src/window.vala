@@ -273,8 +273,8 @@ public class MainWindow : Gtk.ApplicationWindow {
                 }
             """.printf(
                 fg_hex,             // window background
-                bg_hex,             // window.csd box-shadow
-                se_hex,             // .close-button border
+                ac_hex,             // window.csd box-shadow
+                ac_hex,             // .close-button border
                 se_hex,             // .close-button:hover background
                 ac_hex,             // .close-button:active background
                 se_hex,             // .mini-panel-frame border
