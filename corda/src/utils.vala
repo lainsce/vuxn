@@ -2,13 +2,13 @@
 public class CordaConstants {
     public const double CM_TO_INCH = 0.393701;
     public const double INCH_TO_CM = 2.54;
-    public const int RULER_HEIGHT = 150;
+    public const int RULER_HEIGHT = 32;
     public const int RULER_TOP_PADDING = 0;
-    public const int WINDOW_WIDTH = 512;
-    public const int WINDOW_HEIGHT = 342;
+    public const int WINDOW_WIDTH = 128;
+    public const int WINDOW_HEIGHT = 80;
     public const double PIXELS_PER_MM = 8.0;
-    public const double CM_RULER_Y = 21;
-    public const double INCH_RULER_Y = WINDOW_HEIGHT - RULER_HEIGHT - 21;
+    public const double CM_RULER_Y = 8;
+    public const double INCH_RULER_Y = WINDOW_HEIGHT - RULER_HEIGHT - 8;
 }
 
 // Class to store the state of the rulers
@@ -49,9 +49,9 @@ public class CordaDrawHelper {
             cr.stroke();
             
             // Label - positioned near the major tick
-            cr.move_to(x + 4, ruler_bottom - 48);
+            cr.move_to(x + 4, ruler_bottom - 12);
             cr.select_font_face("Monaco", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-            cr.set_font_size(12);
+            cr.set_font_size(10);
             cr.show_text(i.to_string());
             
             // Minor ticks (mm)
@@ -94,9 +94,9 @@ public class CordaDrawHelper {
             cr.stroke();
             
             // Label - positioned near the major tick
-            cr.move_to(x + 4, y_aligned + 48);
+            cr.move_to(x + 4, y_aligned + 16);
             cr.select_font_face("Monaco", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-            cr.set_font_size(12);
+            cr.set_font_size(10);
             cr.show_text(i.to_string());
             
             // Minor ticks (1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8)

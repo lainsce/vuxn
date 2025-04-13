@@ -30,10 +30,10 @@ public class VasuEditorView : Gtk.DrawingArea {
     // For multi-tile selection
     public int selected_tile_x = 0;
     public int selected_tile_y = 0;
-    private int selection_start_tile_x = -1;
-    private int selection_start_tile_y = -1;
-    private int selection_end_tile_x = -1;
-    private int selection_end_tile_y = -1;
+    public int selection_start_tile_x = -1;
+    public int selection_start_tile_y = -1;
+    public int selection_end_tile_x = -1;
+    public int selection_end_tile_y = -1;
     private bool is_selecting = false;
 
     private int zoom_origin_x = 0;
@@ -303,9 +303,9 @@ public class VasuEditorView : Gtk.DrawingArea {
                     string dim_hex = "%x%x".printf(sel_width, sel_height);
                     
                     // Draw the background
-                    Gdk.RGBA bg_color = chr_data.get_color(1);
+                    Gdk.RGBA bg_color = chr_data.get_color(2);
                     cr.set_source_rgba(bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha);
-                    cr.rectangle((sel_left * 8), (sel_bottom * 8) + 7, 12, 7);
+                    cr.rectangle((sel_left * 8), (sel_bottom * 8) + 8, 15, 8);
                     cr.fill();
                     
                     // Draw each digit of the hex value
@@ -313,10 +313,10 @@ public class VasuEditorView : Gtk.DrawingArea {
                     cr.set_source_rgba(fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha);
                     
                     // First digit (width)
-                    draw_hex_digit(cr, dim_hex.substring(0, 1), (sel_left * 8) + 6, (sel_bottom * 8) + 7);
+                    draw_hex_digit(cr, dim_hex.substring(0, 1), (sel_left * 8), (sel_bottom * 8) + 8);
 
                     // Second digit (height)
-                    draw_hex_digit(cr, dim_hex.substring(1, 1), (sel_left * 8) + 1, (sel_bottom * 8) + 7);
+                    draw_hex_digit(cr, dim_hex.substring(1, 1), (sel_left * 8) + 7, (sel_bottom * 8) + 8);
                 }
             }
         }
@@ -324,151 +324,25 @@ public class VasuEditorView : Gtk.DrawingArea {
     
     // Helper method to draw a hex digit in pixel art style
     private void draw_hex_digit(Cairo.Context cr, string digit, int x, int y) {
-        // Pixel patterns for hex digits (0-F)
-        bool[,] digit_patterns = {
-            // 0
-            { false, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              true, false, false, true,
-              true, false, false, true,
-              false, true, true, false },
-            // 1
-            { false, false, true, false,
-              false, true, true, false,
-              false, false, true, false,
-              false, false, true, false,
-              false, false, true, false,
-              false, true, true, true },
-            // 2
-            { false, true, true, false,
-              true, false, false, true,
-              false, false, false, true,
-              false, false, true, false,
-              false, true, false, false,
-              true, true, true, true },
-            // 3
-            { false, true, true, false,
-              true, false, false, true,
-              false, false, true, false,
-              false, false, false, true,
-              true, false, false, true,
-              false, true, true, false },
-            // 4
-            { false, false, true, false,
-              false, true, true, false,
-              true, false, true, false,
-              true, true, true, true,
-              false, false, true, false,
-              false, false, true, false },
-            // 5
-            { true, true, true, true,
-              true, false, false, false,
-              true, true, true, false,
-              false, false, false, true,
-              true, false, false, true,
-              false, true, true, false },
-            // 6
-            { false, true, true, false,
-              true, false, false, false,
-              true, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              false, true, true, false },
-            // 7
-            { true, true, true, true,
-              false, false, false, true,
-              false, false, true, false,
-              false, true, false, false,
-              false, true, false, false,
-              false, true, false, false },
-            // 8
-            { false, true, true, false,
-              true, false, false, true,
-              false, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              false, true, true, false },
-            // 9
-            { false, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              false, true, true, true,
-              false, false, false, true,
-              false, true, true, false },
-            // A
-            { false, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              true, true, true, true,
-              true, false, false, true,
-              true, false, false, true },
-            // B
-            { true, true, true, false,
-              true, false, false, true,
-              true, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              true, true, true, false },
-            // C
-            { false, true, true, false,
-              true, false, false, true,
-              true, false, false, false,
-              true, false, false, false,
-              true, false, false, true,
-              false, true, true, false },
-            // D
-            { true, true, true, false,
-              true, false, false, true,
-              true, false, false, true,
-              true, false, false, true,
-              true, false, false, true,
-              true, true, true, false },
-            // E
-            { true, true, true, true,
-              true, false, false, false,
-              true, true, true, false,
-              true, false, false, false,
-              true, false, false, false,
-              true, true, true, true },
-            // F
-            { true, true, true, true,
-              true, false, false, false,
-              true, true, true, false,
-              true, false, false, false,
-              true, false, false, false,
-              true, false, false, false }
-        };
+        // Save current state to restore later
+        cr.save();
         
-        // Determine which pattern to use
-        int pattern_index;
-        if (digit == "0") pattern_index = 0;
-        else if (digit == "1") pattern_index = 1;
-        else if (digit == "2") pattern_index = 2;
-        else if (digit == "3") pattern_index = 3;
-        else if (digit == "4") pattern_index = 4;
-        else if (digit == "5") pattern_index = 5;
-        else if (digit == "6") pattern_index = 6;
-        else if (digit == "7") pattern_index = 7;
-        else if (digit == "8") pattern_index = 8;
-        else if (digit == "9") pattern_index = 9;
-        else if (digit == "a" || digit == "A") pattern_index = 10;
-        else if (digit == "b" || digit == "B") pattern_index = 11;
-        else if (digit == "c" || digit == "C") pattern_index = 12;
-        else if (digit == "d" || digit == "D") pattern_index = 13;
-        else if (digit == "e" || digit == "E") pattern_index = 14;
-        else if (digit == "f" || digit == "F") pattern_index = 15;
-        else return; // Invalid hex digit
+        // Disable antialiasing for pixel-perfect rendering
+        cr.set_antialias(Cairo.Antialias.NONE);
         
-        // Draw the digit
-        for (int row = 0; row < 6; row++) {
-            for (int col = 0; col < 4; col++) {
-                if (digit_patterns[pattern_index, row * 4 + col]) {
-                    cr.rectangle(x + col, y + row, 1, 1);
-                }
-            }
-        }
-        cr.fill();
+        // Set font properties to match CSS (8px atari8 font)
+        cr.select_font_face("atari8", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+        cr.set_font_size(8);
+        
+        // Position the text
+        // The y position may need adjustment after visual testing
+        cr.move_to(x, y + 8); // +6 adjusts for baseline position
+        
+        // Draw the text
+        cr.show_text(digit);
+        
+        // Restore previous state
+        cr.restore();
     }
     
     public void get_selection_bounds(out int left, out int top, out int width, out int height) {

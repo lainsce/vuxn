@@ -454,11 +454,10 @@ public class CalendarView : Gtk.Box {
         }
 
         // Calculate dates for the current month
-        var first_of_month = new DateTime.local (current_year, current_month, 1, 0, 0, 0);
         int days_in_month = days_in_month (current_month, current_year);
 
         // Find what day of the week the 1st falls on (0=Sunday, 1=Monday, etc.)
-        int first_day_position = first_of_month.get_day_of_week () % 7; // Convert to 0-based index
+        int first_day_position = day_of_week(current_year, current_month, 1);
 
         // Get today's date
         bool is_current_month = (today.get_year () == current_year && today.get_month () == current_month);
@@ -645,6 +644,13 @@ public class CalendarView : Gtk.Box {
         default:
             return 31;
         }
+    }
+    
+    // Efficient day of week calculation by Tomohiko Sakamoto (0 = Sunday)
+    private int day_of_week(int year, int month, int day) {
+        int[] t = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+        year -= month < 3 ? 1 : 0;
+        return (year + year/4 - year/100 + year/400 + t[month-1] + day) % 7;
     }
 
     private void toggle_event_entry (int day_num) {

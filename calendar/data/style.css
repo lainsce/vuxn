@@ -110,23 +110,23 @@
     border: 1px solid @theme_fg;
     border-left: none;
     border-top: none;
+    background-color: @theme_bg;
     background-image: 
         radial-gradient(@theme_fg 0.5px, transparent 0.5px),
         radial-gradient(@theme_fg 0.5px, transparent 0.5px);
-    background-position: 0 0, 4px 4px;
-    background-size: 7px 7px;
-    background: @theme_bg;
+    background-position: 0 0, 2px 2px;
+    background-size: 4px 4px;
 }
 .month-event.other-month-day {
     border: 1px solid @theme_fg;
     border-left: none;
     border-top: none;
+    background-color: @theme_bg;
     background-image: 
         radial-gradient(@theme_fg 0.5px, transparent 0.5px),
         radial-gradient(@theme_fg 0.5px, transparent 0.5px);
-    background-position: 0 0, 4px 4px;
-    background-size: 7px 7px;
-    background: @theme_bg;
+    background-position: 0 0, 2px 2px;
+    background-size: 4px 4px;
 }
 .month-event.other-month-day:hover {
     background: @theme_accent;
@@ -147,7 +147,12 @@
 }
 .other-month-day:checked {
     color: transparent;
-    background: @theme_bg;
+    background-color: @theme_bg;
+    background-image: 
+        radial-gradient(@theme_fg 0.5px, transparent 0.5px),
+        radial-gradient(@theme_fg 0.5px, transparent 0.5px);
+    background-position: 0 0, 2px 2px;
+    background-size: 4px 4px;
 }
 
 .other-month-day:active {

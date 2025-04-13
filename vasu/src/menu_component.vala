@@ -162,46 +162,46 @@ public class MenuComponent : Gtk.Box {
         
         // File menu
         var file_menu = new GLib.Menu();
-        file_menu.append("About…", "win.about");
-        file_menu.append("New (Ctrl-N)", "win.new");
-        file_menu.append("Rename (Ctrl-R)", "win.rename");
-        file_menu.append("Open (Ctrl-O)", "win.open");
-        file_menu.append("Open Mono (Ctrl-Shift-O)", "win.open-mono");
-        file_menu.append("Save (Ctrl-S)", "win.save");
-        file_menu.append("Save Mono (Ctrl-Shift-S)", "win.save-mono");
-        file_menu.append("Exit (Ctrl-Q)", "win.exit");
+        file_menu.append("About", "win.about");
+        file_menu.append("New", "win.new");
+        file_menu.append("Rename", "win.rename");
+        file_menu.append("Open", "win.open");
+        file_menu.append("OpenMono", "win.open-mono");
+        file_menu.append("Save", "win.save");
+        file_menu.append("SaveMono", "win.save-mono");
+        file_menu.append("Exit", "win.exit");
         menu_bar.append_submenu("File", file_menu);
         
         // Edit menu
         var edit_menu = new GLib.Menu();
-        edit_menu.append("Copy (Ctrl-C)", "win.copy");
-        edit_menu.append("Paste (Ctrl-V)", "win.paste");
-        edit_menu.append("Cut (Ctrl-X)", "win.cut");
+        edit_menu.append("Copy", "win.copy");
+        edit_menu.append("Paste", "win.paste");
+        edit_menu.append("Cut", "win.cut");
         edit_menu.append("Erase", "win.erase");
-        edit_menu.append("Invert (Ctrl-I)", "win.invert");
-        edit_menu.append("Colorize (Ctrl-K)", "win.colorize");
-        edit_menu.append("Mirror Horizontal", "win.mirror-h");
-        edit_menu.append("Mirror Vertical", "win.mirror-v");
+        edit_menu.append("Invert", "win.invert");
+        edit_menu.append("Colorize", "win.colorize");
+        edit_menu.append("Horizontal", "win.mirror-h");
+        edit_menu.append("Vertical", "win.mirror-v");
         menu_bar.append_submenu("Edit", edit_menu);
         
         // View menu
         var view_menu = new GLib.Menu();
         view_menu.append("Zoom", "win.zoom");
-        view_menu.append("Shift Horizontal", "win.shift-h");
-        view_menu.append("Shift Vertical", "win.shift-v");
-        view_menu.append("Shift Reset", "win.shift-reset");
-        view_menu.append("Select All (Ctrl-A)", "win.select-all");
+        view_menu.append("Up/Down", "win.shift-h");
+        view_menu.append("Left/Right", "win.shift-v");
+        view_menu.append("Reset", "win.shift-reset");
+        view_menu.append("SelectAll", "win.select-all");
         menu_bar.append_submenu("View", view_menu);
         
         // Tool menu
         var tool_menu = new GLib.Menu();
-        tool_menu.append("Brush (Ctrl-B)", "win.tool-brush");
-        tool_menu.append("Cursor (Ctrl-T)", "win.tool-cursor");
-        tool_menu.append("Zoom (Ctrl-E)", "win.tool-zoom");
-        tool_menu.append("Background (Ctrl-0)", "win.color-0");
-        tool_menu.append("Color 1 (Ctrl-1)", "win.color-1");
-        tool_menu.append("Color 2 (Ctrl-2)", "win.color-2");
-        tool_menu.append("Color 3 (Ctrl-3)", "win.color-3");
+        tool_menu.append("Brush", "win.tool-brush");
+        tool_menu.append("Selector", "win.tool-cursor");
+        tool_menu.append("Zoom", "win.tool-zoom");
+        tool_menu.append("Background", "win.color-0");
+        tool_menu.append("Color 1", "win.color-1");
+        tool_menu.append("Color 2", "win.color-2");
+        tool_menu.append("Color 3", "win.color-3");
         menu_bar.append_submenu("Tool", tool_menu);
         
         return menu_bar;
@@ -440,13 +440,13 @@ public class MenuComponent : Gtk.Box {
         app.set_accels_for_action("win.select-all", {"<Control>a"});
         
         // Tool menu shortcuts
-        app.set_accels_for_action("win.tool-brush", {"<Control>b"});
-        app.set_accels_for_action("win.tool-cursor", {"<Control>t"});
-        app.set_accels_for_action("win.tool-zoom", {"<Control>e"});
-        app.set_accels_for_action("win.color-0", {"<Control>0"});
-        app.set_accels_for_action("win.color-1", {"<Control>1"});
-        app.set_accels_for_action("win.color-2", {"<Control>2"});
-        app.set_accels_for_action("win.color-3", {"<Control>3"});
+        app.set_accels_for_action("win.tool-brush", {"q"});
+        app.set_accels_for_action("win.tool-cursor", {"w"});
+        app.set_accels_for_action("win.tool-zoom", {"e"});
+        app.set_accels_for_action("win.color-0", {"1"});
+        app.set_accels_for_action("win.color-1", {"2"});
+        app.set_accels_for_action("win.color-2", {"3"});
+        app.set_accels_for_action("win.color-3", {"4"});
     }
     
     // Implementation of menu actions

@@ -9,3 +9,8 @@ This is an important library to have as without it you
 cannot run any of these programs.  
 Make a file on your home folder called .theme or install
 the app in the conf folder to configure the colors.
+
+## fonts
+
+Move this folder to your `$HOME/.local/share` dir to have  
+fonts working on the ports.

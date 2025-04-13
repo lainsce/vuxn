@@ -2,8 +2,8 @@
 public class DonsolConstants {
     // NES screen dimensions
     public const int WIDTH = 256;
-    public const int HEIGHT = 206;
-    public const int PIXEL_SCALE = 3;
+    public const int HEIGHT = 200;
+    public const int PIXEL_SCALE = 1;
     
     // Layout constants
     public const int STATUS_Y = 16;
@@ -20,6 +20,6 @@ public class DonsolConstants {
     
     // Game constants
     public const int MAX_HEALTH = 21;
-    public const int MAX_SHIELD = 13;
+    public const int MAX_SHIELD = 11;
     public const int MAX_XP = 100;
 }

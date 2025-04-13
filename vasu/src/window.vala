@@ -221,6 +221,13 @@ public class MainWindow : Gtk.ApplicationWindow {
                     font-size: 8px;
                     background: transparent;
                 }
+                popover modelbutton accelerator {
+                    font-family: "atari8", monospace;
+                    font-size: 8px;
+                    margin-left: 16px;
+                    margin-right: 1px;
+                    background: transparent;
+                }
                 popover modelbutton:hover {
                     background: %s;
                     color: %s;

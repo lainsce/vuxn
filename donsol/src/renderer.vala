@@ -232,14 +232,14 @@ public class Renderer {
         cr.set_source_rgb(r, g, b);
         
         // Set font
-        cr.select_font_face("Venice", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+        cr.select_font_face("atari8", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
         
         // Set font size based on mini parameter
-        int font_size = 10;
+        int font_size = 8;
         cr.set_font_size(font_size);
         
         // Add baseline offset for proper vertical alignment
-        int baseline_offset = 9;
+        int baseline_offset = 8;
         
         // Position text with baseline correction
         cr.move_to(x, y + baseline_offset);

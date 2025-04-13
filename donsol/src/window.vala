@@ -478,11 +478,11 @@ public class DonsolWindow : Gtk.ApplicationWindow {
                 r.theme_white_r(), r.theme_white_g(), r.theme_white_b());
             
             // Draw B character on top
-            r.text(DonsolConstants.WIDTH - 38, DonsolConstants.STATUS_Y + 3, "B", 
+            r.text(DonsolConstants.WIDTH - 39, DonsolConstants.STATUS_Y + 3, "B", 
                 r.theme_black_r(), r.theme_black_g(), r.theme_black_b());
             
             // Draw RUN text next to the circle
-            r.text(DonsolConstants.WIDTH - 28, DonsolConstants.STATUS_Y + 3, "RUN", 
+            r.text(DonsolConstants.WIDTH - 29, DonsolConstants.STATUS_Y + 3, "RUN", 
                 r.theme_white_r(), r.theme_white_g(), r.theme_white_b());
         } else {
             // In color mode, use the appropriate color
@@ -490,11 +490,11 @@ public class DonsolWindow : Gtk.ApplicationWindow {
                 r_color, g_color, b_color);
             
             // Draw B character on top
-            r.text(DonsolConstants.WIDTH - 38, DonsolConstants.STATUS_Y + 3, "B", 
+            r.text(DonsolConstants.WIDTH - 39, DonsolConstants.STATUS_Y + 3, "B", 
                 rf_color, gf_color, bf_color);
             
             // Draw RUN text next to the circle
-            r.text(DonsolConstants.WIDTH - 28, DonsolConstants.STATUS_Y + 3, "RUN", 
+            r.text(DonsolConstants.WIDTH - 29, DonsolConstants.STATUS_Y + 3, "RUN", 
                 r.theme_white_r(), r.theme_white_g(), r.theme_white_b());
         }
 

@@ -429,13 +429,13 @@ public class FontUtils {
         // Coordinates for each tile relative to glyph origin
         int[,] tile_coords = {
             {0, 0},    // Tile 0 (top-left)
-            {8, 0},    // Tile 1 (top-middle)
-            {16, 0},   // Tile 2 (top-right)
-            {0, 8},    // Tile 3 (middle-left)
+            {0, 8},    // Tile 1 (top-middle)
+            {0, 16},   // Tile 2 (top-right)
+            {8, 0},    // Tile 3 (middle-left)
             {8, 8},    // Tile 4 (middle-middle)
-            {16, 8},   // Tile 5 (middle-right)
-            {0, 16},   // Tile 6 (bottom-left)
-            {8, 16},   // Tile 7 (bottom-middle)
+            {8, 16},   // Tile 5 (middle-right)
+            {16, 0},   // Tile 6 (bottom-left)
+            {16, 8},   // Tile 7 (bottom-middle)
             {16, 16}   // Tile 8 (bottom-right)
         };
         
