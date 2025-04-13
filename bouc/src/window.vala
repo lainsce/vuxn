@@ -16,6 +16,9 @@ public class MainWindow : Gtk.ApplicationWindow {
     private bool is_up_arrow_pressed = false;
     private bool is_down_arrow_pressed = false;
     private uint hold_timeout_id = 0;
+    private bool is_file_list_visible = false;
+    private FileInfo[] directory_files = new FileInfo[0];
+    private int hover_file_index = -1;
     
     // Colors
     private Gdk.RGBA color_white;
@@ -120,8 +123,8 @@ public class MainWindow : Gtk.ApplicationWindow {
         close_button.add_css_class("close-button");
         close_button.tooltip_text = "Close";
         close_button.valign = Gtk.Align.CENTER;
-        close_button.margin_start = 4;
-        close_button.margin_top = 4;
+        close_button.margin_start = 8;
+        close_button.margin_top = 8;
         close_button.clicked.connect(() => {
             close();
         });
@@ -148,15 +151,50 @@ public class MainWindow : Gtk.ApplicationWindow {
         var scroll_controller = new Gtk.EventControllerScroll(Gtk.EventControllerScrollFlags.VERTICAL);
         main_box.add_controller(scroll_controller);
         scroll_controller.scroll.connect(on_scroll);
+        
+        // Add mouse motion controller for hover effects
+        var motion_controller = new Gtk.EventControllerMotion();
+        drawing_area.add_controller(motion_controller);
+        motion_controller.motion.connect(on_mouse_motion);
+        motion_controller.leave.connect(() => {
+            hover_file_index = -1;
+            drawing_area.queue_draw();
+        });
     }
     
     private void on_click_pressed(Gtk.GestureClick gesture, int n_press, double x, double y) {
         int height = drawing_area.get_height();
      
         // Check if click is within the diamond area (top-left)
-        if (x >= 4 && x <= 26 && y >= 4 && y <= 26) {
-            // Clicked on diamond menu
-            open_file();
+        if (x >= 0 && x <= 16 && y >= 0 && y <= 16) {
+            // Toggle file list visibility
+            is_file_list_visible = !is_file_list_visible;
+            
+            if (is_file_list_visible) {
+                // Load files from current directory
+                load_directory_files();
+            }
+            
+            drawing_area.queue_draw();
+            return;
+        }
+        
+        // If file list is visible, check if we clicked on a file
+        if (is_file_list_visible && hover_file_index >= 0 && hover_file_index < directory_files.length) {
+            // User clicked on a file, load it
+            FileInfo file_info = directory_files[hover_file_index];
+            string filename = file_info.get_name();
+            File file = File.new_for_path(Path.build_filename(Environment.get_home_dir() + "/Documents/docs/", filename));
+            load_file(file);
+            
+            // Hide file list
+            is_file_list_visible = false;
+            drawing_area.queue_draw();
+            return;
+        }
+        
+        // Don't process scrollbar clicks if file list is visible
+        if (is_file_list_visible) {
             return;
         }
         
@@ -231,7 +269,39 @@ public class MainWindow : Gtk.ApplicationWindow {
         }
     }
     
+    private void on_mouse_motion(Gtk.EventControllerMotion controller, double x, double y) {
+        if (!is_file_list_visible) {
+            return;
+        }
+        
+        // Get the file index under the cursor
+        int new_hover_index = -1;
+        
+        int file_y = AppConstants.CONTENT_Y_START;
+        
+        for (int i = 0; i < directory_files.length; i++) {
+            // Calculate file entry bounds
+            int entry_height = line_height + 4;
+            
+            if (y >= file_y && y < file_y + entry_height) {
+                new_hover_index = i;
+                break;
+            }
+            
+            file_y += entry_height;
+        }
+        
+        if (new_hover_index != hover_file_index) {
+            hover_file_index = new_hover_index;
+            drawing_area.queue_draw();
+        }
+    }
+    
     private void handle_arrow_button_press(bool is_up_arrow) {
+        if (is_file_list_visible) {
+            return;
+        }
+        
         if (is_up_arrow) {
             // Scroll up
             scroll_position -= AppConstants.SCROLL_SPEED_HOLD;
@@ -248,6 +318,10 @@ public class MainWindow : Gtk.ApplicationWindow {
     }
     
     private void handle_scrollbar_click(double y, int height) {
+        if (is_file_list_visible) {
+            return;
+        }
+        
         // Calculate the target scroll position based on click position
         int visible_lines = calculate_visible_lines(height);
         
@@ -288,26 +362,83 @@ public class MainWindow : Gtk.ApplicationWindow {
         // Draw the diamond menu button in the top-left corner
         DrawingHelpers.draw_diamond(cr, color_red, AppConstants.DIAMOND_X, AppConstants.DIAMOND_Y, AppConstants.DIAMOND_SIZE);
         
-        // Draw custom scrollbar
-        draw_scrollbar(cr, AppConstants.SCROLLBAR_X, AppConstants.SCROLLBAR_Y, 
+        // Draw based on current mode
+        if (is_file_list_visible) {
+            draw_directory_file_list(cr, width, height);
+        } else {
+            // Draw custom scrollbar
+            draw_scrollbar(cr, AppConstants.SCROLLBAR_X, AppConstants.SCROLLBAR_Y, 
                        AppConstants.SCROLLBAR_WIDTH, height - AppConstants.SCROLLBAR_Y);
         
-        // Calculate text boundaries
-        int text_x_start = AppConstants.SCROLLBAR_WIDTH + AppConstants.TEXT_MARGIN;
-        int text_x_end = width - AppConstants.TEXT_MARGIN;
-        int text_width = text_x_end - text_x_start;
-        
-        // Draw the line counter
-        draw_line_counter(cr, width - AppConstants.LINE_COUNTER_X_OFFSET, AppConstants.DIAMOND_Y);
-        
-        // Draw the book title
-        if (book_title != "") {
-            DrawingHelpers.draw_text(cr, book_title, text_x_start, AppConstants.TITLE_Y_POSITION, 
-                                    false, color_black, text_width);
+            // Calculate text boundaries
+            int text_x_start = AppConstants.SCROLLBAR_WIDTH + AppConstants.TEXT_MARGIN;
+            int text_x_end = width - AppConstants.TEXT_MARGIN;
+            int text_width = text_x_end - text_x_start;
+            
+            // Draw the line counter
+            draw_line_counter(cr, width - AppConstants.LINE_COUNTER_X_OFFSET, AppConstants.DIAMOND_Y);
+            
+            // Draw the book title
+            if (book_title != "") {
+                DrawingHelpers.draw_text(cr, book_title, text_x_start, AppConstants.TITLE_Y_POSITION, 
+                                        false, color_black, text_width);
+            }
+            
+            // Draw the book content
+            draw_book_content(cr, text_x_start, text_width, height);
         }
+    }
+    
+    private void draw_directory_file_list(Cairo.Context cr, int width, int height) {
+        int x_start = AppConstants.TEXT_MARGIN;
+        int y_pos = AppConstants.CONTENT_Y_START;
         
-        // Draw the book content
-        draw_book_content(cr, text_x_start, text_width, height);
+        // Draw directory files
+        for (int i = 0; i < directory_files.length; i++) {
+            FileInfo file_info = directory_files[i];
+            string filename = file_info.get_name();
+            int64 file_size = file_info.get_size();
+            
+            string display_text = "%s, %lld bytes".printf(filename, file_size);
+            
+            // Draw hover highlight if this is the hovered file
+            if (i == hover_file_index) {
+                // Calculate text size to determine highlight area
+                cr.save();
+                cr.select_font_face("New York 14", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+                cr.set_font_size(14);
+                
+                Cairo.TextExtents extents;
+                cr.text_extents(display_text, out extents);
+                
+                double rect_width = extents.width + 20; // Add some padding
+                double rect_height = line_height + 4;
+                
+                // Draw highlight rectangle with triangle
+                cr.set_source_rgba(color_black.red, color_black.green, color_black.blue, 1.0);
+                
+                // Draw rectangle
+                cr.rectangle(x_start, y_pos, rect_width, rect_height);
+                
+                // Draw triangle on the side
+                cr.move_to(x_start + rect_width, y_pos);
+                cr.line_to(x_start + rect_width + 10, y_pos + rect_height / 2);
+                cr.line_to(x_start + rect_width, y_pos + rect_height);
+                cr.close_path();
+                
+                cr.fill();
+                
+                // Use inverted color for text
+                DrawingHelpers.draw_text(cr, display_text, x_start + 7, y_pos + 10, true, color_white);
+                
+                cr.restore();
+            } else {
+                // Normal text
+                DrawingHelpers.draw_text(cr, display_text, x_start + 7, y_pos + 10, true, color_black);
+            }
+            
+            y_pos += line_height + 4;
+        }
     }
     
     private void draw_book_content(Cairo.Context cr, int x_start, int text_width, int height) {
@@ -458,6 +589,18 @@ public class MainWindow : Gtk.ApplicationWindow {
     }
     
     private bool on_key_pressed(Gtk.EventControllerKey controller, uint keyval, uint keycode, Gdk.ModifierType state) {
+        // Hide file list view when Escape is pressed
+        if (keyval == Gdk.Key.Escape && is_file_list_visible) {
+            is_file_list_visible = false;
+            drawing_area.queue_draw();
+            return true;
+        }
+        
+        // Don't process other keyboard shortcuts in file list mode
+        if (is_file_list_visible) {
+            return false;
+        }
+        
         bool need_redraw = true;
         
         switch (keyval) {
@@ -485,14 +628,6 @@ public class MainWindow : Gtk.ApplicationWindow {
                 scroll_position = int.max(0, total_lines - 1);
                 break;
                 
-            case Gdk.Key.o:
-                if ((state & Gdk.ModifierType.CONTROL_MASK) != 0) {
-                    open_file();
-                } else {
-                    need_redraw = false;
-                }
-                break;
-                
             default:
                 need_redraw = false;
                 break;
@@ -509,6 +644,11 @@ public class MainWindow : Gtk.ApplicationWindow {
     }
     
     private bool on_scroll(Gtk.EventControllerScroll controller, double dx, double dy) {
+        // Don't handle scrolling in file list mode
+        if (is_file_list_visible) {
+            return false;
+        }
+        
         // Update scroll position, adjusting the scroll speed
         scroll_position += (int)(dy * 3); // Multiply by 3 for faster scrolling
         
@@ -520,32 +660,35 @@ public class MainWindow : Gtk.ApplicationWindow {
         return true;
     }
     
-    private void open_file() {
-        // Use FileChooserDialog for GTK4 compatibility
-        var file_chooser = new Gtk.FileChooserDialog(
-            "Open Text File",
-            this,
-            Gtk.FileChooserAction.OPEN,
-            "_Cancel", Gtk.ResponseType.CANCEL,
-            "_Open", Gtk.ResponseType.ACCEPT
-        );
-        
-        // Add filter for text files - using set_filter_name as per requirements
-        var filter = new Gtk.FileFilter();
-        filter.set_filter_name("Text Files");
-        filter.add_pattern("*.txt");
-        
-        file_chooser.add_filter(filter);
-        
-        // Show the dialog and handle response
-        file_chooser.present();
-        file_chooser.response.connect((response) => {
-            if (response == Gtk.ResponseType.ACCEPT) {
-                var file = File.new_for_path(file_chooser.get_file().get_path());
-                load_file(file);
+    private void load_directory_files() {
+        try {
+            // Get current directory
+            string current_dir = Environment.get_home_dir() + "/Documents/docs/";
+            File dir = File.new_for_path(current_dir);
+            
+            // Create a new array to store file info
+            directory_files = new FileInfo[0];
+            
+            // Enumerate all files in the directory
+            FileEnumerator enumerator = dir.enumerate_children(
+                "standard::*",
+                FileQueryInfoFlags.NONE
+            );
+            
+            // Get file information for each entry
+            FileInfo info = null;
+            while ((info = enumerator.next_file()) != null) {
+                string filename = info.get_name();
+                
+                // Only include .txt files
+                if (filename.has_suffix(".txt") || filename.has_suffix(".TXT")) {
+                    directory_files += info;
+                }
             }
-            file_chooser.destroy();
-        });
+            
+        } catch (Error e) {
+            stderr.printf("Error reading directory: %s\n", e.message);
+        }
     }
     
     private void load_file(File file) {
