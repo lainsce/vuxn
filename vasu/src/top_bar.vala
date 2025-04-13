@@ -189,7 +189,7 @@ public class TopBarComponent : Gtk.Box {
         cr.set_antialias(Cairo.Antialias.NONE);
         
         // Draw horizontal shift arrow icon
-        Gdk.RGBA color = chr_data.get_color(3);
+        Gdk.RGBA color = chr_data.get_color(2);
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
         
         // Arrow body
@@ -233,7 +233,7 @@ public class TopBarComponent : Gtk.Box {
         cr.set_antialias(Cairo.Antialias.NONE);
         
         // Draw vertical shift arrow icon
-        Gdk.RGBA color = chr_data.get_color(3);
+        Gdk.RGBA color = chr_data.get_color(2);
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
         
         // Arrow body
@@ -602,7 +602,7 @@ public class TopBarComponent : Gtk.Box {
         cr.set_antialias(Cairo.Antialias.NONE);
         
         // Draw horizontal mirror arrow icon
-        Gdk.RGBA color = chr_data.get_color(chr_data.mirror_horizontal ? 1 : 3);
+        Gdk.RGBA color = chr_data.get_color(chr_data.mirror_horizontal ? 1 : 2);
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
         
         // Arrow body
@@ -682,7 +682,7 @@ public class TopBarComponent : Gtk.Box {
         cr.set_antialias(Cairo.Antialias.NONE);
         
         // Draw vertical mirror arrow icon
-        Gdk.RGBA color = chr_data.get_color(chr_data.mirror_vertical ? 1 : 3);
+        Gdk.RGBA color = chr_data.get_color(chr_data.mirror_vertical ? 1 : 2);
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
         
         // Arrow body
@@ -809,13 +809,6 @@ public class TopBarComponent : Gtk.Box {
                         cr.rectangle(pixel_x, pixel_y, pixel_size_x, pixel_size_y);
                         cr.fill();
                     }
-                }
-                
-                // Highlight currently selected pattern
-                if (ch * 4 + col == chr_data.selected_pattern_tile) {
-                    cr.set_source_rgba(1.0, 1.0, 1.0, 0.3); // Semi-transparent white
-                    cr.rectangle(cell_x, cell_y, cell_width, cell_height);
-                    cr.stroke();
                 }
             }
         }

@@ -125,10 +125,10 @@ public class BottomToolbarComponent : Gtk.Box {
             Gdk.RGBA color = {};
             if (chr_data.selected_tool == 0) {
                 // Selected color
-                color = chr_data.get_color(1);
+                color = chr_data.get_color(2);
             } else {
                 // Unselected color
-                color = chr_data.get_color(3);
+                color = chr_data.get_color(1);
             }
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
 
@@ -196,10 +196,10 @@ public class BottomToolbarComponent : Gtk.Box {
             Gdk.RGBA color = {};
             if (chr_data.selected_tool == 1) {
                 // Selected color
-                color = chr_data.get_color(1);
+                color = chr_data.get_color(2);
             } else {
                 // Unselected color
-                color = chr_data.get_color(3);
+                color = chr_data.get_color(1);
             }
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
             
@@ -268,10 +268,10 @@ public class BottomToolbarComponent : Gtk.Box {
             Gdk.RGBA color = {};
             if (chr_data.selected_tool == 2) {
                 // Selected color
-                color = chr_data.get_color(1);
+                color = chr_data.get_color(2);
             } else {
                 // Unselected color
-                color = chr_data.get_color(3);
+                color = chr_data.get_color(1);
             }
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
             

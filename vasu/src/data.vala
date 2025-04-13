@@ -72,19 +72,18 @@ public class VasuData : Object {
         
         return 0;
     }
-    
-    // New method to update palette from theme
+
     private void update_palette_from_theme() {
+        var bg_color = theme.get_color("theme_bg");
         var fg_color = theme.get_color("theme_fg");
         var ac_color = theme.get_color("theme_accent");
         var se_color = theme.get_color("theme_selection");
-        var bg_color = theme.get_color("theme_bg");
         
         // Update the palette with new theme colors
-        current_palette[0] = { fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha };  // Black/Alpha
-        current_palette[1] = { ac_color.red, ac_color.green, ac_color.blue, ac_color.alpha };  // Cyan
+        current_palette[0] = { bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha };  // White/Alpha
+        current_palette[1] = { fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha };  // Black
         current_palette[2] = { se_color.red, se_color.green, se_color.blue, se_color.alpha };  // Orange
-        current_palette[3] = { bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha };  // White
+        current_palette[3] = { ac_color.red, ac_color.green, ac_color.blue, ac_color.alpha };  // Cyan
         
         // Emit the palette_changed signal to update UI
         palette_changed();
