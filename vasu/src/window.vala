@@ -89,7 +89,6 @@ public class MainWindow : Gtk.ApplicationWindow {
                 }
                 window.csd {
                     box-shadow:
-                        inset 0 0 0 1px %s,
                         0 0 0 2px %s;
                 }
                 .close-button {
@@ -274,7 +273,7 @@ public class MainWindow : Gtk.ApplicationWindow {
                 }
             """.printf(
                 fg_hex,             // window background
-                se_hex, fg_hex,     // window.csd box-shadow
+                bg_hex,             // window.csd box-shadow
                 se_hex,             // .close-button border
                 se_hex,             // .close-button:hover background
                 ac_hex,             // .close-button:active background
