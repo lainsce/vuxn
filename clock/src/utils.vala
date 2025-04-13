@@ -17,12 +17,12 @@ public class Clock : Gtk.DrawingArea {
         var radius = double.min (width, height) / 2.5;
 
         // Get theme colors (BG and FG are inverted for style purposes)
-        var bg_color = theme.get_color ("theme_bg");
+        var fg_color = theme.get_color ("theme_fg");
         var accent_color = theme.get_color ("theme_accent");
         var sel_color = theme.get_color ("theme_selection");
 
         // Draw clock border (dotted)
-        cr.set_source_rgba (bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha);
+        cr.set_source_rgba (fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha);
         cr.set_line_width (1);
         cr.set_antialias (Cairo.Antialias.NONE);
         cr.set_dash (new double[] { 1, 8 }, 1);
