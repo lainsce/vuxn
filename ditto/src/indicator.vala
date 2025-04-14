@@ -13,7 +13,7 @@ public class ColorIndicator : Gtk.DrawingArea {
             colors[i].alpha = 1.0f;
         }
         
-        set_size_request(100, 20); // Width for 4 indicators with spacing
+        set_size_request(100, 8); // Width for 4 indicators with spacing
         set_draw_func(draw_func);
         
         // Setup tooltip support
@@ -129,15 +129,9 @@ public class ColorIndicator : Gtk.DrawingArea {
     }
     
     private void draw_func(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
-        // Clear background
-        cr.set_source_rgba(0, 0, 0, 0);
-        cr.set_operator(Cairo.Operator.SOURCE);
-        cr.paint();
-        cr.set_operator(Cairo.Operator.OVER);
-        
         // Calculate the size and spacing of each indicator
         double indicator_width = width / 4.0;
-        double circle_radius = 4.0; // 8px diameter as requested
+        double circle_radius = 3.0; // 3px diameter as requested
         
         // Draw each color indicator
         for (int i = 0; i < 4; i++) {
@@ -146,45 +140,9 @@ public class ColorIndicator : Gtk.DrawingArea {
             
             // Draw color circle with no antialiasing
             cr.set_antialias(Cairo.Antialias.NONE);
-            
-            // Draw an outer border for visibility (particularly for white/light colors)
-            cr.set_source_rgb(0.3, 0.3, 0.3);
-            cr.arc(x, y, circle_radius + 1, 0, 2 * Math.PI);
-            cr.fill();
-            
-            // Draw the color circle
             cr.set_source_rgba(colors[i].red, colors[i].green, colors[i].blue, 1.0);
             cr.arc(x, y, circle_radius, 0, 2 * Math.PI);
             cr.fill();
-            
-            // Draw highlight/selection effect
-            if (i == active_indicator) {
-                // Create a larger highlight ring around the active color
-                cr.set_source_rgb(1.0, 1.0, 1.0);
-                cr.set_line_width(1.0);
-                cr.arc(x, y, circle_radius + 3, 0, 2 * Math.PI);
-                cr.stroke();
-                
-                // Draw a small label with the color index (1-based)
-                cr.select_font_face("Chicago 12.1", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-                cr.set_font_size(10);
-                
-                // Determine text color (white for dark colors, black for light colors)
-                double luminance = 0.299 * colors[i].red + 0.587 * colors[i].green + 0.114 * colors[i].blue;
-                if (luminance > 0.5) {
-                    cr.set_source_rgb(0.0, 0.0, 0.0);
-                } else {
-                    cr.set_source_rgb(1.0, 1.0, 1.0);
-                }
-                
-                // Center the text
-                Cairo.TextExtents extents;
-                string label = (i + 1).to_string();
-                cr.text_extents(label, out extents);
-                
-                cr.move_to(x - extents.width / 2, y + extents.height / 2);
-                cr.show_text(label);
-            }
         }
     }
     
