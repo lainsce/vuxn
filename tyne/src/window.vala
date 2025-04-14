@@ -14,6 +14,10 @@ public class TyneWindow : Gtk.ApplicationWindow {
             resizable: false
         );
         
+        theme = Theme.Manager.get_default();
+        theme.apply_to_display();
+        setup_theme_management();
+        
         set_titlebar(
             new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0) { 
                 visible = false
@@ -23,7 +27,29 @@ public class TyneWindow : Gtk.ApplicationWindow {
         font_utils = new FontUtils();
         setup_ui();
         
-        theme.theme_changed.connect(grid_area.queue_draw);
+        theme.theme_changed.connect( () => {
+            grid_area.queue_draw ();
+        });
+    }
+    
+    private void setup_theme_management() {
+        // Force initial theme load
+        var theme_file = GLib.Path.build_filename(
+            Environment.get_home_dir(),
+            ".theme"
+        );
+
+        // Set up the check
+        GLib.Timeout.add(10, () => {
+            if (FileUtils.test(theme_file, FileTest.EXISTS)) {
+                try {
+                    theme.load_theme_from_file(theme_file);
+                } catch (Error e) {
+                    warning("Theme load failed: %s", e.message);
+                }
+            }
+            return true; // Continue the timeout
+        });
     }
     
     private void setup_ui() {
@@ -195,11 +221,7 @@ public class TyneWindow : Gtk.ApplicationWindow {
     private void draw_grid_func(Gtk.DrawingArea drawing_area, 
                                Cairo.Context cr, int width, int height) {
         // Clear the canvas
-        Gdk.RGBA bg_color = theme.get_color("theme_bg");
         Gdk.RGBA fg_color = theme.get_color("theme_fg");
-
-        cr.set_source_rgba(bg_color.red, bg_color.green, bg_color.blue, 0);
-        cr.paint();
         
         // Set up drawing parameters
         cr.set_line_width(1);
