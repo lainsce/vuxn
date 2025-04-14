@@ -205,96 +205,140 @@ namespace FileUtils {
     }
     
     // Save an image to CHR format
-    public bool save_chr_file (string file_path, Cairo.ImageSurface image, 
+    public bool save_chr_file(string file_path, Cairo.ImageSurface image, 
                               bool is_one_bit_mode, Theme.Manager theme_manager) {
         try {
-            int width = image.get_width ();
-            int height = image.get_height ();
-            unowned uint8[] src_data = (uint8[]) image.get_data ();
-            int src_stride = image.get_stride ();
+            int width = image.get_width();
+            int height = image.get_height();
+            unowned uint8[] src_data = (uint8[]) image.get_data();
+            int src_stride = image.get_stride();
             
-            // Create CHR file format
-            // Simple format: Width (2 bytes), Height (2 bytes), followed by pixel data
-            // Each pixel is 1 byte (0-3 for 2-bit mode, 0-1 for 1-bit mode)
+            // Calculate number of 8x8 tiles needed
+            int tiles_width = (width + 7) / 8;  // Round up to nearest 8
+            int tiles_height = (height + 7) / 8; // Round up to nearest 8
+            int total_tiles = tiles_width * tiles_height;
             
-            FileStream file = FileStream.open (file_path, "wb");
+            // Open file for writing
+            FileStream file = FileStream.open(file_path, "wb");
             if (file == null) {
-                throw new FileError.FAILED ("Could not open file for writing");
+                throw new FileError.FAILED("Could not open file for writing");
             }
             
             // Write header (width and height as 16-bit values)
-            file.putc ((char) (width & 0xFF));
-            file.putc ((char) ((width >> 8) & 0xFF));
-            file.putc ((char) (height & 0xFF));
-            file.putc ((char) ((height >> 8) & 0xFF));
+            file.putc((char)(width & 0xFF));
+            file.putc((char)((width >> 8) & 0xFF));
+            file.putc((char)(height & 0xFF));
+            file.putc((char)((height >> 8) & 0xFF));
             
-            // Extract palette for reference during saving
-            var bg_color = theme_manager.get_color("theme_bg");
-            var fg_color = theme_manager.get_color("theme_fg");
-            var accent_color = theme_manager.get_color("theme_accent");
-            var selection_color = theme_manager.get_color("theme_selection");
-            
-            // Write pixel data
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int offset = y * src_stride + x * 4;
-                    uint8 b = src_data[offset + 0];
-                    uint8 g = src_data[offset + 1];
-                    uint8 r = src_data[offset + 2];
+            // Process each 8x8 tile
+            for (int tile_y = 0; tile_y < tiles_height; tile_y++) {
+                for (int tile_x = 0; tile_x < tiles_width; tile_x++) {
+                    // Process a single 8x8 tile
+                    uint8[] channel1 = new uint8[8]; // First bit plane (64 bits = 8 bytes)
+                    uint8[] channel2 = new uint8[8]; // Second bit plane (64 bits = 8 bytes)
                     
-                    // Convert to CHR format (0-3 for 2-bit, 0-1 for 1-bit)
-                    uint8 chr_value;
-                    
-                    if (is_one_bit_mode) {
-                        // In 1-bit mode: check if pixel is closer to fg or bg
-                        var fg_dist = color_distance(r, g, b, 
-                                                  (uint8)(fg_color.red * 255),
-                                                  (uint8)(fg_color.green * 255),
-                                                  (uint8)(fg_color.blue * 255));
-                        var bg_dist = color_distance(r, g, b, 
-                                                  (uint8)(bg_color.red * 255),
-                                                  (uint8)(bg_color.green * 255),
-                                                  (uint8)(bg_color.blue * 255));
-                        
-                        chr_value = (fg_dist <= bg_dist) ? 0 : 1;
-                    } else {
-                        // In 2-bit mode: find closest of 4 colors
-                        var fg_dist = color_distance(r, g, b, 
-                                                  (uint8)(fg_color.red * 255),
-                                                  (uint8)(fg_color.green * 255),
-                                                  (uint8)(fg_color.blue * 255));
-                        var accent_dist = color_distance(r, g, b, 
-                                                      (uint8)(accent_color.red * 255),
-                                                      (uint8)(accent_color.green * 255),
-                                                      (uint8)(accent_color.blue * 255));
-                        var sel_dist = color_distance(r, g, b, 
-                                                   (uint8)(selection_color.red * 255),
-                                                   (uint8)(selection_color.green * 255),
-                                                   (uint8)(selection_color.blue * 255));
-                        var bg_dist = color_distance(r, g, b, 
-                                                  (uint8)(bg_color.red * 255),
-                                                  (uint8)(bg_color.green * 255),
-                                                  (uint8)(bg_color.blue * 255));
-                        
-                        // Find minimum distance
-                        double min_dist = double.min(fg_dist,
-                                                   double.min(accent_dist,
-                                                           double.min(sel_dist, bg_dist)));
-                        
-                        if (min_dist == fg_dist) chr_value = 0;
-                        else if (min_dist == accent_dist) chr_value = 1;
-                        else if (min_dist == sel_dist) chr_value = 2;
-                        else chr_value = 3;
+                    // Initialize arrays to 0
+                    for (int i = 0; i < 8; i++) {
+                        channel1[i] = 0;
+                        channel2[i] = 0;
                     }
                     
-                    file.putc ((char) chr_value);
+                    // Process each pixel in the 8x8 tile
+                    for (int row = 0; row < 8; row++) {
+                        int y = tile_y * 8 + row;
+                        
+                        // Skip if we're past the actual image height
+                        if (y >= height) continue;
+                        
+                        for (int col = 0; col < 8; col++) {
+                            int x = tile_x * 8 + col;
+                            
+                            // Skip if we're past the actual image width
+                            if (x >= width) continue;
+                            
+                            // Get the pixel value from the image
+                            int offset = y * src_stride + x * 4;
+                            uint8 pixel_value = get_pixel_value(src_data, offset, is_one_bit_mode);
+                            
+                            // Set the appropriate bits in channel1 and channel2
+                            // The bit pattern is based on the C implementation provided:
+                            // ch1 = ((sprite[v] >> h) & 0x1)
+                            // ch2 = (((sprite[v + 8] >> h) & 0x1) << 1)
+                            
+                            // Extract the 2 bits from our pixel value (0-3)
+                            bool bit1 = (pixel_value & 0x1) != 0;
+                            bool bit2 = (pixel_value & 0x2) != 0;
+                            
+                            // Set the corresponding bit in the channel arrays
+                            // Note: The C code uses 7-h which means the bits are stored from right to left
+                            if (bit1) {
+                                channel1[row] |= (1 << (7 - col));
+                            }
+                            
+                            if (bit2) {
+                                channel2[row] |= (1 << (7 - col));
+                            }
+                        }
+                    }
+                    
+                    // Write the 16 bytes (128 bits) for this tile
+                    // First the 8 bytes for channel1, then 8 bytes for channel2
+                    for (int i = 0; i < 8; i++) {
+                        file.putc((char)channel1[i]);
+                    }
+                    
+                    for (int i = 0; i < 8; i++) {
+                        file.putc((char)channel2[i]);
+                    }
                 }
             }
             
             return true;
         } catch (Error e) {
-            warning ("Error saving file: %s", e.message);
+            warning("Error saving file: %s", e.message);
             return false;
+        }
+    }
+    
+    // Helper function to get the pixel value (0-3) from the image data
+    private uint8 get_pixel_value(uint8[] data, int offset, bool is_one_bit_mode) {
+        // For processed images, we need to determine the pixel value based on the color
+        uint8 b = data[offset + 0];
+        uint8 g = data[offset + 1];
+        uint8 r = data[offset + 2];
+        
+        // In our implementation, the pixel value is directly encoded in the image
+        // based on the palette used during processing
+        
+        // We can use a simple approach to determine which of the 4 palette colors is closest
+        // This assumes the processed image already contains the closest palette color
+        
+        // If in 1-bit mode, we map to either 0 or 3 (for better contrast in CHR format)
+        if (is_one_bit_mode) {
+            // Calculate luminance - if darker than 50%, use 0, otherwise use 3
+            double luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            return (luminance < 128) ? 0 : 3;
+        } else {
+            // For 2-bit mode, we need to map to one of 4 possible values (0-3)
+            // Since our processed image already uses the palette colors,
+            // we can determine which one it is by color distance
+            
+            // For simplicity, we'll check which channel is dominant
+            // This assumes our palette follows a logical pattern:
+            // 0: black/dark, 1: accent color, 2: selection color, 3: background/light
+            
+            // Determine luminance - simplest way to categorize
+            double luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            
+            if (luminance < 64) {
+                return 0; // Darkest
+            } else if (luminance < 128) {
+                return 1; // Medium dark
+            } else if (luminance < 192) {
+                return 2; // Medium light
+            } else {
+                return 3; // Lightest
+            }
         }
     }
 }

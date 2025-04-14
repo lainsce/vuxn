@@ -131,17 +131,76 @@ public class ColorIndicator : Gtk.DrawingArea {
     private void draw_func(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
         // Calculate the size and spacing of each indicator
         double indicator_width = width / 4.0;
-        double circle_radius = 3.0; // 3px diameter as requested
         
         // Draw each color indicator
         for (int i = 0; i < 4; i++) {
-            double x = i * indicator_width + indicator_width / 2;
-            double y = height / 2;
+            double center_x = i * indicator_width + indicator_width / 2;
+            double center_y = height / 2;
             
-            // Draw color circle with no antialiasing
+            // No antialiasing for pixel-perfect drawing
             cr.set_antialias(Cairo.Antialias.NONE);
+            cr.set_line_width(1.0);
+            
+            // Define the pattern according to the specified format:
+            // __***__
+            // _*##*_
+            // *#####*
+            // *#####*
+            // *#####*
+            // _*##*_
+            // __***__
+            
+            // Draw the pattern with 1px rects
+            
+            // First, draw the outline in a light gray color
+            cr.set_source_rgb(0.7, 0.7, 0.7);
+            
+            // Top row (row 0): __***__
+            for (int px = 2; px <= 4; px++) {
+                cr.rectangle(center_x + px - 3, center_y - 3, 1, 1);
+            }
+            
+            // Row 1: _*##*_
+            cr.rectangle(center_x - 2, center_y - 2, 1, 1);
+            cr.rectangle(center_x + 2, center_y - 2, 1, 1);
+            
+            // Row 2-4: *#####*
+            for (int row = -1; row <= 1; row++) {
+                cr.rectangle(center_x - 3, center_y + row, 1, 1);
+                cr.rectangle(center_x + 3, center_y + row, 1, 1);
+            }
+            
+            // Row 5: _*##*_
+            cr.rectangle(center_x - 2, center_y + 2, 1, 1);
+            cr.rectangle(center_x + 2, center_y + 2, 1, 1);
+            
+            // Bottom row (row 6): __***__
+            for (int px = 2; px <= 4; px++) {
+                cr.rectangle(center_x + px - 3, center_y + 3, 1, 1);
+            }
+            
+            cr.fill();
+            
+            // Now fill the inner area with the actual color
             cr.set_source_rgba(colors[i].red, colors[i].green, colors[i].blue, 1.0);
-            cr.arc(x, y, circle_radius, 0, 2 * Math.PI);
+            
+            // Row 1: _*##*_
+            for (int px = 0; px <= 1; px++) {
+                cr.rectangle(center_x - 1 + px, center_y - 2, 1, 1);
+            }
+            
+            // Row 2-4: *#####*
+            for (int row = -1; row <= 1; row++) {
+                for (int px = -2; px <= 2; px++) {
+                    cr.rectangle(center_x + px, center_y + row, 1, 1);
+                }
+            }
+            
+            // Row 5: _*##*_
+            for (int px = 0; px <= 1; px++) {
+                cr.rectangle(center_x - 1 + px, center_y + 2, 1, 1);
+            }
+            
             cr.fill();
         }
     }

@@ -31,8 +31,6 @@ public class MainWindow : Gtk.ApplicationWindow {
         Object (
             application: app,
             title: "Ditto",
-            default_width: 276,
-            default_height: 188,
             resizable: false
         );
         
@@ -62,17 +60,17 @@ public class MainWindow : Gtk.ApplicationWindow {
                 default_colors[i].alpha = 1.0f;
             }
             color_indicator.update_colors(default_colors);
-        } else if (is_one_bit_mode) {
-            // In 1-bit mode, show the theme's foreground and background colors
+        } else if (points_initialized) {
+            color_indicator.update_colors(sampled_colors);
+        } else {
+            // Points not initialized yet but we have an image
+            // Initialize sampled colors with theme's foreground and background colors
             Gdk.RGBA[] theme_colors = new Gdk.RGBA[4];
             theme_colors[0] = theme_manager.get_color("theme_fg");
-            theme_colors[1] = theme_manager.get_color("theme_bg");
-            theme_colors[2] = theme_colors[0]; // Duplicate for all 4 indicators
-            theme_colors[3] = theme_colors[1];
+            theme_colors[1] = theme_manager.get_color("theme_accent");
+            theme_colors[2] = theme_manager.get_color("theme_selection");
+            theme_colors[3] = theme_manager.get_color("theme_bg");
             color_indicator.update_colors(theme_colors);
-        } else if (points_initialized) {
-            // In 2-bit mode, show the sampled colors
-            color_indicator.update_colors(sampled_colors);
         }
     }
     
@@ -81,7 +79,6 @@ public class MainWindow : Gtk.ApplicationWindow {
 
         // Create classic Mac-style title bar
         var title_bar = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-        title_bar.width_request = 276;
 
         // Close button on the left
         var close_button = new Gtk.Button ();
@@ -89,6 +86,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         close_button.tooltip_text = "Close";
         close_button.margin_top = 4;
         close_button.margin_start = 4;
+        close_button.margin_bottom = 4;
         close_button.valign = Gtk.Align.CENTER;
         close_button.clicked.connect (() => this.close ());
 
@@ -118,17 +116,19 @@ public class MainWindow : Gtk.ApplicationWindow {
         // Drawing area
         drawing_area = new Gtk.DrawingArea ();
         drawing_area.set_draw_func (draw_func);
-        drawing_area.set_content_width (246);
-        drawing_area.set_content_height (162);
-        drawing_area.set_vexpand (true);
-        drawing_area.set_hexpand (true);
+        drawing_area.set_content_width(472);
+        drawing_area.set_content_height(340);
+        drawing_area.margin_start = 11;
+        drawing_area.margin_end = 11;
         main_box.append (drawing_area);
         
         // Bottom box for controls
         var bottom_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-        bottom_box.margin_start = 11;
-        bottom_box.margin_end = 11;
-        bottom_box.margin_bottom = 11;
+        bottom_box.margin_start = 8;
+        bottom_box.margin_end = 8;
+        bottom_box.margin_bottom = 8;
+        bottom_box.set_vexpand (true);
+        bottom_box.valign = Gtk.Align.END;
         main_box.append (bottom_box);
         
         // Create mode toggle button with custom DrawingArea inside
@@ -372,48 +372,58 @@ public class MainWindow : Gtk.ApplicationWindow {
     }
     
     private void setup_mouse_events () {
-        // Add mouse controllers for interacting with sample points
-        var motion_controller = new Gtk.EventControllerMotion ();
-        var click_controller = new Gtk.GestureClick ();
+            // Add mouse controllers for interacting with sample points
+        var motion_controller = new Gtk.EventControllerMotion();
+        var click_controller = new Gtk.GestureClick();
         
         // Track mouse motion
-        motion_controller.motion.connect ((x, y) => {
+        motion_controller.motion.connect((x, y) => {
             if (!is_one_bit_mode && original_image != null && dragging_point && active_point >= 0) {
-                // Convert from drawing area coordinates to image coordinates
-                var image_coords = get_image_coords (x, y);
+                // First, determine if the mouse is actually over the image
+                bool is_over_image = is_point_over_image(x, y);
                 
-                // Update the point position
-                sample_points[active_point, 0] = image_coords.x;
-                sample_points[active_point, 1] = image_coords.y;
-                
-                // Update sampled color
-                update_sampled_color (active_point);
-                
-                // Redraw and reprocess image
-                process_image ();
-                drawing_area.queue_draw ();
+                if (is_over_image) {
+                    // Convert from drawing area coordinates to image coordinates
+                    var image_coords = get_image_coords(x, y);
+                    
+                    // Update the point position
+                    sample_points[active_point, 0] = image_coords.x;
+                    sample_points[active_point, 1] = image_coords.y;
+                    
+                    // Update sampled color
+                    update_sampled_color(active_point);
+                    
+                    // Redraw and reprocess image
+                    process_image();
+                    drawing_area.queue_draw();
+                }
             }
         });
         
         // Track when we release the mouse
-        motion_controller.leave.connect (() => {
+        motion_controller.leave.connect(() => {
             dragging_point = false;
             active_point = -1;
         });
         
         // Mouse click handling
-        click_controller.pressed.connect ((n_press, x, y) => {
+        click_controller.pressed.connect((n_press, x, y) => {
             if (is_one_bit_mode || original_image == null || !show_color_dots) {
+                return;
+            }
+            
+            // Only allow clicking on points if we're over the image
+            if (!is_point_over_image(x, y)) {
                 return;
             }
             
             // Initialize points if we haven't yet
             if (!points_initialized) {
-                initialize_sample_points ();
+                initialize_sample_points();
             }
             
             // Convert drawing area coordinates to image coordinates
-            var image_coords = get_image_coords (x, y);
+            var image_coords = get_image_coords(x, y);
             
             // Check if we clicked on a point
             for (int i = 0; i < 4; i++) {
@@ -421,10 +431,10 @@ public class MainWindow : Gtk.ApplicationWindow {
                 double point_y = sample_points[i, 1];
                 
                 // Convert image coordinates back to drawing area coordinates
-                var point_da_coords = get_drawing_area_coords (point_x, point_y);
+                var point_da_coords = get_drawing_area_coords(point_x, point_y);
                 
-                // Check if we're within 10 pixels of a control point
-                if (Math.sqrt (Math.pow (x - point_da_coords.x, 2) + Math.pow (y - point_da_coords.y, 2)) <= 10) {
+                // Check if we're within 8 pixels of a control point
+                if (Math.sqrt(Math.pow(x - point_da_coords.x, 2) + Math.pow(y - point_da_coords.y, 2)) <= 8) {
                     dragging_point = true;
                     active_point = i;
                     break;
@@ -432,14 +442,43 @@ public class MainWindow : Gtk.ApplicationWindow {
             }
         });
         
-        click_controller.released.connect ((n_press, x, y) => {
+        click_controller.released.connect((n_press, x, y) => {
             dragging_point = false;
             active_point = -1;
         });
         
         // Add controllers to drawing area
-        drawing_area.add_controller (motion_controller);
-        drawing_area.add_controller (click_controller);
+        drawing_area.add_controller(motion_controller);
+        drawing_area.add_controller(click_controller);
+    }
+    
+    // Helper method to determine if a point in drawing area coordinates is over the actual image
+    private bool is_point_over_image(double x, double y) {
+        if (original_image == null) {
+            return false;
+        }
+        
+        int drawing_width = drawing_area.get_width();
+        int drawing_height = drawing_area.get_height();
+        int image_width = original_image.get_width();
+        int image_height = original_image.get_height();
+        
+        // Calculate scaling to fit the drawing area while preserving aspect ratio
+        double scale_x = (double)drawing_width / image_width;
+        double scale_y = (double)drawing_height / image_height;
+        double scale = Math.fmin(scale_x, scale_y);
+        
+        // Calculate the actual dimensions of the displayed image
+        double scaled_width = image_width * scale;
+        double scaled_height = image_height * scale;
+        
+        // Calculate the offset to center the image
+        double x_offset = (drawing_width - scaled_width) / 2;
+        double y_offset = (drawing_height - scaled_height) / 2;
+        
+        // Check if the point is within the image boundaries
+        return (x >= x_offset && x < x_offset + scaled_width &&
+                y >= y_offset && y < y_offset + scaled_height);
     }
     
     private void update_sampled_color (int point_index) {
@@ -512,62 +551,44 @@ public class MainWindow : Gtk.ApplicationWindow {
         public double y;
     }
     
-    private Coordinates get_image_coords (double drawing_area_x, double drawing_area_y) {
+    private Coordinates get_image_coords(double drawing_area_x, double drawing_area_y) {
         Coordinates result = {0, 0};
         
         if (original_image == null) {
             return result;
         }
         
-        int drawing_width = drawing_area.get_width ();
-        int drawing_height = drawing_area.get_height ();
-        int image_width = original_image.get_width ();
-        int image_height = original_image.get_height ();
+        int drawing_width = drawing_area.get_width();
+        int drawing_height = drawing_area.get_height();
+        int image_width = original_image.get_width();
+        int image_height = original_image.get_height();
         
-        // Calculate scaling to fit the drawing area while preserving aspect ratio
-        double scale_x = (double) drawing_width / image_width;
-        double scale_y = (double) drawing_height / image_height;
-        double scale = Math.fmin (scale_x, scale_y);
-        
-        // Center the image
-        double x_offset = (drawing_width - image_width * scale) / 2;
-        double y_offset = (drawing_height - image_height * scale) / 2;
-        
-        // Convert drawing area coordinates to image coordinates
-        result.x = (drawing_area_x - x_offset) / scale;
-        result.y = (drawing_area_y - y_offset) / scale;
+        // Direct linear mapping (full stretch)
+        result.x = (drawing_area_x / drawing_width) * image_width;
+        result.y = (drawing_area_y / drawing_height) * image_height;
         
         // Clamp to image bounds
-        result.x = Math.fmin (Math.fmax (0, result.x), image_width - 1);
-        result.y = Math.fmin (Math.fmax (0, result.y), image_height - 1);
+        result.x = Math.fmin(Math.fmax(0, result.x), image_width - 1);
+        result.y = Math.fmin(Math.fmax(0, result.y), image_height - 1);
         
         return result;
     }
-    
-    private Coordinates get_drawing_area_coords (double image_x, double image_y) {
+
+    private Coordinates get_drawing_area_coords(double image_x, double image_y) {
         Coordinates result = {0, 0};
         
         if (original_image == null) {
             return result;
         }
         
-        int drawing_width = drawing_area.get_width ();
-        int drawing_height = drawing_area.get_height ();
-        int image_width = original_image.get_width ();
-        int image_height = original_image.get_height ();
+        int drawing_width = drawing_area.get_width();
+        int drawing_height = drawing_area.get_height();
+        int image_width = original_image.get_width();
+        int image_height = original_image.get_height();
         
-        // Calculate scaling to fit the drawing area while preserving aspect ratio
-        double scale_x = (double) drawing_width / image_width;
-        double scale_y = (double) drawing_height / image_height;
-        double scale = Math.fmin (scale_x, scale_y);
-        
-        // Center the image
-        double x_offset = (drawing_width - image_width * scale) / 2;
-        double y_offset = (drawing_height - image_height * scale) / 2;
-        
-        // Convert image coordinates to drawing area coordinates
-        result.x = image_x * scale + x_offset;
-        result.y = image_y * scale + y_offset;
+        // Direct linear mapping (full stretch)
+        result.x = (image_x / image_width) * drawing_width;
+        result.y = (image_y / image_height) * drawing_height;
         
         return result;
     }
@@ -741,70 +762,140 @@ public class MainWindow : Gtk.ApplicationWindow {
         return closest_index;
     }
     
-    private void draw_func (Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
-        cr.set_antialias (Cairo.Antialias.NONE);
+    private void draw_func(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
+        cr.set_antialias(Cairo.Antialias.NONE);
         
         if (processed_image != null) {
-            // Calculate scaling to fit the drawing area while preserving aspect ratio
-            double scale_x = (double) width / processed_image.get_width ();
-            double scale_y = (double) height / processed_image.get_height ();
-            double scale = Math.fmin (scale_x, scale_y);
+            int image_width = processed_image.get_width();
+            int image_height = processed_image.get_height();
             
-            // Center the image
-            double x = (width - processed_image.get_width () * scale) / 2;
-            double y = (height - processed_image.get_height () * scale) / 2;
+            // Draw image data to fill the entire drawing area
+            unowned uint8[] data = (uint8[]) processed_image.get_data();
+            int stride = processed_image.get_stride();
             
-            cr.save ();
-            cr.translate (x, y);
-            cr.scale (scale, scale);
-            cr.set_source_surface (processed_image, 0, 0);
-            cr.paint ();
-            cr.restore ();
+            // Calculate scaling factors (we'll stretch to fill completely)
+            double scale_x = (double)width / image_width;
+            double scale_y = (double)height / image_height;
             
-            // Draw sample points if in 2-bit mode, points are initialized, and color dots are visible
-            if (!is_one_bit_mode && original_image != null && points_initialized && show_color_dots) {
-                // Set up Chicago font
-                cr.select_font_face ("atari8", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
-                cr.set_font_size (8);
+            // For pixel-perfect rendering, we determine how to map each drawing area pixel to the source image
+            for (int y = 0; y < height; y++) {
+                // Map y coordinate back to image space
+                int src_y = (int)(y / scale_y);
+                if (src_y >= image_height) continue; // Safety check
                 
-                // Draw each point with its label
+                for (int x = 0; x < width; x++) {
+                    // Map x coordinate back to image space
+                    int src_x = (int)(x / scale_x);
+                    if (src_x >= image_width) continue; // Safety check
+                    
+                    int offset = src_y * stride + src_x * 4;
+                    
+                    // Get pixel BGRA values
+                    double b = data[offset + 0] / 255.0;
+                    double g = data[offset + 1] / 255.0;
+                    double r = data[offset + 2] / 255.0;
+                    double a = data[offset + 3] / 255.0;
+                    
+                    if (a > 0) {
+                        cr.set_source_rgba(r, g, b, a);
+                        cr.rectangle(x, y, 1, 1);
+                        cr.fill();
+                    }
+                }
+            }
+            
+            // Draw sample points
+            if (original_image != null && points_initialized && show_color_dots) {
+                // Set up font
+                cr.select_font_face("atari8", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+                cr.set_font_size(8);
+                
+                // Draw each point with its label using the new pattern
                 for (int i = 0; i < 4; i++) {
+                    // Get image coordinates of the point
                     double point_x = sample_points[i, 0];
                     double point_y = sample_points[i, 1];
                     
-                    // Convert image coordinates to drawing area coordinates
-                    var da_coords = get_drawing_area_coords (point_x, point_y);
+                    // Convert to drawing area coordinates with full stretch
+                    double da_x = point_x * scale_x;
+                    double da_y = point_y * scale_y;
                     
-                    // Draw point circle
-                    cr.set_line_width (1);
-                    
-                    // Draw circle with the sampled color
+                    // Get the color for this point
                     var color = sampled_colors[i];
-                    cr.set_source_rgba (color.red, color.green, color.blue, 1.0);
-                    cr.arc (da_coords.x, da_coords.y, 4, 0, 2 * Math.PI);
-                    cr.fill ();
                     
-                    // Draw border
-                    cr.set_source_rgb (0.5, 0.5, 0.5);
-                    cr.arc (da_coords.x, da_coords.y, 3, 0, 2 * Math.PI);
-                    cr.stroke ();
-                    
-                    // Draw number (1-based for user, but 0-based in code)
-                    cr.set_source_rgb (0.5, 0.5, 0.5);
-                    
-                    // Adjust text position
-                    Cairo.TextExtents extents;
-                    string label = (i + 1).to_string ();
-                    cr.text_extents (label, out extents);
-                    
-                    cr.move_to (
-                        da_coords.x + 4,
-                        da_coords.y + 5
-                    );
-                    cr.show_text (label);
+                    // Draw the indicator pattern
+                    draw_sample_point(cr, da_x, da_y, color, i + 1);
                 }
             }
         }
+    }
+    
+    // Helper method to draw a sample point with indicator pattern
+    private void draw_sample_point(Cairo.Context cr, double center_x, double center_y, Gdk.RGBA color, int label) {
+        // Draw the outline in gray
+        cr.set_source_rgb(0.9, 0.9, 0.9);
+        
+        // Top row (row 0): __***__
+        for (int px = 2; px <= 4; px++) {
+            cr.rectangle(center_x + px - 3, center_y - 3, 1, 1);
+        }
+        
+        // Row 1: _*##*_
+        cr.rectangle(center_x - 2, center_y - 2, 1, 1);
+        cr.rectangle(center_x + 2, center_y - 2, 1, 1);
+        
+        // Row 2-4: *#####*
+        for (int row = -1; row <= 1; row++) {
+            cr.rectangle(center_x - 3, center_y + row, 1, 1);
+            cr.rectangle(center_x + 3, center_y + row, 1, 1);
+        }
+        
+        // Row 5: _*##*_
+        cr.rectangle(center_x - 2, center_y + 2, 1, 1);
+        cr.rectangle(center_x + 2, center_y + 2, 1, 1);
+        
+        // Bottom row (row 6): __***__
+        for (int px = 2; px <= 4; px++) {
+            cr.rectangle(center_x + px - 3, center_y + 3, 1, 1);
+        }
+        
+        cr.fill();
+        
+        // Now fill the inner area with the actual color
+        cr.set_source_rgba(color.red, color.green, color.blue, 1.0);
+        
+        // Row 1: _*##*_
+        for (int px = 0; px <= 1; px++) {
+            cr.rectangle(center_x - 1 + px, center_y - 2, 1, 1);
+        }
+        
+        // Row 2-4: *#####*
+        for (int row = -1; row <= 1; row++) {
+            for (int px = -2; px <= 2; px++) {
+                cr.rectangle(center_x + px, center_y + row, 1, 1);
+            }
+        }
+        
+        // Row 5: _*##*_
+        for (int px = 0; px <= 1; px++) {
+            cr.rectangle(center_x - 1 + px, center_y + 2, 1, 1);
+        }
+        
+        cr.fill();
+        
+        // Draw label
+        cr.set_source_rgb(0.9, 0.9, 0.9);
+        
+        // Position text for better visibility
+        Cairo.TextExtents extents;
+        string label_text = label.to_string();
+        cr.text_extents(label_text, out extents);
+        
+        cr.move_to(
+            center_x + 6,
+            center_y + 3
+        );
+        cr.show_text(label_text);
     }
     
     private void open_file () {
@@ -868,23 +959,23 @@ public class MainWindow : Gtk.ApplicationWindow {
     }
     
     // Direct save to CHR file without dialog
-    private void save_chr_file () {
+    private void save_chr_file() {
         if (processed_image == null) {
-            var message_dialog = new Gtk.MessageDialog (
+            var message_dialog = new Gtk.MessageDialog(
                 this,
                 Gtk.DialogFlags.MODAL,
                 Gtk.MessageType.INFO,
                 Gtk.ButtonsType.OK,
                 "No image to save"
             );
-            message_dialog.response.connect ((response_id) => {
-                message_dialog.destroy ();
+            message_dialog.response.connect((response_id) => {
+                message_dialog.destroy();
             });
-            message_dialog.present ();
+            message_dialog.present();
             return;
         }
         
-        var dialog = new Gtk.FileChooserDialog (
+        var dialog = new Gtk.FileChooserDialog(
             "Save Image",
             this,
             Gtk.FileChooserAction.SAVE,
@@ -892,100 +983,36 @@ public class MainWindow : Gtk.ApplicationWindow {
             "_Save", Gtk.ResponseType.ACCEPT
         );
         
-        dialog.set_current_name ("image.chr");
+        dialog.set_current_name("image.chr");
         
-        var chr_filter = new Gtk.FileFilter ();
-        chr_filter.set_filter_name ("CHR Files");
-        chr_filter.add_pattern ("*.chr");
-        dialog.add_filter (chr_filter);
+        var chr_filter = new Gtk.FileFilter();
+        chr_filter.set_filter_name("CHR Files");
+        chr_filter.add_pattern("*.chr");
+        dialog.add_filter(chr_filter);
         
-        dialog.response.connect ((response_id) => {
+        dialog.response.connect((response_id) => {
             if (response_id == Gtk.ResponseType.ACCEPT) {
-                string file_path = dialog.get_file ().get_path ();
+                string file_path = dialog.get_file().get_path();
                 
                 // Ensure the file has .chr extension
-                if (!file_path.down ().has_suffix (".chr")) {
+                if (!file_path.down().has_suffix(".chr")) {
                     file_path = file_path + ".chr";
                 }
                 
-                // In 2-bit mode with custom palette, we need to pass our sampled colors
-                if (!is_one_bit_mode && points_initialized) {
-                    save_chr_file_with_custom_palette (file_path);
-                } else {
-                    FileUtils.save_chr_file (file_path, processed_image, is_one_bit_mode, theme_manager);
-                }
+                // Always use FileUtils.save_chr_file for both modes
+                FileUtils.save_chr_file(file_path, processed_image, is_one_bit_mode, theme_manager);
             }
-            dialog.destroy ();
+            dialog.destroy();
         });
         
-        dialog.present ();
+        dialog.present();
     }
     
-    private void save_chr_file_with_custom_palette (string file_path) {
-        try {
-            int width = processed_image.get_width ();
-            int height = processed_image.get_height ();
-            unowned uint8[] src_data = (uint8[]) processed_image.get_data ();
-            int src_stride = processed_image.get_stride ();
-            
-            // Create CHR file format
-            // Simple format: Width (2 bytes), Height (2 bytes), followed by pixel data
-            // Each pixel is 1 byte (0-3 for 2-bit mode, 0-1 for 1-bit mode)
-            
-            FileStream file = FileStream.open (file_path, "wb");
-            if (file == null) {
-                throw new FileError.FAILED ("Could not open file for writing");
-            }
-            
-            // Write header (width and height as 16-bit values)
-            file.putc ((char)(width & 0xFF));
-            file.putc ((char)((width >> 8) & 0xFF));
-            file.putc ((char)(height & 0xFF));
-            file.putc ((char)((height >> 8) & 0xFF));
-            
-            // Extract sampled colors for reference during saving
-            Gdk.RGBA[] colors = sampled_colors;
-            
-            // Write pixel data
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int offset = y * src_stride + x * 4;
-                    uint8 b = src_data[offset + 0];
-                    uint8 g = src_data[offset + 1];
-                    uint8 r = src_data[offset + 2];
-                    
-                    // Convert to CHR format (0-3 for 2-bit)
-                    uint8 chr_value;
-                    
-                    // Find closest of 4 colors
-                    var color_distances = new double[4];
-                    for (int i = 0; i < 4; i++) {
-                        color_distances[i] = color_distance (
-                            r, g, b,
-                            (uint8)(colors[i].red * 255),
-                            (uint8)(colors[i].green * 255),
-                            (uint8)(colors[i].blue * 255)
-                        );
-                    }
-                    
-                    // Find minimum distance
-                    double min_dist = double.MAX;
-                    int min_index = 0;
-                    
-                    for (int i = 0; i < 4; i++) {
-                        if (color_distances[i] < min_dist) {
-                            min_dist = color_distances[i];
-                            min_index = i;
-                        }
-                    }
-                    
-                    chr_value = (uint8)min_index;
-                    file.putc ((char)chr_value);
-                }
-            }
-        } catch (Error e) {
-            warning ("Error saving file: %s", e.message);
-        }
+    private void save_chr_file_with_custom_palette(string file_path) {
+        if (processed_image == null) return;
+        
+        // Just delegate to the new implementation in FileUtils
+        FileUtils.save_chr_file(file_path, processed_image, is_one_bit_mode, theme_manager);
     }
     
     private double color_distance (uint8 r1, uint8 g1, uint8 b1, uint8 r2, uint8 g2, uint8 b2) {
