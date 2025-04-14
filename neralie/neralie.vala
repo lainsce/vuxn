@@ -21,7 +21,7 @@ public class NeralieApp : Gtk.Application {
         0x7cc6, 0xced6, 0xe6c6, 0x7c00, // 10 (unused)
         0x0018, 0x1800, 0x1818, 0x0000  // 11 (colon)
     };
-    
+
     private const uint16[] font_letters = {
         0x183c, 0x6666, 0x7e66, 0x6600, // A
         0xfc66, 0x667c, 0x6666, 0xfc00, // B
@@ -55,7 +55,7 @@ public class NeralieApp : Gtk.Application {
     // Colors from original UXNtal code
     private const Gdk.RGBA COLOR_BG = { 0.0f, 0.0f, 0.0f, 1.0f };
     private const Gdk.RGBA COLOR_FG = { 1.0f, 1.0f, 1.0f, 1.0f };
-    private const Gdk.RGBA COLOR_ACCENT = { 51.0f/255.0f, 238.0f/255.0f, 187.0f/255.0f, 1.0f };  // #3eb
+    private const Gdk.RGBA COLOR_ACCENT = { 0.0f, 128.0f/255.0f, 128.0f/255.0f, 1.0f };  // #088
     
     public NeralieApp() {
         Object(application_id: "org.example.neralie", flags: ApplicationFlags.DEFAULT_FLAGS);

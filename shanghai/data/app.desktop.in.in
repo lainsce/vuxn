@@ -6,6 +6,6 @@ Comment=A classic Mahjong Solitaire game
 Exec=com.example.shanghai
 Icon=com.example.shanghai
 Terminal=false
-Categories=Game;BoardGame;
+Categories=Utility;
 Keywords=mahjong;solitaire;puzzle;game;tiles;
 StartupNotify=true

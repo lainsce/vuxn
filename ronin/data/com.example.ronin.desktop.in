@@ -5,6 +5,6 @@ Exec=com.example.ronin
 Icon=com.example.ronin
 Terminal=false
 Type=Application
-Categories=Graphics;Development;
+Categories=Utility;
 StartupNotify=true
 Keywords=graphics;drawing;programming;lisp;
