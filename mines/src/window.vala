@@ -388,7 +388,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
         cr.rectangle(face_x + 5, face_y + 13, 6, 1);
         cr.fill();
 
-        MinesweeperUtils.set_color(cr, 3); // Black
+        MinesweeperUtils.set_color(cr, 1); // Black
         // Border
         cr.rectangle(face_x + 5, face_y + 1, 6, 1);
         cr.rectangle(face_x + 3, face_y + 2, 2, 1);

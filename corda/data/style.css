@@ -1,4 +1,16 @@
 .ruler-window {
-    background: @theme_accent;
+    background: @theme_bg;
     color: @theme_fg;
+}
+
+.close-button {
+    background: transparent;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
+}
+.close-button:hover {
+    background: @theme_fg;
+}
+.close-button:active {
+    background: @theme_fg;
 }

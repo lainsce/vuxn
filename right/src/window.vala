@@ -1,4 +1,4 @@
-public class Window : He.ApplicationWindow {
+public class Window : Gtk.ApplicationWindow {
     private Gtk.TextBuffer buffer;
     private Gtk.Label title_label;
     private Gtk.ScrolledWindow scrolled_window;
@@ -36,14 +36,24 @@ public class Window : He.ApplicationWindow {
         DELETE
     }
 
-    public Window (He.Application app) {
+    public Window (Gtk.Application app) {
         Object (application: app);
         height_request = 600;
         width_request = 800;
+        
+        // Load CSS
+        var provider = new Gtk.CssProvider();
+        provider.load_from_resource("/com/example/right/style.css");
+        
+        // Apply CSS to the app
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
 
         // Setup main toolbar that will also act as titlebar
         var toolbar = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 8);
-        toolbar.add_css_class ("toolbar");
 
         // Close button on the left
         var close_button = new Gtk.Button ();
@@ -61,67 +71,48 @@ public class Window : He.ApplicationWindow {
         toolbar.append (close_button);
 
         // File menu
-        var file_menu = new Gtk.MenuButton ();
-        file_menu.add_css_class ("flat");
-        file_menu.set_label ("File");
-        file_menu.set_direction (Gtk.ArrowType.NONE);
-        var file_menu_model = new Menu ();
-        file_menu_model.append ("New", "app.new");
-        file_menu_model.append ("Open…", "app.open");
-        file_menu_model.append ("Save", "app.save");
-        file_menu_model.append ("Save As…", "app.save_as");
-        // Add a separator
-        file_menu_model.append ("", null); // Empty string creates a separator
+        var menu_bar = new GLib.Menu ();
+        
+        var file_menu = new GLib.Menu ();
+        file_menu.append ("New", "app.new");
+        file_menu.append ("Open", "app.open");
+        file_menu.append ("Save", "app.save");
+        file_menu.append ("Save As", "app.save_as");
 
         // Add recent files submenu
         var appl = (App) application;
-        file_menu_model.append_submenu ("Recent Files", appl.get_recent_files_menu ());
-        file_menu.set_menu_model (file_menu_model);
+        file_menu.append_submenu ("Recent Files", appl.get_recent_files_menu ());
+        menu_bar.append_submenu("File", file_menu);
 
         // Edit menu
-        var edit_menu = new Gtk.MenuButton ();
-        edit_menu.add_css_class ("flat");
-        edit_menu.set_label ("Edit");
-        edit_menu.set_direction (Gtk.ArrowType.NONE);
-        var edit_menu_model = new Menu ();
-        edit_menu_model.append ("Undo", "app.undo");
-        edit_menu_model.append ("Redo", "app.redo");
-        edit_menu_model.append ("Cut", "app.cut");
-        edit_menu_model.append ("Copy", "app.copy");
-        edit_menu_model.append ("Paste", "app.paste");
-        edit_menu_model.append ("Select All", "app.select_all");
-        edit_menu.set_menu_model (edit_menu_model);
-
-        // Search menu
-        var search_menu = new Gtk.MenuButton ();
-        search_menu.add_css_class ("flat");
-        search_menu.set_label ("Search");
-        search_menu.set_direction (Gtk.ArrowType.NONE);
-        var search_menu_model = new Menu ();
-        search_menu_model.append ("Find", "app.find");
-        search_menu_model.append ("Find Next", "app.find_next");
-        search_menu_model.append ("Replace", "app.replace");
-        search_menu.set_menu_model (search_menu_model);
+        var edit_menu = new GLib.Menu ();
+        edit_menu.append ("Undo", "app.undo");
+        edit_menu.append ("Redo", "app.redo");
+        edit_menu.append ("Cut", "app.cut");
+        edit_menu.append ("Copy", "app.copy");
+        edit_menu.append ("Paste", "app.paste");
+        edit_menu.append ("Select All", "app.select_all");
+        menu_bar.append_submenu("Edit", edit_menu);
 
         // View menu (new)
-        var view_menu = new Gtk.MenuButton ();
-        view_menu.add_css_class ("flat");
-        view_menu.set_label ("View");
-        view_menu.set_direction (Gtk.ArrowType.NONE);
-        var view_menu_model = new Menu ();
-        view_menu_model.append ("Toggle Outline", "app.toggle_outline");
-        view_menu_model.append ("Toggle Terminal", "app.toggle_terminal");
-        view_menu.set_menu_model (view_menu_model);
+        var view_menu = new GLib.Menu();
+        view_menu.append ("Toggle Outline", "app.toggle_outline");
+        view_menu.append ("Toggle Terminal", "app.toggle_terminal");
+        menu_bar.append_submenu("View", view_menu);
+        
+        // Search menu
+        var search_menu = new GLib.Menu ();
+        search_menu.append ("Find", "app.find");
+        search_menu.append ("Find Next", "app.find_next");
+        search_menu.append ("Replace", "app.replace");
+        menu_bar.append_submenu("Search", search_menu);
 
         // Add menu buttons
-        toolbar.append (file_menu);
-        toolbar.append (edit_menu);
-        toolbar.append (search_menu);
-        toolbar.append (view_menu);
+        var menubar = new Gtk.PopoverMenuBar.from_model(menu_bar);
+        toolbar.append (menubar);
 
         // Create title label
         title_label = new Gtk.Label (window_title);
-        title_label.add_css_class ("title-box");
         title_label.hexpand = true;
         title_label.valign = Gtk.Align.CENTER;
         title_label.halign = Gtk.Align.START;

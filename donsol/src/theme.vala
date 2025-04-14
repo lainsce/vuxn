@@ -21,33 +21,33 @@ public class DonsolTheme {
     
     // Theme color getters for BLACK (maps to theme_fg)
     public float get_black_r() { 
-        var color = theme_manager.get_color("theme_fg");
+        var color = theme_manager.get_color("theme_bg");
         return color.red;
     }
     
     public float get_black_g() { 
-        var color = theme_manager.get_color("theme_fg");
+        var color = theme_manager.get_color("theme_bg");
         return color.green;
     }
     
     public float get_black_b() { 
-        var color = theme_manager.get_color("theme_fg");
+        var color = theme_manager.get_color("theme_bg");
         return color.blue;
     }
     
     // Theme color getters for WHITE (maps to theme_bg)
     public float get_white_r() { 
-        var color = theme_manager.get_color("theme_bg");
+        var color = theme_manager.get_color("theme_fg");
         return color.red;
     }
     
     public float get_white_g() { 
-        var color = theme_manager.get_color("theme_bg");
+        var color = theme_manager.get_color("theme_fg");
         return color.green;
     }
     
     public float get_white_b() { 
-        var color = theme_manager.get_color("theme_bg");
+        var color = theme_manager.get_color("theme_fg");
         return color.blue;
     }
     

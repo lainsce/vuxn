@@ -26,7 +26,7 @@ public class CordaState {
 public class CordaDrawHelper {
     public static void draw_cm_ruler(Cairo.Context cr, double y, int width) {
         var theme = Theme.Manager.get_default();
-        var fg_color = theme.get_color ("theme_fg");
+        var fg_color = theme.get_color ("theme_bg");
         cr.set_source_rgb(fg_color.red, 
                           fg_color.green, 
                           fg_color.blue);
@@ -71,7 +71,7 @@ public class CordaDrawHelper {
     // Draw inch ruler
     public static void draw_inch_ruler(Cairo.Context cr, double y, int width) {
         var theme = Theme.Manager.get_default();
-        var fg_color = theme.get_color ("theme_fg");
+        var fg_color = theme.get_color ("theme_bg");
         cr.set_source_rgb(fg_color.red, 
                           fg_color.green, 
                           fg_color.blue);
@@ -143,8 +143,8 @@ public class CordaDrawHelper {
         double y_aligned = Math.floor(y) + 0.5;
         double height = Math.floor(CordaConstants.RULER_HEIGHT);
         var theme = Theme.Manager.get_default();
-        var bg_color = theme.get_color ("theme_bg");
-        var fg_color = theme.get_color ("theme_fg");
+        var bg_color = theme.get_color ("theme_fg");
+        var fg_color = theme.get_color ("theme_bg");
         
         // Draw a rectangle for the ruler
         cr.rectangle(0.5, y_aligned, width * 2, height);

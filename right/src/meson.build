@@ -20,7 +20,6 @@ dependencies = [
   dependency('gio-2.0'),
   dependency('gee-0.8'),
   dependency('gmodule-2.0'),
-  dependency('libhelium-1'),
   dependency('gtksourceview-5'),
   dependency('libtheme-manager-1'),
   dependency('json-glib-1.0'),

@@ -29,6 +29,15 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
     private const string SPECIAL_OPERATORS = "=:!?%;$~";
     private const string OPERATORS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    
+    // Drawing optimization variables
+    private bool[,] previously_banged_cells;
+    private Gee.HashMap<string, Cairo.TextExtents?> text_extents_cache;
+    private int64 last_draw_time = 0;
+    private Cairo.Surface? dot_surface = null;
+    private Cairo.Surface? plus_surface = null;
+    private double cached_cell_width = 0;
+    private double cached_cell_height = 0;
 
     public OrcaWindow(Gtk.Application app) {
         Object(application: app);
@@ -50,6 +59,10 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         synth = new OrcaSynth();
         engine = new OrcaEngine(grid, synth);
 
+        // Initialize optimization structures
+        previously_banged_cells = new bool[OrcaGrid.WIDTH, OrcaGrid.HEIGHT];
+        text_extents_cache = new Gee.HashMap<string, Cairo.TextExtents?>();
+        
         engine.start();
         start_timer();
 
@@ -100,7 +113,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
     }
 
     private void initialize_midi_outputs() {
-        midi_outputs = new List<string> ();
+        midi_outputs = new List<string>();
         midi_outputs.append("Synth");
         midi_outputs.append("System");
         midi_outputs.append("USB");
@@ -109,6 +122,16 @@ public class OrcaWindow : Gtk.ApplicationWindow {
 
         // Set the first output as default
         synth.set_midi_output(midi_outputs.first().data);
+    }
+
+    // Track banged cells for change detection
+    private void update_banged_cells_tracking() {
+        for (int x = 0; x < OrcaGrid.WIDTH; x++) {
+            for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
+                bool is_currently_banged = engine.is_cell_banged(x, y);
+                previously_banged_cells[x, y] = is_currently_banged;
+            }
+        }
     }
 
     private void toggle_midi_output() {
@@ -400,15 +423,18 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         grid_x = (int) Math.fmin(Math.fmax(grid_x, 0), OrcaGrid.WIDTH - 1);
         grid_y = (int) Math.fmin(Math.fmax(grid_y, 0), OrcaGrid.HEIGHT - 1);
 
-        // Update selection end point
-        selection_end_x = grid_x;
-        selection_end_y = grid_y;
-
-        // Update cursor position to follow the drag
-        cursor_x = grid_x;
-        cursor_y = grid_y;
-
-        drawing_area.queue_draw();
+        // Check if selection end point has changed
+        if (grid_x != selection_end_x || grid_y != selection_end_y) {
+            // Update selection end point
+            selection_end_x = grid_x;
+            selection_end_y = grid_y;
+            
+            // Update cursor position to follow the drag
+            cursor_x = grid_x;
+            cursor_y = grid_y;
+            
+            drawing_area.queue_draw();
+        }
     }
 
     private void on_drag_end(double offset_x, double offset_y) {
@@ -425,11 +451,15 @@ public class OrcaWindow : Gtk.ApplicationWindow {
     }
 
     private void clear_selection() {
+        if (!has_selection) return;
+        
         has_selection = false;
         selection_start_x = -1;
         selection_start_y = -1;
         selection_end_x = -1;
         selection_end_y = -1;
+        
+        drawing_area.queue_draw();
     }
 
     private void delete_selection() {
@@ -456,6 +486,8 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         clear_selection();
 
         print("Deleted selection: %d,%d to %d,%d\n", min_x, min_y, max_x, max_y);
+        
+        drawing_area.queue_draw();
     }
 
     // Update the timer method to call the visualization update
@@ -476,8 +508,16 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         synth.set_frame_rate(frame_rate);
 
         timer_id = Timeout.add(1000 / frame_rate, () => {
+            // Update engine state
             engine.tick();
-            synth.update_visualization(); // Update visualization data
+            
+            // Update visualization data
+            synth.update_visualization();
+            
+            // Track changes from bangs
+            update_banged_cells_tracking();
+            
+            // Redraw the entire grid
             drawing_area.queue_draw();
             return true;
         });
@@ -493,17 +533,113 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         return OPERATORS.contains(c.to_string());
     }
 
-    private void draw(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
-        int grid_height = height - STATUS_BAR_HEIGHT;
+    // Drawing optimization methods
+    
+    // Ensure cached surfaces are created and sized correctly
+    private void ensure_cached_surfaces(double cell_width, double cell_height) {
+        // Only recreate if cell size changed
+        if (cached_cell_width == cell_width && cached_cell_height == cell_height &&
+            dot_surface != null && plus_surface != null) {
+            return;
+        }
+        
+        // Update cache dimensions
+        cached_cell_width = cell_width;
+        cached_cell_height = cell_height;
+        
+        // Create dot surface
+        if (dot_surface != null) {
+            dot_surface.finish();
+        }
+        
+        dot_surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, 
+                                           (int)cell_width, (int)cell_height);
+        var dot_cr = new Cairo.Context(dot_surface);
+        
+        // Clear surface
+        dot_cr.set_source_rgba(0, 0, 0, 0);
+        dot_cr.set_operator(Cairo.Operator.SOURCE);
+        dot_cr.paint();
+        
+        // Draw dot
+        Gdk.RGBA fg_color = theme_manager.get_color("theme_fg");
+        dot_cr.set_source_rgb(0.5, 0.5, 0.5);
+        dot_cr.set_antialias(Cairo.Antialias.NONE);
+        dot_cr.arc(cell_width / 2, cell_height / 2, 1, 0, 2 * Math.PI);
+        dot_cr.fill();
+        
+        // Create plus surface
+        if (plus_surface != null) {
+            plus_surface.finish();
+        }
+        
+        plus_surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, 
+                                            (int)cell_width, (int)cell_height);
+        var plus_cr = new Cairo.Context(plus_surface);
+        
+        // Clear surface
+        plus_cr.set_source_rgba(0, 0, 0, 0);
+        plus_cr.set_operator(Cairo.Operator.SOURCE);
+        plus_cr.paint();
+        
+        // Draw plus
+        plus_cr.set_source_rgb(0.5, 0.5, 0.5);
+        plus_cr.set_antialias(Cairo.Antialias.NONE);
+        plus_cr.set_font_size(17);
+        plus_cr.select_font_face("Orca", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+        
+        Cairo.TextExtents extents;
+        plus_cr.text_extents("+", out extents);
+        double text_x = (cell_width - extents.width) / 2;
+        double text_y = (cell_height + extents.height) / 2;
+        plus_cr.move_to(text_x, text_y);
+        plus_cr.show_text("+");
+    }
+    
+    // Get text extents with caching
+    private Cairo.TextExtents get_text_extents(Cairo.Context cr, string text) {
+        if (!text_extents_cache.has_key(text)) {
+            Cairo.TextExtents extents;
+            cr.text_extents(text, out extents);
+            text_extents_cache[text] = extents;
+            return extents;
+        }
+        return text_extents_cache[text];
+    }
+    
+    // Optimized text rendering
+    private void render_text(Cairo.Context cr, string text, double x, double y, double cell_width, double cell_height) {
+        Cairo.TextExtents extents = get_text_extents(cr, text);
+        double text_x = x + (cell_width - extents.width) / 2;
+        double text_y = y + (cell_height + extents.height) / 2;
+        cr.move_to(text_x, text_y);
+        cr.show_text(text);
+    }
 
+    // Draw a cell background
+    private void draw_cell_background(Cairo.Context cr, double x, double y, double width, double height, Gdk.RGBA color) {
+        cr.set_source_rgb(color.red, color.green, color.blue);
+        cr.rectangle(x, y, width, height);
+        cr.fill();
+    }
+
+    // Main draw method now simplified to coordinate the optimized drawing
+    private void draw(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
+        // Start timing
+        int64 start_time = get_monotonic_time();
+        
+        int grid_height = height - STATUS_BAR_HEIGHT;
         double cell_width = (double) width / OrcaGrid.WIDTH;
         double cell_height = (double) grid_height / OrcaGrid.HEIGHT;
+        
+        // Ensure cached surfaces are created and up-to-date
+        ensure_cached_surfaces(cell_width, cell_height);
 
         // Colors
-        Gdk.RGBA bg_color = theme_manager.get_color("theme_bg");
-        Gdk.RGBA fg_color = theme_manager.get_color("theme_fg");
-        Gdk.RGBA accent_color = theme_manager.get_color("theme_accent");
-        Gdk.RGBA selection_color = theme_manager.get_color("theme_selection");
+        Gdk.RGBA bg_color = theme_manager.get_color("theme_fg");
+        Gdk.RGBA fg_color = theme_manager.get_color("theme_bg");
+        Gdk.RGBA selection_color = theme_manager.get_color("theme_accent");
+        Gdk.RGBA accent_color = theme_manager.get_color("theme_selection");
 
         // Determine active quadrant
         int quadrant_x = (cursor_x / 10) * 10;
@@ -518,116 +654,198 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         cr.select_font_face("Orca", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
         cr.set_font_size(17);
 
+        // Process the grid with optimized drawing approach
+        draw_grid_optimized(cr, width, grid_height, cell_width, cell_height, 
+                           quadrant_x, quadrant_y, bg_color, fg_color, 
+                           accent_color, selection_color);
+
+        // Draw cursor
+        draw_cursor(cr, cell_width, cell_height, selection_color, fg_color);
+
+        // Draw status bar
+        draw_status_bar(cr, width, height, grid_height);
+        
+        // End timing
+        int64 end_time = get_monotonic_time();
+        int64 draw_duration = end_time - start_time;
+        
+        // Log performance periodically
+        if (engine.get_frame_count() % 30 == 0) {
+            print("Draw time: %.2f ms\n", draw_duration / 1000.0);
+        }
+        
+        last_draw_time = draw_duration;
+    }
+
+    // Draw the entire grid with optimized batching
+    private void draw_grid_optimized(Cairo.Context cr, int width, int grid_height, 
+                                    double cell_width, double cell_height,
+                                    int quadrant_x, int quadrant_y,
+                                    Gdk.RGBA bg_color, Gdk.RGBA fg_color, 
+                                    Gdk.RGBA accent_color, Gdk.RGBA selection_color) {
+        
+        // First pass: Draw backgrounds and selection highlights
         for (int x = 0; x < OrcaGrid.WIDTH; x++) {
             for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
                 char c = grid.get_char(x, y);
                 double pos_x = x * cell_width;
                 double pos_y = y * cell_height;
-
-                // Is this cell inside the active quadrant?
-                bool in_active_quadrant = (x >= quadrant_x && x < quadrant_x + 11) &&
-                    (y >= quadrant_y && y < quadrant_y + 10);
-
-                // Is this a quadrant corner? (applies to all quadrants)
-                bool is_quadrant_corner = (x % 10 == 0 && y % 9 == 0);
-
+                
                 bool is_selected = has_selection &&
                     x >= int.min(selection_start_x, selection_end_x) &&
                     x <= int.max(selection_start_x, selection_end_x) &&
                     y >= int.min(selection_start_y, selection_end_y) &&
                     y <= int.max(selection_start_y, selection_end_y);
-                bool is_data = grid.is_data_cell(x, y);
-                bool is_special = is_special_operator(c);
-                bool is_operator = is_operator(c);
-                bool is_banged = engine.is_cell_banged(x, y);
-                bool is_commented = grid.is_commented_cell(x, y);
-                bool near_bang = is_near_bang(x, y);
-                bool is_left_input = is_left_input_of_operator(x, y);
-                bool is_right_input = is_right_input_of_operator(x, y);
-                bool is_bangee_op = is_input_to_operator(x, y, "CUDFV");
-                // Special checks for operator inputs
-                bool is_t_active_input = false;
-                bool is_t_input = false;
-
-                // Look for T operators to the left
-                for (int tx = x - 1; tx >= 0; tx--) {
-                    if (grid.get_char(tx, y) == 'T') {
-                        // Calculate active input position
-                        int active_pos = get_t_active_input_position(tx, y);
-
-                        // Check if this is the active input
-                        if (x == active_pos) {
-                            is_t_active_input = true;
+                
+                // Draw selection highlight if applicable
+                if (is_selected) {
+                    draw_cell_background(cr, pos_x, pos_y, cell_width, cell_height, selection_color);
+                }
+                
+                // Draw backgrounds for operators
+                if (c != '.') {
+                    bool is_data = grid.is_data_cell(x, y);
+                    bool is_special = is_special_operator(c);
+                    bool is_operator = is_operator(c);
+                    bool is_banged = engine.is_cell_banged(x, y);
+                    bool is_commented = grid.is_commented_cell(x, y);
+                    bool is_left_input = is_left_input_of_operator(x, y);
+                    bool is_right_input = is_right_input_of_operator(x, y);
+                    bool near_bang = is_near_bang(x, y);
+                    bool is_bangee_op = is_input_to_operator(x, y, "CUDFV;:~");
+                    bool outputs_bang_bool = outputs_bang(x, y);
+                    bool is_t_active_input = false;
+                    bool is_t_input = false;
+                    
+                    // Check for MIDI + T operators
+                    for (int tx = x - 1; tx >= 0; tx--) {
+                        if (grid.get_char(tx, y) == 'T' || grid.get_char(tx, y) == ';') {
+                            // Calculate active input position
+                            int active_pos = get_t_active_input_position(tx, y);
+                            
+                            // Check if this is the active input
+                            if (x == active_pos) {
+                                is_t_active_input = true;
+                            }
+                            
+                            // Get length parameter to determine input range
+                            int len = (tx > 0) ? get_value(tx - 1, y) : 1;
+                            if (len <= 0) len = 1;
+                            
+                            // Check if this is any input to T
+                            if (x > tx && x <= tx + len) {
+                                is_t_input = true;
+                            }
+                            
+                            break; // Found a T
                         }
-
-                        // Get length parameter to determine input range
-                        int len = (tx > 0) ? get_value(tx - 1, y) : 1;
-                        if (len <= 0)len = 1;
-
-                        // Check if this is any input to T
-                        if (x > tx && x <= tx + len) {
-                            is_t_input = true;
+                        
+                        // Stop if we hit another operator
+                        if (!grid.is_data_cell(tx, y) && grid.get_char(tx, y) != '.') {
+                            break;
                         }
-
-                        break; // Found a T
                     }
-
-                    // Stop if we hit another operator
-                    if (!grid.is_data_cell(tx, y) && grid.get_char(tx, y) != '.') {
-                        break;
+                    
+                    // Draw operator backgrounds with appropriate colors
+                    if ((is_operator && is_t_input) || (is_operator && is_t_active_input)) {
+                            draw_cell_background(cr, pos_x, pos_y, cell_width, cell_height, fg_color);
+                    } else if (is_special && !is_data) {
+                        if (is_banged || near_bang || is_data || is_left_input || is_operator || is_right_input || (is_operator && is_t_input) || (is_operator && is_t_active_input)) {
+                            draw_cell_background(cr, pos_x, pos_y, cell_width, cell_height, bg_color);
+                        } else {
+                            cr.set_source_rgb(0.5, 0.5, 0.5);
+                            cr.rectangle(pos_x, pos_y, cell_width, cell_height);
+                            cr.fill();
+                        }
+                    } else if (outputs_bang_bool || (is_operator && !is_commented) || (is_operator && is_bangee_op && !is_commented)) {
+                        draw_cell_background(cr, pos_x, pos_y, cell_width, cell_height, accent_color);
+                    } else if (!is_selected) {
+                        draw_cell_background(cr, pos_x, pos_y, cell_width, cell_height, fg_color);
                     }
                 }
-
+            }
+        }
+        
+        // Second pass: Draw dots and plus signs
+        for (int x = 0; x < OrcaGrid.WIDTH; x++) {
+            for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
+                char c = grid.get_char(x, y);
+                double pos_x = x * cell_width;
+                double pos_y = y * cell_height;
+                
+                // Is this cell inside the active quadrant?
+                bool in_active_quadrant = (x >= quadrant_x && x < quadrant_x + 11) &&
+                    (y >= quadrant_y && y < quadrant_y + 10);
+                
+                // Is this a quadrant corner? (applies to all quadrants)
+                bool is_quadrant_corner = (x % 10 == 0 && y % 9 == 0);
+                
                 if (c == '.') {
                     if (is_quadrant_corner) {
-                        // Background handling for selection
-                        if (is_selected) {
-                            cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
-                            cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                            cr.fill();
-                        }
-
-                        // Set color for corner marker
-                        if (in_active_quadrant) {
-                            cr.set_source_rgb(0.5, 0.5, 0.5);
-                        } else {
-                            cr.set_source_rgb(0.5, 0.5, 0.5);
-                        }
-
-                        // Use text rendering for the + sign
-                        Cairo.TextExtents extents;
-                        cr.text_extents("+", out extents);
-                        double text_x = pos_x + (cell_width - extents.width) / 2;
-                        double text_y = pos_y + (cell_height + extents.height) / 2;
-                        cr.move_to(text_x, text_y);
-                        cr.show_text("+");
+                        // Use the cached plus surface
+                        cr.set_source_surface(plus_surface, pos_x, pos_y);
+                        cr.paint();
                     } else {
-                        // Draw normal dots inside the active quadrant
-                        if (is_selected) {
-                            cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
-                            cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                            cr.fill();
-                        }
-                        if (in_active_quadrant) {
-                            cr.set_source_rgb(0.5, 0.5, 0.5);
-                        } else {
-                            cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                        }
-                        cr.arc(pos_x + cell_width / 2, pos_y + cell_height / 2, 1, 0, 2 * Math.PI);
-                        cr.fill();
+                        // Use the cached dot surface
+                        cr.set_source_surface(dot_surface, pos_x, pos_y);
+                        cr.paint();
                     }
-                } else {
-                    // First determine what kind of cell we're dealing with
-                    if (is_selected) {
-                        // Selection coloring (highest priority)
-                        cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
-                        cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                        cr.fill();
-                        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if ((is_left_input || is_right_input) && is_bangee_op) {
-                        // Inputs to C or U operators - background text color
-                        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
-                    } else if (is_t_input && !is_t_active_input) {
+                }
+            }
+        }
+        
+        // Third pass: Draw characters (text)
+        for (int x = 0; x < OrcaGrid.WIDTH; x++) {
+            for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
+                char c = grid.get_char(x, y);
+                double pos_x = x * cell_width;
+                double pos_y = y * cell_height;
+                
+                if (c != '.') {
+                    bool is_data = grid.is_data_cell(x, y);
+                    bool is_special = is_special_operator(c);
+                    bool is_operator = is_operator(c);
+                    bool is_banged = engine.is_cell_banged(x, y);
+                    bool is_commented = grid.is_commented_cell(x, y);
+                    bool near_bang = is_near_bang(x, y);
+                    bool is_left_input = is_left_input_of_operator(x, y);
+                    bool is_right_input = is_right_input_of_operator(x, y);
+                    bool is_bangee_op = is_input_to_operator(x, y, "CUDFV");
+                    bool is_t_active_input = false;
+                    bool is_t_input = false;
+                    bool outputs_bang_bool = outputs_bang(x, y);
+                    
+                    // Check for MIDI + T operators
+                    for (int tx = x - 1; tx >= 0; tx--) {
+                        if (grid.get_char(tx, y) == 'T' || grid.get_char(tx, y) == ';') {
+                            // Calculate active input position
+                            int active_pos = get_t_active_input_position(tx, y);
+                            
+                            // Check if this is the active input
+                            if (x == active_pos) {
+                                is_t_active_input = true;
+                            }
+                            
+                            // Get length parameter to determine input range
+                            int len = (tx > 0) ? get_value(tx - 1, y) : 1;
+                            if (len <= 0) len = 1;
+                            
+                            // Check if this is any input to T
+                            if (x > tx && x <= tx + len) {
+                                is_t_input = true;
+                            }
+                            
+                            break; // Found a T
+                        }
+                        
+                        // Stop if we hit another operator
+                        if (!grid.is_data_cell(tx, y) && grid.get_char(tx, y) != '.') {
+                            break;
+                        }
+                    }
+                    
+                    // Set the appropriate text color
+                    if (is_t_input && !is_t_active_input) {
                         // T inputs that aren't active - background text color
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     } else if (is_t_input && !is_t_active_input && is_operator) {
@@ -639,6 +857,12 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                     } else if (is_commented) {
                         // Commented cells
                         cr.set_source_rgb(0.5, 0.5, 0.5);
+                    } else if (is_commented && is_operator) {
+                        // Commented cells
+                        cr.set_source_rgb(0.5, 0.5, 0.5);
+                    } else if (is_commented && is_bangee_op) {
+                        // Commented cells
+                        cr.set_source_rgb(0.5, 0.5, 0.5);
                     } else if (is_t_active_input) {
                         // Active input to T operator - accent text color
                         cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
@@ -647,57 +871,36 @@ public class OrcaWindow : Gtk.ApplicationWindow {
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     } else if (is_special && !is_data) {
                         // Special operators
-                        if (is_banged || near_bang) {
-                            cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
-                        } else {
-                            cr.set_source_rgb(0.5, 0.5, 0.5);
-                        }
-                        cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                        cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                    } else if (outputs_bang(x, y) || (is_operator && !is_commented)) {
+                    } else if (outputs_bang_bool || (is_operator && !is_commented)) {
                         // Operators
-                        cr.set_source_rgb(accent_color.red, accent_color.green, accent_color.blue);
-                        cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                        cr.fill();
                         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                     } else {
                         // Default case
-                        cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-                        cr.rectangle(pos_x, pos_y, cell_width, cell_height);
-                        cr.fill();
                         cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                     }
-
-                    Cairo.TextExtents extents;
+                    
+                    // Draw the character with optimized text rendering
                     string s = c.to_string();
-                    cr.text_extents(s, out extents);
-                    double text_x = pos_x + (cell_width - extents.width) / 2;
-                    double text_y = pos_y + (cell_height + extents.height) / 2;
-                    cr.move_to(text_x, text_y);
-                    cr.show_text(s);
+                    render_text(cr, s, pos_x, pos_y, cell_width, cell_height);
                 }
             }
         }
-
-        // Draw cursor
-        cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
+    }
+    
+    // Draw the cursor separately for clarity
+    private void draw_cursor(Cairo.Context cr, double cell_width, double cell_height, 
+                            Gdk.RGBA selection_color, Gdk.RGBA fg_color) {
         double cursor_x_pos = cursor_x * cell_width;
         double cursor_y_pos = cursor_y * cell_height;
+        
+        cr.set_source_rgb(selection_color.red, selection_color.green, selection_color.blue);
         cr.rectangle(cursor_x_pos, cursor_y_pos, cell_width, cell_height);
         cr.fill();
-
+        
         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
-        Cairo.TextExtents extents;
         string s = "@";
-        cr.text_extents(s, out extents);
-        double text_x = cursor_x_pos + (cell_width - extents.width) / 2;
-        double text_y = cursor_y_pos + (cell_height + extents.height) / 2;
-        cr.move_to(text_x, text_y);
-        cr.show_text(s);
-
-        // Draw status bar
-        draw_status_bar(cr, width, height, grid_height);
+        render_text(cr, s, cursor_x_pos, cursor_y_pos, cell_width, cell_height);
     }
 
     // Check if a cell is a left input to an operator
@@ -811,8 +1014,8 @@ public class OrcaWindow : Gtk.ApplicationWindow {
     }
 
     private void draw_status_bar(Cairo.Context cr, int width, int height, int grid_height) {
-        Gdk.RGBA bg_color = theme_manager.get_color("theme_bg");
-        Gdk.RGBA fg_color = theme_manager.get_color("theme_fg");
+        Gdk.RGBA bg_color = theme_manager.get_color("theme_fg");
+        Gdk.RGBA fg_color = theme_manager.get_color("theme_bg");
 
         // Status bar background
         cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
@@ -901,7 +1104,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         draw_sound_visualization(cr, width, grid_height);
     }
 
-    // New method to draw the sound visualization
+    // Optimized method to draw the sound visualization
     private void draw_sound_visualization(Cairo.Context cr, int width, int grid_height) {
         // Get visualization data from synth
         float[] amplitude_data;
@@ -925,43 +1128,43 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         // Calculate character width
         double char_width = (double) viz_width / display_count;
 
-        // Draw visualization using more appropriate thresholds for 0.0-1.0 range
-        for (int i = 0; i < display_count; i++) {
-            int data_idx = (i * step) % data_count;
-
-            // Get amplitude value
-            float amp = amplitude_data[data_idx];
-
-            // Determine character based on amplitude using more appropriate thresholds
-            string viz_char;
-
-            if (amp < 0.01f) {
-                viz_char = "-"; // Silent/near-silent
-            } else if (amp < 0.3f) {
-                viz_char = "="; // Very low amplitude - use Unicode block
-            } else if (amp < 0.5f) {
-                viz_char = "+"; // Low amplitude
-            } else if (amp < 0.7f) {
-                viz_char = "#"; // Medium amplitude
-            } else if (amp < 0.9f) {
-                viz_char = "*"; // High amplitude
-            } else {
-                viz_char = "|"; // Very high amplitude
+        // Batch drawing by character type to reduce state changes
+        string[] viz_chars = {"-", "=", "+", "#", "*", "|"};
+        
+        // Draw each type of character in a batch
+        foreach (string viz_char in viz_chars) {
+            // First gather positions where this character should be drawn
+            int[] positions = {};
+            
+            for (int i = 0; i < display_count; i++) {
+                int data_idx = (i * step) % data_count;
+                float amp = amplitude_data[data_idx];
+                
+                string char_to_use;
+                if (amp < 0.01f) char_to_use = "-";
+                else if (amp < 0.3f) char_to_use = "=";
+                else if (amp < 0.5f) char_to_use = "+";
+                else if (amp < 0.7f) char_to_use = "#";
+                else if (amp < 0.9f) char_to_use = "*";
+                else char_to_use = "|";
+                
+                if (char_to_use == viz_char) {
+                    positions += i;
+                }
             }
-
-            // Calculate position
-            double x_pos = viz_x + (i * char_width);
-
-            // Get text extents for centering
-            Cairo.TextExtents extents;
-            cr.text_extents(viz_char, out extents);
-
-            // Position text centered
-            double text_x = x_pos + (char_width - extents.width) / 2;
-
-            // Draw the character
-            cr.move_to(text_x, viz_y);
-            cr.show_text(viz_char);
+            
+            // Now draw all instances of this character type
+            if (positions.length > 0) {
+                Cairo.TextExtents extents;
+                cr.text_extents(viz_char, out extents);
+                
+                foreach (int pos in positions) {
+                    double x_pos = viz_x + (pos * char_width);
+                    double text_x = x_pos + (char_width - extents.width) / 2;
+                    cr.move_to(text_x, viz_y);
+                    cr.show_text(viz_char);
+                }
+            }
         }
     }
 
@@ -1150,8 +1353,6 @@ public class OrcaWindow : Gtk.ApplicationWindow {
             }
 
             print("Loaded file: %s\n", file.get_path());
-
-            // Update display
             drawing_area.queue_draw();
         } catch (Error e) {
             warning("Error loading file: %s", e.message);
@@ -1184,7 +1385,7 @@ public class OrcaWindow : Gtk.ApplicationWindow {
         }
     }
 
-// Add helper method to convert decimal to base-36
+    // Add helper method to convert decimal to base-36
     private string int_to_base36(int value) {
         if (value < 0)return "0";
         if (value < 10)return value.to_string();

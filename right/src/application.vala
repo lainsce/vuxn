@@ -1,4 +1,4 @@
-public class App : He.Application {
+public class App : Gtk.Application {
     private File? current_file = null;
     private Theme.Manager theme;
     private Menu recent_files_menu; // Added for recent files
@@ -11,12 +11,6 @@ public class App : He.Application {
     }
 
     protected override void startup () {
-        Gdk.RGBA accent_color = { 0 };
-        accent_color.parse ("#000");
-        default_accent_color = { accent_color.red* 255, accent_color.green* 255, accent_color.blue* 255 };
-        override_accent_color = true;
-        is_content = true;
-
         resource_base_path = "/com/example/Right";
 
         // Add actions

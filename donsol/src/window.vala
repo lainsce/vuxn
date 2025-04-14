@@ -71,20 +71,6 @@ public class DonsolWindow : Gtk.ApplicationWindow {
         // Create classic Mac-style title bar
         var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
         title_bar.width_request = DonsolConstants.WIDTH * DonsolConstants.PIXEL_SCALE;
-        title_bar.add_css_class("title-bar");
-
-        // Add event controller for right-click to toggle calendar visibility
-        var click_controller = new Gtk.GestureClick();
-        click_controller.set_button(1); // 1 = right mouse button
-        click_controller.released.connect(() => {
-            if (game_area.visible) {
-                game_area.visible = false;
-                default_height = 0;
-            } else {
-                game_area.visible = true;
-                default_height = DonsolConstants.HEIGHT * DonsolConstants.PIXEL_SCALE;
-            }
-        });
 
         // Close button on the left
         var close_button = new Gtk.Button();
@@ -92,21 +78,12 @@ public class DonsolWindow : Gtk.ApplicationWindow {
         close_button.tooltip_text = "Close";
         close_button.valign = Gtk.Align.CENTER;
         close_button.margin_start = 8;
+        close_button.margin_top = 8;
         close_button.clicked.connect(() => {
             this.close();
         });
 
-        var title_label = new Gtk.Label("Donsol");
-        title_label.add_css_class("title-box");
-        title_label.hexpand = true;
-        title_label.margin_end = 8;
-        title_label.valign = Gtk.Align.CENTER;
-        title_label.halign = Gtk.Align.CENTER;
-
-        title_label.add_controller(click_controller);
-
         title_bar.append(close_button);
-        title_bar.append(title_label);
 
         var winhandle = new Gtk.WindowHandle();
         winhandle.set_child(title_bar);

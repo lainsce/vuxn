@@ -2,8 +2,8 @@ public class Utils {
     public static void setup_terminal_appearance (Vte.Terminal terminal, Theme.Manager theme) {
         var font_desc = Pango.FontDescription.from_string ("Monaco Regular 9");
         // Get theme colors (BG and FG are inverted for style purposes)
-        Gdk.RGBA fg_color = theme.get_color ("theme_fg");
-        Gdk.RGBA bg_color = theme.get_color ("theme_bg");
+        Gdk.RGBA fg_color = theme.get_color ("theme_bg");
+        Gdk.RGBA bg_color = theme.get_color ("theme_fg");
         Gdk.RGBA accent_color = theme.get_color ("theme_accent");
         Gdk.RGBA sel_color = theme.get_color ("theme_selection");
 

@@ -40,7 +40,7 @@ public class BottomToolbarComponent : Gtk.Box {
             cr.set_antialias(Cairo.Antialias.NONE);
             
             // Draw selection tool icon
-            Gdk.RGBA color = char_data.get_color(1);
+            Gdk.RGBA color = char_data.get_color(2);
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
             
             // Row 1
@@ -85,7 +85,7 @@ public class BottomToolbarComponent : Gtk.Box {
             cr.set_antialias(Cairo.Antialias.NONE);
             
             // Draw open icon
-            Gdk.RGBA color = char_data.get_color(1);
+            Gdk.RGBA color = char_data.get_color(2);
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
             
             // Row 1
@@ -127,8 +127,6 @@ public class BottomToolbarComponent : Gtk.Box {
             cr.rectangle(6, 7, 1, 1);
             cr.fill();
         });
-        
-        file_open_tool.margin_end = 8;
         
         file_open_tool.clicked.connect(() => {
             request_open();

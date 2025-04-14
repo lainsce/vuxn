@@ -2,22 +2,22 @@ public class MinesweeperUtils {
     // 2-bit color palette as plain doubles (4 colors)
     public static void set_color(Cairo.Context cr, int color_index) {
         var theme = Theme.Manager.get_default();
-        var bg_color = theme.get_color("theme_bg");
-        var sel_color = theme.get_color("theme_selection");
-        var ac_color = theme.get_color("theme_accent");
         var fg_color = theme.get_color("theme_fg");
+        var bg_color = theme.get_color("theme_bg");
+        var ac_color = theme.get_color("theme_accent");
+        var sel_color = theme.get_color("theme_selection");
         switch (color_index) {
             case 0: // White
                 cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                 break;
-            case 1: // Light Gray
+            case 1: // Black
+                cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
+                break;
+            case 2: // Light Gray
                 cr.set_source_rgb(ac_color.red, ac_color.green, ac_color.blue);
                 break;
-            case 2: // Dark Gray
+            case 3: // Dark Gray
                 cr.set_source_rgb(sel_color.red, sel_color.green, sel_color.blue);
-                break;
-            case 3: // Black
-                cr.set_source_rgb(fg_color.red, fg_color.green, fg_color.blue);
                 break;
             case 4: // Alpha
                 cr.set_source_rgba(fg_color.red, fg_color.green, fg_color.blue, 0.0);
@@ -27,7 +27,7 @@ public class MinesweeperUtils {
     
     public static void draw_raised_tile(Cairo.Context cr, int x, int y, int width, int height) {
         // Draw tile background (light gray)
-        set_color(cr, 1);
+        set_color(cr, 2);
         cr.rectangle(x, y, width, height);
         cr.fill();
         
@@ -36,7 +36,7 @@ public class MinesweeperUtils {
         
         // Draw bevelled edges inset by 2 pixels
         // White for top/left edges (inset by 2 pixels)
-        set_color(cr, 0);
+        set_color(cr, 1);
         // Top edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + width - 1, y + 1);
@@ -52,7 +52,7 @@ public class MinesweeperUtils {
         cr.stroke();
         
         // Dark gray for bottom/right edges (inset by 2 pixels)
-        set_color(cr, 2);
+        set_color(cr, 3);
         // Bottom edge
         cr.move_to(x + 1, y + height - 1);
         cr.line_to(x + width - 1, y + height - 1);
@@ -70,7 +70,7 @@ public class MinesweeperUtils {
     
     public static void draw_flat_tile(Cairo.Context cr, int x, int y, int width, int height) {
         // Draw tile background (white)
-        set_color(cr, 1);
+        set_color(cr, 0);
         cr.rectangle(x, y, width, height);
         cr.fill();
         
@@ -78,7 +78,7 @@ public class MinesweeperUtils {
         cr.set_line_width(1);
         double[] dashes = { 1, 1 };
         cr.set_dash(dashes, 0);
-        set_color(cr, 2);
+        set_color(cr, 1);
         cr.move_to(x + width, y);
         cr.line_to(x + width, y + height);
         cr.stroke();
@@ -90,7 +90,7 @@ public class MinesweeperUtils {
     
     public static void draw_flag(Cairo.Context cr, int x, int y) {
         // Black parts (color 3)
-        set_color(cr, 3);
+        set_color(cr, 1);
         // Flag pole
         cr.rectangle(x + 7, y + 4, 1, 6);
 
@@ -110,7 +110,7 @@ public class MinesweeperUtils {
     
     public static void draw_mine(Cairo.Context cr, int x, int y) {
         // Using black for the mine
-        set_color(cr, 3);
+        set_color(cr, 1);
         
         // Top stem
         cr.rectangle(x + 7, y + 1, 1, 2);
@@ -146,7 +146,7 @@ public class MinesweeperUtils {
         cr.fill();
 
         // White "shine" spots
-        set_color(cr, 1);
+        set_color(cr, 0);
         cr.rectangle(x + 5, y + 4, 1, 1);
         cr.rectangle(x + 4, y + 5, 1, 1);
         cr.rectangle(x + 6, y + 5, 1, 1);
@@ -157,7 +157,7 @@ public class MinesweeperUtils {
     
     public static void draw_number(Cairo.Context cr, int x, int y, int number) {
         // With only 4 colors, we'll use black for all numbers in a true 2-bit style
-        set_color(cr, 3); // Black for all numbers
+        set_color(cr, 1); // Black for all numbers
         
         // Simple pixel number representations for 1-8
         switch (number) {
@@ -267,7 +267,7 @@ public class MinesweeperUtils {
         
         // Draw bevelled edges inset by 1 pixel
         // White for top/left edges (inset by 2 pixels)
-        set_color(cr, 2);
+        set_color(cr, 1);
         // Top edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + width - 1, y + 1);
@@ -283,7 +283,7 @@ public class MinesweeperUtils {
         cr.stroke();
         
         // Dark gray for bottom/right edges (inset by 2 pixels)
-        set_color(cr, 0);
+        set_color(cr, 3);
         // Bottom edge
         cr.move_to(x + 1, y + height - 1);
         cr.line_to(x + width - 1, y + height - 1);
@@ -341,12 +341,12 @@ public class MinesweeperUtils {
         };
         
         // Background
-        set_color(cr, 3); // Black for background
+        set_color(cr, 0); // Black for background
         cr.rectangle(x, y, 16, 16);
         cr.fill();
         
         // First draw all segments as unlit (dark gray)
-        set_color(cr, 2); // Dark gray for unlit
+        set_color(cr, 3); // Dark gray for unlit
         
         for (int i = 0; i < 7; i++) {
             int sx = x + segmentCoords[i,0];
@@ -394,7 +394,7 @@ public class MinesweeperUtils {
         }
         
         // Then draw lit segments (white)
-        set_color(cr, 0); // White for lit segments
+        set_color(cr, 1); // White for lit segments
         
         for (int i = 0; i < 7; i++) {
             if (segments[digit, i]) {

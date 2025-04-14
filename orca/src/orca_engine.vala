@@ -78,14 +78,24 @@ public class OrcaEngine {
             }
         }
 
-        // PRE-SCAN: Mark parameters for special operators (unchanged)
+        // PRE-SCAN: Mark parameters for special operators
         for (int y = 0; y < OrcaGrid.HEIGHT; y++) {
             for (int x = 0; x < OrcaGrid.WIDTH; x++) {
                 char c = grid.get_char(x, y);
-                if (c == '=' || c == ':' || c == '!' || c == 'T' || c == ';') {
-                    // Mark parameters as data
-                    int max_params = (c == 'T') ? ((x > 0) ? get_value(x - 1, y) : 1) : 4;
-                    for (int i = 1; i <= max_params; i++) {
+                if (c == '=' || c == ':' || c == '!' || c == ';') {
+                    // Fixed parameter count for these operators
+                    for (int i = 1; i <= 4; i++) {
+                        if (x + i < OrcaGrid.WIDTH) {
+                            grid.mark_as_data(x + i, y);
+                        }
+                    }
+                } else if (c == 'T') {
+                    // For T, read the length parameter properly
+                    int len = (x > 0) ? read_parameter(x - 1, y) : 1;
+                    if (len <= 0) len = 1;
+                    
+                    // Mark T's parameters
+                    for (int i = 1; i <= len; i++) {
                         if (x + i < OrcaGrid.WIDTH) {
                             grid.mark_as_data(x + i, y);
                         }
@@ -379,8 +389,9 @@ public class OrcaEngine {
         int a = (x > 0) ? read_parameter(x - 1, y) : 0;
         int b = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
 
-        // Calculate the absolute difference
-        int result = (int) Math.fabs(b - a) % 36; // Base-36
+        // Calculate absolute difference more directly
+        int diff = (b >= a) ? (b - a) : (a - b);
+        int result = diff % 36; // Base-36
 
         // Convert to output character
         char output = value_to_char(result);
@@ -422,8 +433,8 @@ public class OrcaEngine {
         int mod = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 8;
 
         // Ensure valid values
-        if (rate <= 0)rate = 1;
-        if (mod <= 0)mod = 8;
+        if (rate <= 0) rate = 1;
+        if (mod <= 0) mod = 8;
 
         // Use EXACTLY the same formula as in JS
         int res = frame_count % (mod * rate);
@@ -436,6 +447,11 @@ public class OrcaEngine {
         if (should_bang && output_y < OrcaGrid.HEIGHT) {
             // Place a visual bang (*) character in the output cell
             next_grid[output_x, output_y] = '*';
+            
+            // IMPORTANT: Unlike regular data, bangs should NOT be marked as data
+            // They need to be able to affect neighbors in the next frame
+            // However, we may want to protect the bang content
+            grid.protect_cell_content(output_x, output_y, '*');
         }
     }
 
@@ -533,22 +549,12 @@ public class OrcaEngine {
 
     // I - increment(step mod): Increments southward operand.
     private void process_increment(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
-        // Read parameters
-        int step = 1; // Default
-        int mod = 36; // Default
+        // Read parameters with proper data marking
+        int step = (x > 0) ? read_parameter(x - 1, y) : 1;
+        int mod = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 36;
 
-        // Read step parameter (LEFT of I) - Using get_value for base-36
-        if (x > 0) {
-            step = get_value(x - 1, y);
-        }
-
-        // Read mod parameter (RIGHT of I) - Using get_value for base-36
-        if (x + 1 < OrcaGrid.WIDTH) {
-            mod = get_value(x + 1, y);
-        }
-
-        if (mod <= 0)mod = 36;
-
+        if (mod <= 0) mod = 36;
+        
         // Read the value to increment
         int val = 0;
         if (y + 1 < OrcaGrid.HEIGHT) {
@@ -635,20 +641,9 @@ public class OrcaEngine {
 
     // L - lesser(a b): Outputs smallest input.
     private void process_lesser(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
-        // Read values from left and right
-        char a_char = grid.get_char(x - 1, y);
-        char b_char = grid.get_char(x + 1, y);
-
-        // Skip if either value is empty
-        if (a_char == '.' || b_char == '.') {
-            if (y + 1 < OrcaGrid.HEIGHT) {
-                next_grid[x, y + 1] = '.';
-            }
-            return;
-        }
-
-        int a = get_value(x - 1, y);
-        int b = get_value(x + 1, y);
+        // Read parameters with proper data marking
+        int a = (x > 0) ? read_parameter(x - 1, y) : 0;
+        int b = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
 
         // Find the minimum value
         int result = (int) Math.fmin(a, b);
@@ -665,9 +660,9 @@ public class OrcaEngine {
 
     // M - multiply(a b): Outputs product of inputs.
     private void process_multiply(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
-        // Read values from left and right
-        int a = get_value(x - 1, y);
-        int b = get_value(x + 1, y);
+        // Read parameters with proper data marking
+        int a = (x > 0) ? read_parameter(x - 1, y) : 0;
+        int b = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
 
         // Calculate product
         int result = (a * b) % 36; // Base-36
@@ -714,19 +709,9 @@ public class OrcaEngine {
 
     // O - read(x y): Reads operand with offset.
     private void process_read(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
-        // Read x,y offset parameters
-        int x_offset = 0;
-        int y_offset = 0;
-
-        // Read x offset (TWO positions LEFT of O) - Using get_value for base-36
-        if (x > 1) {
-            x_offset = get_value(x - 2, y);
-        }
-
-        // Read y offset (ONE position LEFT of O) - Using get_value for base-36
-        if (x > 0) {
-            y_offset = get_value(x - 1, y);
-        }
+        // Read x,y offset parameters with proper data marking
+        int x_offset = (x > 1) ? read_parameter(x - 2, y) : 0;
+        int y_offset = (x > 0) ? read_parameter(x - 1, y) : 0;
 
         // Calculate read position with offset
         int read_x = x + x_offset + 1;
@@ -774,25 +759,20 @@ public class OrcaEngine {
 
     // Q - query(x y len): Reads operands with offset.
     private void process_query(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
-        int x_param = 0; // X coordinate offset to read from
-        int y_param = 0; // Y coordinate offset to read from
-        int len = 1; // Length of values to read
-
-        // Read parameters
-        if (x > 2)x_param = get_value(x - 3, y);
-        if (x > 1)y_param = get_value(x - 2, y);
-        if (x > 0) {
-            len = get_value(x - 1, y);
-            if (len <= 0)len = 1;
-        }
+        // Read parameters with proper data marking
+        int x_param = (x > 2) ? read_parameter(x - 3, y) : 0;
+        int y_param = (x > 1) ? read_parameter(x - 2, y) : 0;
+        int len = (x > 0) ? read_parameter(x - 1, y) : 1;
+        
+        if (len <= 0) len = 1;
 
         // Process each position to read from and output to
         for (int offset = 0; offset < len; offset++) {
-            // CRITICAL FIX: Add +1 to x_param calculation to match JS implementation
+            // Calculate input position with the +1 offset required by the algorithm
             int in_x = x + x_param + offset + 1;
             int in_y = y + y_param;
 
-            // Calculate output position exactly as in JavaScript
+            // Calculate output position (matches JavaScript implementation)
             int out_x = x + (offset - len + 1);
             int out_y = y + 1;
 
@@ -801,7 +781,7 @@ public class OrcaEngine {
             if (in_x >= 0 && in_x < OrcaGrid.WIDTH &&
                 in_y >= 0 && in_y < OrcaGrid.HEIGHT) {
                 value = grid.get_char(in_x, in_y);
-                mark_output_as_data(in_x, in_y);
+                // CORRECTED: Don't mark input as output data
             }
 
             // Write to output position if within bounds
@@ -817,42 +797,46 @@ public class OrcaEngine {
     private void process_random(int x, int y, char[,] next_grid, bool is_uppercase, bool is_banged) {
         int min = 0;
         int max = 35;
-
-        // Check for inline parameters (like RG for A-G)
+        
+        // First, check for the special inline parameter case (like RG)
         char inline_param = grid.get_char(x + 1, y);
         if (inline_param >= 'A' && inline_param <= 'Z') {
             min = inline_param - 'A' + 10;
             max = min;
+            read_parameter(x + 1, y); // Mark as data
         } else if (inline_param >= 'a' && inline_param <= 'z') {
             min = inline_param - 'a' + 10;
             max = min;
+            read_parameter(x + 1, y); // Mark as data
         } else {
-            // Read parameters from below
-            min = get_value(x, y + 1);
-            max = get_value(x + 1, y + 1);
+            // Regular case: read min from left, max from right
+            if (x > 0) min = read_parameter(x - 1, y);
+            if (x + 1 < OrcaGrid.WIDTH) max = read_parameter(x + 1, y);
         }
-
+        
+        // Ensure min <= max
         if (min > max) {
             int temp = min;
             min = max;
             max = temp;
         }
-
+        
         int range = max - min + 1;
         int result = min + Random.int_range(0, range);
-
-        char output;
-        if (result < 10) {
-            output = (char) ('0' + result);
-        } else {
-            output = (char) ('a' + (result - 10));
-            // If output should be uppercase (e.g., RG should output uppercase G)
-            if (is_uppercase || (inline_param >= 'A' && inline_param <= 'Z')) {
-                output = output.toupper();
-            }
+        
+        // Convert to output character
+        char output = value_to_char(result);
+        
+        // Modify case if needed
+        if (is_uppercase || (inline_param >= 'A' && inline_param <= 'Z')) {
+            output = output.toupper();
         }
-
-        next_grid[x, y + 1] = output;
+        
+        // Output below
+        if (y + 1 < OrcaGrid.HEIGHT) {
+            next_grid[x, y + 1] = output;
+            mark_output_as_data(x, y + 1);
+        }
     }
 
     // S - south: Moves southward, or bangs.
@@ -1219,26 +1203,24 @@ public class OrcaEngine {
 
     // ! - cc(channel, knob, value): Sends MIDI control change
     private void process_cc(int x, int y) {
-        // Mark parameters as data
-        for (int i = 1; i <= 3; i++) {
-            int param_x = x + i;
-            if (param_x < OrcaGrid.WIDTH) {
-                char g = grid.get_char(param_x, y);
-                grid.mark_as_data(param_x, y);
-                grid.lock_cell(param_x, y);
-                grid.protect_cell_content(param_x, y, g);
-            }
-        }
-
         // Only trigger when banged
         if (!has_bang_neighbor(x, y)) {
             return;
         }
 
-        // Read parameters
+        // Read parameters with proper data marking
         int channel = (x + 1 < OrcaGrid.WIDTH) ? read_parameter(x + 1, y) : 0;
         int knob = (x + 2 < OrcaGrid.WIDTH) ? read_parameter(x + 2, y) : 0;
         int value = (x + 3 < OrcaGrid.WIDTH) ? read_parameter(x + 3, y) : 0;
+
+        // Additional protection for parameters if needed
+        for (int i = 1; i <= 3; i++) {
+            int param_x = x + i;
+            if (param_x < OrcaGrid.WIDTH) {
+                char g = grid.get_char(param_x, y);
+                grid.protect_cell_content(param_x, y, g);
+            }
+        }
 
         // Normalize value from 0-35 to 0-127 for MIDI
         int midi_value = (value * 127) / 35;

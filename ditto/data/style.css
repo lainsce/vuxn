@@ -1,7 +1,7 @@
 window {
-    background: @theme_fg;
-    color: @theme_bg;
-    box-shadow: 0 0 0 2px @theme_fg;
+    background: @theme_bg;
+    color: @theme_gg;
+    box-shadow: 0 0 0 2px @theme_bg;
 }
 
 checkbutton {
@@ -76,7 +76,7 @@ filechooser {
 
 .close-button {
     background: transparent;
-    border: 1px solid @theme_bg;
+    border: 1px solid @theme_fg;
     box-shadow: none;
 }
 .close-button:hover {

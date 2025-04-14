@@ -145,7 +145,7 @@ public class MainWindow : Gtk.ApplicationWindow {
             cr.set_antialias (Cairo.Antialias.NONE);
             
             // Set border color
-            var fg_color = theme_manager.get_color ("theme_bg");
+            var fg_color = theme_manager.get_color ("theme_fg");
             cr.set_source_rgb (fg_color.red, fg_color.green, fg_color.blue);
             cr.set_line_width (1.0);
             
@@ -219,7 +219,7 @@ public class MainWindow : Gtk.ApplicationWindow {
             double start_y = 0;
             
             // Set colors based on theme
-            var fg_color = theme_manager.get_color ("theme_bg");
+            var fg_color = theme_manager.get_color ("theme_fg");
             cr.set_source_rgb (fg_color.red, fg_color.green, fg_color.blue);
             
             // Define the pattern as a 2D array (7x7)

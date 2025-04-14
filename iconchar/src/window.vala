@@ -79,9 +79,9 @@ public class MainWindow : Gtk.ApplicationWindow {
         var css_provider = new Gtk.CssProvider();
         try {
             Gdk.RGBA fg_color = char_data.get_color(0);
-            Gdk.RGBA ac_color = char_data.get_color(1);
-            Gdk.RGBA se_color = char_data.get_color(2);
-            Gdk.RGBA bg_color = char_data.get_color(3);
+            Gdk.RGBA bg_color = char_data.get_color(1);
+            Gdk.RGBA ac_color = char_data.get_color(2);
+            Gdk.RGBA se_color = char_data.get_color(3);
             string fg_hex = rgba_to_hex(fg_color);
             string ac_hex = rgba_to_hex(ac_color);
             string se_hex = rgba_to_hex(se_color);
@@ -160,14 +160,14 @@ public class MainWindow : Gtk.ApplicationWindow {
                 }
             """.printf(
                 fg_hex,             // window background
-                se_hex, fg_hex,     // window.csd box-shadow
-                se_hex,             // .close-button border
-                se_hex,             // .close-button:hover background
-                ac_hex,             // .close-button:active background
-                se_hex,             // .mini-panel-frame border
-                se_hex,             // .panel-frame border
+                bg_hex, fg_hex,     // window.csd box-shadow
+                bg_hex,             // .close-button border
+                bg_hex,             // .close-button:hover background
+                bg_hex,             // .close-button:active background
+                ac_hex,             // .mini-panel-frame border
+                ac_hex,             // .panel-frame border
                 fg_hex,             // .status-bar background
-                ac_hex,             // .filename-label color
+                bg_hex,             // .filename-label color
                 bg_hex              // .data-label color
             );
             
