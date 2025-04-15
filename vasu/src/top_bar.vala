@@ -8,7 +8,7 @@ public class TopBarComponent : Gtk.Box {
     
     // Public widgets that might need to be accessed by the MainWindow
     public Gtk.DrawingArea sprite_area { get; private set; }
-    public Gtk.DrawingArea pre_view_area { get; private set; }
+    public Gtk.DrawingArea sprite_view_area { get; private set; }
     public Gtk.DrawingArea pattern_area { get; private set; }
     public Gtk.Label sprite_label { get; private set; }
     public Gtk.Label sprite_view_label { get; private set; }
@@ -51,14 +51,14 @@ public class TopBarComponent : Gtk.Box {
             update_hex_data();
             pattern_area.queue_draw();
             sprite_area.queue_draw();
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
 
         preview_view.preview_updated.connect(() => {
             update_hex_data();
             pattern_area.queue_draw();
             sprite_area.queue_draw();
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
 
         // Connect color picker changes
@@ -72,13 +72,13 @@ public class TopBarComponent : Gtk.Box {
             queue_draw();
             pattern_area.queue_draw();
             sprite_area.queue_draw();
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
         
         // Connect tile selection to update the sprite view areas
         editor_view.tile_selected.connect((x, y) => {
             sprite_area.queue_draw();
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
 
         // Connect mirror status changes
@@ -100,22 +100,6 @@ public class TopBarComponent : Gtk.Box {
         
         chr_data.notify["selected_color"].connect(() => {
             update_color_picker();
-            
-            // Update the display
-            queue_draw();
-            pattern_area.queue_draw();
-            sprite_area.queue_draw();
-            pre_view_area.queue_draw();
-        });
-        
-        chr_data.palette_changed.connect(() => {
-            update_color_picker();
-            
-            // Update the display
-            queue_draw();
-            pattern_area.queue_draw();
-            sprite_area.queue_draw();
-            pre_view_area.queue_draw();
         });
     }
 
@@ -146,11 +130,11 @@ public class TopBarComponent : Gtk.Box {
         var sprite_view_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
         sprite_view_box.add_css_class("mini-panel-frame");
         
-        pre_view_area = new Gtk.DrawingArea();
-        pre_view_area.set_size_request(32, 32);
-        pre_view_area.set_draw_func(draw_pre_view_area);
+        sprite_view_area = new Gtk.DrawingArea();
+        sprite_view_area.set_size_request(32, 32);
+        sprite_view_area.set_draw_func(draw_sprite_view_area);
         
-        sprite_view_box.append(pre_view_area);
+        sprite_view_box.append(sprite_view_area);
         
         var shift_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
         shift_box.halign = Gtk.Align.START;
@@ -170,7 +154,7 @@ public class TopBarComponent : Gtk.Box {
             editor_view.update_from_current_tile();
             
             // Redraw
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
         
         // Vertical shift toggle button
@@ -188,7 +172,7 @@ public class TopBarComponent : Gtk.Box {
             editor_view.update_from_current_tile();
             
             // Redraw
-            pre_view_area.queue_draw();
+            sprite_view_area.queue_draw();
         });
 
         shift_box.append(v_shift_button);
@@ -289,7 +273,7 @@ public class TopBarComponent : Gtk.Box {
     }
     
     // Draw function for the sprite view area
-    private void draw_pre_view_area(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
+    private void draw_sprite_view_area(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
         cr.set_antialias(Cairo.Antialias.NONE);
         int scale_factor = 4; // 8x4 = 32, but accounting for half pixels
         
@@ -576,7 +560,7 @@ public class TopBarComponent : Gtk.Box {
         editor_view.queue_draw();
         preview_view.queue_draw();
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
 
     // Handle right-click on pattern area
@@ -610,7 +594,7 @@ public class TopBarComponent : Gtk.Box {
         editor_view.queue_draw();
         preview_view.queue_draw();
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     // Draw the horizontal mirror button
@@ -866,14 +850,14 @@ public class TopBarComponent : Gtk.Box {
     private void restore_sprite_original_colors() {
         // Refresh the sprite display
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
 
     // Method to apply pattern to sprite area
     private void apply_pattern_to_sprite_area() {
         // Force redraw of the sprite area with the pattern applied
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     public int apply_pattern_transform(int original_color, int pattern_row, int pattern_col) {
@@ -936,7 +920,7 @@ public class TopBarComponent : Gtk.Box {
         editor_view.queue_draw();
         preview_view.queue_draw();
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     // Update the mirror status display
@@ -950,7 +934,7 @@ public class TopBarComponent : Gtk.Box {
         editor_view.queue_draw();
         preview_view.queue_draw();
         sprite_area.queue_draw();
-        pre_view_area.queue_draw();
+        sprite_view_area.queue_draw();
     }
     
     // Update sprite size based on click/drag coordinates
@@ -992,32 +976,28 @@ public class TopBarComponent : Gtk.Box {
 
     // Helper method to create toolbar items
     private Gtk.ToggleButton create_toolbar_item(int width, int height, owned DrawFunc draw_func) {
-        var tool_area = new Gtk.DrawingArea();
-        tool_area.set_size_request(width, height);
-        tool_area.set_draw_func((area, cr, w, h) => {
+        var drawing_area = new Gtk.DrawingArea();
+        drawing_area.set_size_request(width, height);
+        drawing_area.set_draw_func((area, cr, w, h) => {
             draw_func(cr, w, h);
         });
         
         var click_gesture = new Gtk.GestureClick();
-        tool_area.add_controller(click_gesture);
+        drawing_area.add_controller(click_gesture);
         
         // Add the drawing area to a container
         var event_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        event_box.append(tool_area);
+        event_box.append(drawing_area);
         
         // Store the drawing area for redrawing
-        click_gesture.set_data("drawing-area", tool_area);
+        click_gesture.set_data("drawing-area", drawing_area);
         click_gesture.set_data("container", event_box);
         
         var button = new Gtk.ToggleButton();
         button.set_child(event_box);
         
         // Store drawing area in button data for later access
-        button.set_data("drawing-area", tool_area);
-
-        chr_data.palette_changed.connect(() => {
-            tool_area.queue_draw();
-        });
+        button.set_data("drawing-area", drawing_area);
         
         return button;
     }

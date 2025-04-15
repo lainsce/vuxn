@@ -44,10 +44,6 @@ public class MainWindow : Gtk.ApplicationWindow {
         theme.theme_changed.connect(() => {
             apply_global_styles();
         });
-        
-        chr_data.palette_changed.connect(() => {
-            apply_global_styles();
-        });
     }
     
     private void setup_theme_management() {
