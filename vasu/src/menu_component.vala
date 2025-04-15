@@ -345,8 +345,8 @@ public class MenuComponent : Gtk.Box {
                 top_bar.shift_x = 0;
                 top_bar.shift_y = 0;
                 
-                if (top_bar.sprite_view_area != null) {
-                    top_bar.sprite_view_area.queue_draw();
+                if (top_bar.pre_view_area != null) {
+                    top_bar.pre_view_area.queue_draw();
                 }
             }
         });

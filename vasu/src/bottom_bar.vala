@@ -183,8 +183,6 @@ public class BottomToolbarComponent : Gtk.Box {
             }
         });
         tool_button_handlers.append(pen_handler_id);
-        
-        pen_tool.set_active(true);
         tool_buttons.append(pen_tool);
         append(pen_tool);
         
@@ -257,6 +255,7 @@ public class BottomToolbarComponent : Gtk.Box {
             }
         });
         tool_button_handlers.append(cursor_handler_id);
+        cursor_tool.set_active(true);
         tool_buttons.append(cursor_tool);
         append(cursor_tool);
         
