@@ -13,7 +13,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         Object(
             application: app,
             title: "Vasu",
-            default_width: 302,
+            default_width: 306,
             default_height: 220,
             resizable: false 
         );
@@ -33,7 +33,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         setup_ui();
         
         // Handle files after UI is done constructing
-        file_handler = new VasuFileHandler(chr_data, editor_view);
+        file_handler = new VasuFileHandler(chr_data, editor_view, preview_view);
         
         // Setup all gestures
         setup_controllers();
@@ -77,14 +77,14 @@ public class MainWindow : Gtk.ApplicationWindow {
         // Apply CSS styling
         var css_provider = new Gtk.CssProvider();
         try {
-            Gdk.RGBA fg_color = chr_data.get_color(0);
-            Gdk.RGBA ac_color = chr_data.get_color(1);
-            Gdk.RGBA se_color = chr_data.get_color(2);
-            Gdk.RGBA bg_color = chr_data.get_color(3);
-            string fg_hex = rgba_to_hex(fg_color);
-            string ac_hex = rgba_to_hex(ac_color);
-            string se_hex = rgba_to_hex(se_color);
+            Gdk.RGBA bg_color = chr_data.get_color(0);
+            Gdk.RGBA fg_color = chr_data.get_color(1);
+            Gdk.RGBA ac_color = chr_data.get_color(2);
+            Gdk.RGBA se_color = chr_data.get_color(3);
             string bg_hex = rgba_to_hex(bg_color);
+            string fg_hex = rgba_to_hex(fg_color);
+            string se_hex = rgba_to_hex(se_color);
+            string ac_hex = rgba_to_hex(ac_color);
             
             // Use string.printf for CSS with color variables
             string css_data = """
@@ -96,15 +96,9 @@ public class MainWindow : Gtk.ApplicationWindow {
                         0 0 0 2px %s;
                 }
                 .close-button {
-                    background: transparent;
-                    border: 1px solid %s;
                     box-shadow: none;
-                }
-                .close-button:hover {
-                    background: %s;
-                }
-                .close-button:active {
-                    background: %s;
+                    background: none;
+                    border: 1px solid %s;
                 }
                 .mini-panel-frame {
                     border: 1px solid %s;
@@ -208,6 +202,8 @@ public class MainWindow : Gtk.ApplicationWindow {
                     background: %s;
                     color: %s;
                     border: 1px solid %s;
+                    margin: 0;
+                    padding: 0;
                 }
                 popover contents {
                     background: %s;
@@ -220,6 +216,7 @@ public class MainWindow : Gtk.ApplicationWindow {
                     padding: 0;
                     min-height: 8px;
                     margin: 0;
+                    padding: 0;
                     font-family: "atari8", monospace;
                     font-size: 8px;
                     background: transparent;
@@ -230,23 +227,11 @@ public class MainWindow : Gtk.ApplicationWindow {
                     margin-left: 16px;
                     margin-right: 1px;
                     background: transparent;
+                    color: %s;
                 }
                 popover modelbutton:hover {
                     background: %s;
                     color: %s;
-                }
-                dialog {
-                    background: %s;
-                    color: %s;
-                }
-                dialog headerbar {
-                    background: %s;
-                    color: %s;
-                }
-                dialog button {
-                    background: %s;
-                    color: %s;
-                    border: 1px solid %s;
                 }
                 button:not(.close-button) {
                     background: none;
@@ -254,6 +239,8 @@ public class MainWindow : Gtk.ApplicationWindow {
                     border: none;
                     min-height: 0px;
                     min-width: 0px;
+                    margin: 0;
+                    padding: 0;
                     -gtk-icon-size: 0px;
                 }
                 button:not(.close-button) * {
@@ -276,35 +263,27 @@ public class MainWindow : Gtk.ApplicationWindow {
                     color: %s;
                 }
             """.printf(
-                fg_hex,             // window background
-                ac_hex,             // window.csd box-shadow
-                ac_hex,             // .close-button border
-                se_hex,             // .close-button:hover background
-                ac_hex,             // .close-button:active background
-                se_hex,             // .mini-panel-frame border
-                se_hex,             // .panel-frame border
-                fg_hex,             // .status-bar background
-                ac_hex,             // .filename-label color
-                bg_hex,             // .data-label color
-                se_hex,             // .hex-label color
-                ac_hex,             // .hex-label2 color
-                bg_hex,             // menubar button color
+                bg_hex,             // window background
+                fg_hex,             // window.csd box-shadow
+                fg_hex,             // .close-button border
+                ac_hex,             // .mini-panel-frame border
+                ac_hex,             // .panel-frame border
+                bg_hex,             // .status-bar background
+                fg_hex,             // .filename-label color
+                se_hex,             // .data-label color
+                ac_hex,             // .hex-label color
+                fg_hex,             // .hex-label2 color
+                se_hex,             // menubar button color
                 se_hex,             // menubar button:hover background
                 fg_hex,             // menubar button:hover color
-                fg_hex,             // popover background
+                ac_hex,             // popover background
                 bg_hex,             // popover color
-                se_hex,             // popover border
-                fg_hex,             // popover contents background
-                bg_hex,             // popover button color
-                se_hex,             // popover button:hover background
-                fg_hex,             // popover button:hover color
-                fg_hex,             // dialog background
-                bg_hex,             // dialog color
-                fg_hex,             // dialog headerbar background
-                bg_hex,             // dialog headerbar color
-                se_hex,             // dialog button background
-                bg_hex,             // dialog button color
-                bg_hex,             // dialog button border
+                ac_hex,             // popover border
+                ac_hex,             // popover contents background
+                ac_hex,             // popover button color
+                se_hex,             // popover accel color
+                fg_hex,             // popover button:hover background
+                se_hex,             // popover button:hover color
                 bg_hex,             // button:not(.close-button) color
                 bg_hex,             // button:not(.close-button):hover color
                 bg_hex,             // button:not(.close-button):active color
@@ -391,26 +370,26 @@ public class MainWindow : Gtk.ApplicationWindow {
         main_box.append(top_bar);
         main_box.append(content_box);
         main_box.append(bottom_toolbar);
+        
+        // Initialize file handler with all components
+        file_handler = new VasuFileHandler(chr_data, editor_view, preview_view);
     }
     
     private Gtk.Widget create_titlebar() {
         var title_bar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
         title_bar.width_request = 302;
         
-        // Create close button
         var close_button = new Gtk.Button();
         close_button.add_css_class("close-button");
         close_button.tooltip_text = "Close";
         close_button.valign = Gtk.Align.CENTER;
-        close_button.margin_start = 8;
-        close_button.margin_top = 8;
+        close_button.margin_start = 4;
         close_button.clicked.connect(() => {
             close();
         });
-        
         title_bar.append(close_button);
         
-                // Create menu component
+        // Create menu component
         menu_component = new MenuComponent(chr_data, editor_view, preview_view, top_bar);
         
         // Connect menu signals

@@ -267,7 +267,7 @@ public class MinesweeperUtils {
         
         // Draw bevelled edges inset by 1 pixel
         // White for top/left edges (inset by 2 pixels)
-        set_color(cr, 1);
+        set_color(cr, 3);
         // Top edge
         cr.move_to(x + 1, y + 1);
         cr.line_to(x + width - 1, y + 1);
@@ -283,7 +283,7 @@ public class MinesweeperUtils {
         cr.stroke();
         
         // Dark gray for bottom/right edges (inset by 2 pixels)
-        set_color(cr, 3);
+        set_color(cr, 1);
         // Bottom edge
         cr.move_to(x + 1, y + height - 1);
         cr.line_to(x + width - 1, y + height - 1);

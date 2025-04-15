@@ -38,7 +38,7 @@ public class TopBarComponent : Gtk.Box {
         // Set styling and margins
         margin_start = 16;
         margin_end = 16;
-        margin_top = 13;
+        margin_top = 8;
         margin_bottom = 8;
         add_css_class("tool-bar");
         
@@ -83,18 +83,18 @@ public class TopBarComponent : Gtk.Box {
 
         // Connect mirror status changes
         chr_data.notify["mirror_horizontal"].connect(() => {
-            update_mirror_status(0);
+            update_mirror_status(1);
             pattern_area.queue_draw();
         });
 
         chr_data.notify["mirror_vertical"].connect(() => {
-            update_mirror_status(0);
+            update_mirror_status(1);
             pattern_area.queue_draw();
         });
 
         chr_data.notify["selected_pattern_tile"].connect(() => {
             mirror_status.set_text(""); // Clear it first
-            update_mirror_status(0); // Then update with current value
+            update_mirror_status(1); // Then update with current value
             pattern_area.queue_draw();
         });
         
@@ -298,8 +298,8 @@ public class TopBarComponent : Gtk.Box {
         int selected_tile_y = editor_view.selected_tile_y;
         
         // Draw the selected tile pixels scaled up
-        for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
-            for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+        for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+            for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
                 // Calculate the source pixel position in the editor
                 int source_x = selected_tile_x * VasuData.TILE_WIDTH + x;
                 int source_y = selected_tile_y * VasuData.TILE_HEIGHT + y;
@@ -363,7 +363,7 @@ public class TopBarComponent : Gtk.Box {
                 bool is_light = ((x / CHECKERBOARD_SIZE) + (y / CHECKERBOARD_SIZE)) % 2 == 0;
                 
                 if (is_light) {
-                    Gdk.RGBA bg_color = chr_data.get_color(1);
+                    Gdk.RGBA bg_color = chr_data.get_color(3);
                     cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue);
                 } else {
                     Gdk.RGBA bg_color = chr_data.get_color(0);
@@ -405,14 +405,14 @@ public class TopBarComponent : Gtk.Box {
         int pattern_col = apply_pattern ? pattern_tile % 4 : 0;
 
         // Draw the sprite tiles
-        for (int tile_y = 0; tile_y < sprite_height; tile_y++) {
-            for (int tile_x = 0; tile_x < sprite_width; tile_x++) {
+        for (int tile_x = 0; tile_x < sprite_width; tile_x++) {
+            for (int tile_y = 0; tile_y < sprite_height; tile_y++) {
                 int source_tile_x = selected_tile_x + tile_x;
                 int source_tile_y = selected_tile_y + tile_y;
                 
                 // Draw each pixel in the tile
-                for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
-                    for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+                for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+                    for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
                         // Calculate source position with mirroring if needed
                         int source_x = x;
                         int source_y = y;
@@ -464,7 +464,7 @@ public class TopBarComponent : Gtk.Box {
         mirror_box.halign = Gtk.Align.CENTER;
         
         // Mirror status label (2-hexdigit)
-        mirror_status = new Gtk.Label("80");
+        mirror_status = new Gtk.Label("81");
         mirror_status.add_css_class("data-label");
         
         // Horizontal mirror toggle button
@@ -476,7 +476,7 @@ public class TopBarComponent : Gtk.Box {
         
         h_mirror_button.clicked.connect(() => {
             chr_data.mirror_horizontal = !chr_data.mirror_horizontal;
-            update_mirror_status(0);
+            update_mirror_status(1);
             pattern_area.queue_draw();
             editor_view.queue_draw();
             preview_view.queue_draw();
@@ -491,7 +491,7 @@ public class TopBarComponent : Gtk.Box {
         
         v_mirror_button.clicked.connect(() => {
             chr_data.mirror_vertical = !chr_data.mirror_vertical;
-            update_mirror_status(0);
+            update_mirror_status(1);
             pattern_area.queue_draw();
             editor_view.queue_draw();
             preview_view.queue_draw();
@@ -530,7 +530,7 @@ public class TopBarComponent : Gtk.Box {
         pattern_preview.append(mirror_box);
         
         // Initialize mirror status
-        update_mirror_status(0);
+        update_mirror_status(1);
         
         return pattern_preview;
     }
@@ -846,8 +846,8 @@ public class TopBarComponent : Gtk.Box {
         int selected_tile_y = editor_view.selected_tile_y;
         
         // Store all pixel colors from the sprite area
-        for (int y = 0; y < sprite_height * 8; y++) {
-            for (int x = 0; x < sprite_width * 8; x++) {
+        for (int x = 0; x < sprite_width * 8; x++) {
+            for (int y = 0; y < sprite_height * 8; y++) {
                 // Calculate source position in the editor
                 int source_x = selected_tile_x * 8 + x;
                 int source_y = selected_tile_y * 8 + y;

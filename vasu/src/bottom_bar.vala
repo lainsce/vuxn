@@ -27,8 +27,8 @@ public class BottomToolbarComponent : Gtk.Box {
         add_css_class("status-bar");
         margin_start = 15;
         margin_end = 15;
-        margin_top = 2;
-        margin_bottom = 7;
+        margin_top = 0;
+        margin_bottom = 11;
         valign = Gtk.Align.CENTER;
         
         setup_ui();

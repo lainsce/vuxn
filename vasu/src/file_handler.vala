@@ -1,11 +1,13 @@
-// Class to handle CHR and ICN file operations
+// Class to handle CHR, ICN, and NMT file operations
 public class VasuFileHandler {
     private VasuData chr_data;
     private VasuEditorView editor_view;
+    private VasuPreviewView preview_view;
     
-    public VasuFileHandler(VasuData data, VasuEditorView editor) {
+    public VasuFileHandler(VasuData data, VasuEditorView editor, VasuPreviewView preview) {
         chr_data = data;
         editor_view = editor;
+        preview_view = preview;
     }
     
     public bool save_to_file(string path) {
@@ -81,6 +83,12 @@ public class VasuFileHandler {
             }
             
             dos.close();
+            
+            // Also save the NMT file if preview has data
+            if (preview_view != null) {
+                save_nmt_file(path);
+            }
+            
             return true;
         } catch (Error e) {
             print("Error saving CHR file: %s\n", e.message);
@@ -203,6 +211,10 @@ public class VasuFileHandler {
             chr_data.tile_changed(); // Signal that the tile data has changed
             
             dis.close();
+            
+            // Try to load corresponding NMT file if it exists
+            load_nmt_file(path);
+            
             return true;
         } catch (Error e) {
             print("Error loading CHR file: %s\n", e.message);
@@ -269,6 +281,12 @@ public class VasuFileHandler {
             }
             
             dos.close();
+            
+            // Also save the NMT file if preview has data
+            if (preview_view != null) {
+                save_nmt_file(path);
+            }
+            
             return true;
         } catch (Error e) {
             print("Error saving ICN file: %s\n", e.message);
@@ -371,9 +389,216 @@ public class VasuFileHandler {
             chr_data.tile_changed(); // Signal that the tile data has changed
             
             dis.close();
+            
+            // Try to load corresponding NMT file if it exists
+            load_nmt_file(path);
+            
             return true;
         } catch (Error e) {
             print("Error loading ICN file: %s\n", e.message);
+            return false;
+        }
+    }
+    
+    private bool save_nmt_file(string file_path) {
+        try {
+            // Create NMT path by adding .nmt to the original file path
+            string nmt_path = file_path + ".nmt";
+            
+            // Check if there's anything to save
+            bool has_contents = false;
+            for (int y = 0; y < VasuPreviewView.GRID_HEIGHT; y++) {
+                for (int x = 0; x < VasuPreviewView.GRID_WIDTH; x++) {
+                    if (preview_view.get_placed_tile(x, y) != null) {
+                        has_contents = true;
+                        break;
+                    }
+                }
+                if (has_contents) break;
+            }
+            
+            // Don't save empty NMT files
+            if (!has_contents) {
+                print("Preview is empty, not saving NMT file\n");
+                return false;
+            }
+            
+            var file = File.new_for_path(nmt_path);
+            var dos = new DataOutputStream(file.replace(
+                null, false, FileCreateFlags.REPLACE_DESTINATION
+            ));
+            
+            // NMT format:
+            // For each placed tile in the preview (16x16 grid)
+            // - 3 bytes per tile
+            // - First two bytes: CHR byte address (tile_index * 16)
+            // - Third byte: pattern transformation byte
+            
+            // Loop through preview grid
+            for (int grid_y = 0; grid_y < VasuPreviewView.GRID_HEIGHT; grid_y++) {
+                for (int grid_x = 0; grid_x < VasuPreviewView.GRID_WIDTH; grid_x++) {
+                    // Get the tile at this position
+                    var tile = preview_view.get_placed_tile(grid_x, grid_y);
+                    
+                    if (tile != null) {
+                        // Calculate tile index (source_tile_y * 16 + source_tile_x)
+                        uint16 tile_index = (uint16)(tile.source_tile_y * 16 + tile.source_tile_x);
+                        
+                        // Calculate CHR byte address (tile_index * 16)
+                        uint16 chr_address = tile_index * 16;
+                        
+                        // Calculate pattern byte:
+                        // - Bits 0-1 (0-3): Pattern column
+                        // - Bits 2-3 (0-3): Pattern row
+                        // - Bit 6: Vertical mirror
+                        // - Bit 7: Horizontal mirror
+                        uint8 pattern_byte = 0;
+                        
+                        // Set pattern column (bits 0-1)
+                        pattern_byte |= (uint8)(tile.pattern_col & 0x03);
+                        
+                        // Set pattern row (bits 2-3)
+                        pattern_byte |= (uint8)((tile.pattern_row & 0x03) << 2);
+                        
+                        // Set mirror flags
+                        if (tile.mirror_vertical) {
+                            pattern_byte |= 0x40; // Bit 6
+                        }
+                        if (tile.mirror_horizontal) {
+                            pattern_byte |= 0x80; // Bit 7
+                        }
+                        
+                        print("Saving tile at %d,%d: source=%d,%d (CHR addr 0x%04x) pattern=%d mirror_h=%s mirror_v=%s\n", 
+                              grid_x, grid_y, tile.source_tile_x, tile.source_tile_y, chr_address,
+                              tile.pattern_row * 4 + tile.pattern_col,
+                              tile.mirror_horizontal.to_string(), tile.mirror_vertical.to_string());
+                        
+                        // Write the 3 bytes for this tile - note the order is low byte, high byte
+                        dos.put_byte((uint8)(chr_address & 0xFF));       // Low byte of address
+                        dos.put_byte((uint8)((chr_address >> 8) & 0xFF)); // High byte of address
+                        dos.put_byte(pattern_byte);                      // Pattern byte
+                    } else {
+                        // Write 3 zeros for empty tile (per convention)
+                        dos.put_byte(0x00);
+                        dos.put_byte(0x00);
+                        dos.put_byte(0x00);
+                    }
+                }
+            }
+            
+            dos.close();
+            print("Saved NMT file: %s\n", nmt_path);
+            return true;
+        } catch (Error e) {
+            print("Error saving NMT file: %s\n", e.message);
+            return false;
+        }
+    }
+    
+    private bool load_nmt_file(string file_path) {
+        try {
+            // Create NMT path by adding .nmt to the original file path
+            string nmt_path = file_path + ".nmt";
+            
+            var file = File.new_for_path(nmt_path);
+            
+            // Check if the file exists
+            if (!file.query_exists()) {
+                print("NMT file not found: %s\n", nmt_path);
+                return false;
+            }
+            
+            print("Found NMT file: %s\n", nmt_path);
+            
+            // Clear existing preview
+            preview_view.clear_canvas();
+            
+            var dis = new DataInputStream(file.read());
+            
+            // Loop through preview grid
+            for (int grid_y = 0; grid_y < VasuPreviewView.GRID_HEIGHT; grid_y++) {
+                for (int grid_x = 0; grid_x < VasuPreviewView.GRID_WIDTH; grid_x++) {
+                    try {
+                        // Read 3 bytes for this tile
+                        uint8 address_low = dis.read_byte();
+                        uint8 address_high = dis.read_byte();
+                        uint8 pattern_byte = dis.read_byte();
+                        
+                        // Check if this is a valid tile (not 0x000000)
+                        if (address_low != 0x00 || address_high != 0x00 || pattern_byte != 0x00) {
+                            // Calculate the CHR byte address - Note low byte first, high byte second
+                            uint16 chr_address = (uint16)((address_low << 8) | address_high);
+                            
+                            // Each tile in the CHR file takes 16 bytes, so divide by 16 to get the tile index
+                            uint16 tile_index = chr_address / 16;
+                            
+                            // Calculate source tile coordinates (in our 16×16 grid)
+                            int source_tile_x = tile_index % 16;
+                            int source_tile_y = tile_index / 16;
+                            
+                            // Skip if the source coordinates are outside our 16×16 grid
+                            if (source_tile_x >= 16 || source_tile_y >= 16) {
+                                print("Warning: NMT entry at %d,%d references tile outside grid: %d,%d (CHR addr 0x%04x)\n",
+                                      grid_x, grid_y, source_tile_x, source_tile_y, chr_address);
+                                continue;
+                            }
+                            
+                            // Extract pattern information
+                            int pattern_col = pattern_byte & 0x03;
+                            int pattern_row = (pattern_byte >> 2) & 0x03;
+                            int pattern_tile = pattern_row * 4 + pattern_col;
+
+                            // Extract the high nibble to determine mirror settings
+                            int mirror_code = pattern_byte >> 4;
+                            bool mirror_horizontal = false;
+                            bool mirror_vertical = false;
+
+                            if (mirror_code == 9) {
+                                // 9x: horizontal mirroring on
+                                mirror_horizontal = true;
+                            } else if (mirror_code == 10) {
+                                // Ax: vertical mirroring on
+                                mirror_vertical = true;
+                            } else if (mirror_code == 11) {
+                                // Bx: both mirrors applied
+                                mirror_horizontal = true;
+                                mirror_vertical = true;
+                            }
+                            
+                            print("Loading tile at %d,%d: source=%d,%d (CHR addr 0x%04x) pattern=%d mirror_h=%s mirror_v=%s\n", 
+                                  grid_x, grid_y, source_tile_x, source_tile_y, chr_address,
+                                  pattern_tile, mirror_horizontal.to_string(), mirror_vertical.to_string());
+                            
+                            // Temporarily set the pattern tile and mirror flags
+                            int old_pattern = chr_data.selected_pattern_tile;
+                            bool old_h_mirror = chr_data.mirror_horizontal;
+                            bool old_v_mirror = chr_data.mirror_vertical;
+                            
+                            chr_data.selected_pattern_tile = pattern_tile;
+                            chr_data.mirror_horizontal = mirror_horizontal;
+                            chr_data.mirror_vertical = mirror_vertical;
+                            
+                            // Place the tile
+                            preview_view.place_tile_at_with_source(grid_x, grid_y, source_tile_x, source_tile_y);
+                            
+                            // Restore original values
+                            chr_data.selected_pattern_tile = old_pattern;
+                            chr_data.mirror_horizontal = old_h_mirror;
+                            chr_data.mirror_vertical = old_v_mirror;
+                        }
+                    } catch (Error e) {
+                        print("Error reading NMT data at %d,%d: %s\n", grid_x, grid_y, e.message);
+                        break;
+                    }
+                }
+            }
+            
+            dis.close();
+            preview_view.queue_draw();
+            print("Loaded NMT file: %s\n", nmt_path);
+            return true;
+        } catch (Error e) {
+            print("Error loading NMT file: %s\n", e.message);
             return false;
         }
     }

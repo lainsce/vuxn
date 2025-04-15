@@ -12,7 +12,7 @@ public class VasuData : Object {
     // Mirroring flags
     public bool mirror_horizontal { get; set; default = false; }
     public bool mirror_vertical { get; set; default = false; }
-    public int selected_pattern_tile { get; set; } // Tile index in pattern preview (0-f)
+    public int selected_pattern_tile { get; set; default = 1; } // Tile index in pattern preview (0-f)
     
     // Signal for when mirroring changes
     public signal void mirroring_changed();
@@ -20,8 +20,8 @@ public class VasuData : Object {
     public int selected_color { get; set; default = 1; } // Default to first usable color (not bg/alpha)
     public int selected_tool { get; set; default = 1; } // 0=pen, 1=cursor, 2=zoom
     public int zoom_level { get; set; default = 8; }
-    public int sprite_width { get; set; default = 1; } // 1 for default 1x1 sprite size
-    public int sprite_height { get; set; default = 1; } // 1
+    public int sprite_width { get; set; default = 3; } // 3 for default 3x2 sprite size
+    public int sprite_height { get; set; default = 2; } // 2
     
     public string filename { get; set; default = "untitled10x10.chr"; }
     
@@ -82,8 +82,8 @@ public class VasuData : Object {
         // Update the palette with new theme colors
         current_palette[0] = { bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha };  // White/Alpha
         current_palette[1] = { fg_color.red, fg_color.green, fg_color.blue, fg_color.alpha };  // Black
-        current_palette[2] = { se_color.red, se_color.green, se_color.blue, se_color.alpha };  // Orange
-        current_palette[3] = { ac_color.red, ac_color.green, ac_color.blue, ac_color.alpha };  // Cyan
+        current_palette[2] = { ac_color.red, ac_color.green, ac_color.blue, ac_color.alpha };  // Cyan
+        current_palette[3] = { se_color.red, se_color.green, se_color.blue, se_color.alpha };  // Orange
         
         // Emit the palette_changed signal to update UI
         palette_changed();
@@ -124,8 +124,8 @@ public class VasuData : Object {
     }
     
     public void clear_tile() {
-        for (int y = 0; y < TILE_HEIGHT; y++) {
-            for (int x = 0; x < TILE_WIDTH; x++) {
+        for (int x = 0; x < TILE_WIDTH; x++) {
+            for (int y = 0; y < TILE_HEIGHT; y++) {
                 current_tile[x, y] = 0;
             }
         }

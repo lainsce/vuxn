@@ -19,11 +19,11 @@ public class VasuPreviewView : Gtk.DrawingArea {
     private int right_prev_y = -1;
     
     // 16x16 grid of 8x8 tiles
-    private const int GRID_WIDTH = 16;
-    private const int GRID_HEIGHT = 16;
+    public const int GRID_WIDTH = 16;
+    public const int GRID_HEIGHT = 16;
     
-    // Class to represent a placed tile's data
-    private class PlacedTile {
+    // Make PlacedTile public to access from VasuFileHandler
+    public class PlacedTile {
         public int[,] pixels;
         public bool mirror_horizontal;
         public bool mirror_vertical;
@@ -108,7 +108,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
     }
     
     // Store placed tiles in a 2D array of PlacedTile objects
-    private PlacedTile?[,] placed_tiles;
+    public PlacedTile?[,] placed_tiles;
     
     // Track the currently selected tile
     private int selected_tile_x = 0;
@@ -173,9 +173,11 @@ public class VasuPreviewView : Gtk.DrawingArea {
             queue_draw();
         });
         
-        editor_view.tile_modified.connect((tile_x, tile_y) => {
-            update_placed_tiles_from_source(tile_x, tile_y);
-        });
+        if (editor_view != null) {
+            editor_view.tile_modified.connect((tile_x, tile_y) => {
+                update_placed_tiles_from_source(tile_x, tile_y);
+            });
+        }
     }
     
     // Method to set the editor view reference
@@ -499,6 +501,14 @@ public class VasuPreviewView : Gtk.DrawingArea {
         right_prev_y = -1;
     }
 
+    // Method to get a placed tile at a specific position
+    public PlacedTile? get_placed_tile(int grid_x, int grid_y) {
+        if (grid_x >= 0 && grid_x < GRID_WIDTH && grid_y >= 0 && grid_y < GRID_HEIGHT) {
+            return placed_tiles[grid_x, grid_y];
+        }
+        return null;
+    }
+    
     // Update the place_tile_at method to check for overlaps and bounds
     private void place_tile_at(int grid_x, int grid_y) {
         // Get the sprite dimensions
@@ -575,6 +585,56 @@ public class VasuPreviewView : Gtk.DrawingArea {
                 placed_tiles[target_x, target_y] = transformed_tile;
             }
         }
+        
+        queue_draw();
+        preview_updated();
+    }
+    
+    // Method to place a tile with specific source (for NMT loading)
+    public void place_tile_at_with_source(int grid_x, int grid_y, int source_tile_x, int source_tile_y) {
+        // Check bounds
+        if (grid_x < 0 || grid_x >= GRID_WIDTH || grid_y < 0 || grid_y >= GRID_HEIGHT) {
+            return;
+        }
+        
+        // Skip if source is out of bounds
+        if (source_tile_x >= 16 || source_tile_y >= 16) {
+            return;
+        }
+        
+        // Get pattern information
+        int pattern_row = chr_data.selected_pattern_tile / 4;
+        int pattern_col = chr_data.selected_pattern_tile % 4;
+        
+        // Create a new placed tile with source tile and pattern information
+        var transformed_tile = new PlacedTile(source_tile_x, source_tile_y, pattern_row, pattern_col);
+        
+        // Store the current mirroring state in the tile
+        transformed_tile.mirror_horizontal = chr_data.mirror_horizontal;
+        transformed_tile.mirror_vertical = chr_data.mirror_vertical;
+        
+        // Copy pixels from source with pattern transformation applied
+        for (int py = 0; py < 8; py++) {
+            for (int px = 0; px < 8; px++) {
+                // Get the original color from the editor
+                int editor_x = source_tile_x * 8 + px;
+                int editor_y = source_tile_y * 8 + py;
+                
+                int original_color = 0;
+                if (editor_view != null) {
+                    original_color = editor_view.get_pixel(editor_x, editor_y);
+                }
+                
+                // Apply pattern transformation using the helper method
+                int transformed_color = transformed_tile.transform_color(original_color);
+                
+                // Store the transformed color
+                transformed_tile.pixels[px, py] = transformed_color;
+            }
+        }
+        
+        // Place the transformed tile
+        placed_tiles[grid_x, grid_y] = transformed_tile;
         
         queue_draw();
         preview_updated();

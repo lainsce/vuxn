@@ -128,7 +128,7 @@ public class MenuComponent : Gtk.Box {
 
         margin_start = 4;
         margin_end = 8;
-        margin_top = 9;
+        margin_top = 3;
         margin_bottom = 0;
         
         // Create the action group first
@@ -187,11 +187,15 @@ public class MenuComponent : Gtk.Box {
         // View menu
         var view_menu = new GLib.Menu();
         view_menu.append("Zoom", "win.zoom");
-        view_menu.append("Up/Down", "win.shift-h");
-        view_menu.append("Left/Right", "win.shift-v");
-        view_menu.append("Reset", "win.shift-reset");
-        view_menu.append("SelectAll", "win.select-all");
         menu_bar.append_submenu("View", view_menu);
+        
+        // Move menu
+        var move_menu = new GLib.Menu();
+        move_menu.append("Up/Down", "win.shift-h");
+        move_menu.append("Left/Right", "win.shift-v");
+        move_menu.append("Reset", "win.shift-reset");
+        move_menu.append("SelectAll", "win.select-all");
+        menu_bar.append_submenu("Move", move_menu);
         
         // Tool menu
         var tool_menu = new GLib.Menu();

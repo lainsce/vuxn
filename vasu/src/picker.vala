@@ -62,19 +62,19 @@ public class ColorPickerWidget : Gtk.Box {
     public void setup_style () {
         var css_provider = new Gtk.CssProvider();
         try {
-            Gdk.RGBA fg_color = chr_data.get_color(3);
-            int r = (int)Math.floor(fg_color.red * 255.0f + 0.5f);
-            int g = (int)Math.floor(fg_color.green * 255.0f + 0.5f);
-            int b = (int)Math.floor(fg_color.blue * 255.0f + 0.5f);
+            Gdk.RGBA se_color = chr_data.get_color(3);
+            int r = (int)Math.floor(se_color.red * 255.0f + 0.5f);
+            int g = (int)Math.floor(se_color.green * 255.0f + 0.5f);
+            int b = (int)Math.floor(se_color.blue * 255.0f + 0.5f);
             
-            var fg_color_hex = "#%02x%02x%02x".printf(r, g, b);
+            var se_color_hex = "#%02x%02x%02x".printf(r, g, b);
             string cdata = """
                 .pixel-font {
                     font-family: "atari8", monospace;
                     font-size: 8px;
                     color: %s;
                 }
-            """.printf(fg_color_hex);
+            """.printf(se_color_hex);
             css_provider.load_from_data(cdata.data);
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),

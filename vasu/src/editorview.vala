@@ -169,8 +169,8 @@ public class VasuEditorView : Gtk.DrawingArea {
     // Update the editor pixels with the current tile data
     public void update_from_current_tile() {
         // Update the editor pixels with the current tile data
-        for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
-            for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+        for (int x = 0; x < VasuData.TILE_WIDTH; x++) {
+            for (int y = 0; y < VasuData.TILE_HEIGHT; y++) {
                 int editor_x = selected_tile_x * VasuData.TILE_WIDTH + x;
                 int editor_y = selected_tile_y * VasuData.TILE_HEIGHT + y;
                 
@@ -246,8 +246,8 @@ public class VasuEditorView : Gtk.DrawingArea {
     private void draw_normal_view(Cairo.Context cr, int width, int height) {
         // Draw pixels
         cr.set_antialias(Cairo.Antialias.NONE);
-        for (int y = 0; y < GRID_HEIGHT * 8; y++) {
-            for (int x = 0; x < GRID_WIDTH * 8; x++) {
+        for (int x = 0; x < GRID_WIDTH * 8; x++) {
+            for (int y = 0; y < GRID_HEIGHT * 8; y++) {
                 int color_idx = editor_pixels[x, y];
                 Gdk.RGBA color = chr_data.get_color(color_idx);
                 
@@ -498,8 +498,8 @@ public class VasuEditorView : Gtk.DrawingArea {
             tile_selected(tile_x, tile_y);
             
             // Copy the tile data to the current CHR data
-            for (int ye = 0; ye < 8; ye++) {
-                for (int xe = 0; xe < 8; xe++) {
+            for (int xe = 0; xe < 8; xe++) {
+                for (int ye = 0; ye < 8; ye++) {
                     int editor_x = tile_x * 8 + xe;
                     int editor_y = tile_y * 8 + ye;
                     

@@ -119,8 +119,8 @@ public class FilenameComponent : Gtk.Box {
         var css_provider = new Gtk.CssProvider();
         
         // Get the colors for flashing
-        Gdk.RGBA fg_color = chr_data.get_color(flash_state ? 1 : 0);
-        Gdk.RGBA bg_color = chr_data.get_color(flash_state ? 0 : 1);
+        Gdk.RGBA fg_color = chr_data.get_color(flash_state ? 0 : 1);
+        Gdk.RGBA bg_color = chr_data.get_color(flash_state ? 1 : 0);
         
         string fg_hex = rgba_to_hex(fg_color);
         string bg_hex = rgba_to_hex(bg_color);
@@ -129,7 +129,7 @@ public class FilenameComponent : Gtk.Box {
             entry.filename-label {
                 padding: 0;
                 margin: 0;
-                min-height: 7px;
+                min-height: 8px;
                 min-width: 0px;
                 border: none;
                 outline: none;
@@ -144,7 +144,7 @@ public class FilenameComponent : Gtk.Box {
                 box-shadow: none;
                 padding: 0;
                 margin: 0;
-                min-height: 7px;
+                min-height: 8px;
                 min-width: 0px;
                 font-family: "atari8", monospace;
                 font-size: 8px;
