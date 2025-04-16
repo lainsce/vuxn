@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility
+Comment=A simple color picker inspired by classic Mac
+Exec=com.example.color
+GenericName=Color Picker
+Icon=com.example.color
+Name=Color
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A simple logging app inspired by classic Mac
+Exec=com.example.log
+GenericName=Console
+Icon=com.example.log
+Name=Log
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0
