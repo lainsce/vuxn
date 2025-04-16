@@ -1,7 +1,7 @@
 /*
  * Varvara Theme Configurator
  *
- * Modified utility functions to work with reformulated ColorPickerWidget
+ * Utility functions for working with the binary theme format
  */
 
 namespace App.Utils {
@@ -31,7 +31,7 @@ namespace App.Utils {
 
     /**
      * Gets a specific digit from a color's hex representation
-     * Now uses the 3-character hex code directly
+     * Uses the 3-character hex code directly
      */
     public string get_color_hex_digit(ColorPickerWidget picker, int position) {
         // Get the 3-character hex code
@@ -65,12 +65,31 @@ namespace App.Utils {
     }
 
     /**
-     * Loads the theme file and returns the parsed colors
-     * Updated to use the 3-character hex codes:
-     * color0/BG = AAA
-     * color1/FG = BBB
-     * color2/ACCENT = CCC
-     * color3/SELECTION = DDD
+     * Helper function to convert hex char to int
+     */
+    private uint8 hex_char_to_int(char c) {
+        if (c >= '0' && c <= '9')
+            return (uint8)(c - '0');
+        else if (c >= 'a' && c <= 'f')
+            return (uint8)(c - 'a' + 10);
+        else if (c >= 'A' && c <= 'F')
+            return (uint8)(c - 'A' + 10);
+        return 0;
+    }
+
+    /**
+     * Helper function to convert int to hex char
+     */
+    private char int_to_hex_char(uint8 n) {
+        if (n < 10)
+            return (char)('0' + n);
+        else
+            return (char)('a' + (n - 10));
+    }
+
+    /**
+     * Loads the theme file and returns the parsed colors.
+     * Now works with binary format.
      */
     public bool load_theme_file(string file_path,
                                 out string accent,
@@ -78,10 +97,10 @@ namespace App.Utils {
                                 out string foreground,
                                 out string background) {
         // Set default values
-        accent = "#77ddcc";  // Expands to position 7,d,c
-        selection = "#ffbb33"; // Expands to position f,b,3
-        foreground = "#000000"; // Expands to position 0,0,0
-        background = "#ffffff"; // Expands to position f,f,f
+        accent = "#77ddcc";
+        selection = "#ffbb33";
+        foreground = "#000000";
+        background = "#ffffff";
 
         try {
             // Check if the theme file exists
@@ -91,37 +110,65 @@ namespace App.Utils {
                 return false;
             }
 
-            // Read the file content
-            string content;
-            FileUtils.get_contents(file_path, out content);
-
-            content = content.strip();
-
-            if (content.length >= 14) { // "ABCD ABCD ABCD" has 14 characters
-                // Get the first character of each color component (ABCD)
-                string a1 = content.substring(0, 1);
-                string b1 = content.substring(1, 1);
-                string c1 = content.substring(2, 1);
-                string d1 = content.substring(3, 1);
-                
-                string a2 = content.substring(5, 1);
-                string b2 = content.substring(6, 1);
-                string c2 = content.substring(7, 1);
-                string d2 = content.substring(8, 1);
-                
-                string a3 = content.substring(10, 1);
-                string b3 = content.substring(11, 1);
-                string c3 = content.substring(12, 1);
-                string d3 = content.substring(13, 1);
-
-                // Convert 3-digit hex codes to 6-digit hex colors
-                background = expand_hex_color(a1 + a2 + a3);     // BG = AAA
-                foreground = expand_hex_color(b1 + b2 + b3);     // FG = BBB
-                accent = expand_hex_color(c1 + c2 + c3);         // ACCENT = CCC
-                selection = expand_hex_color(d1 + d2 + d3);      // SELECTION = DDD
-
+            // Read the binary data
+            uint8[] data;
+            file.load_contents(null, out data, null);
+            
+            // Make sure we have 6 bytes of data
+            if (data.length != 6) {
+                warning("Invalid theme file size: %d bytes (expected 6)", data.length);
+                return false;
+            }
+            
+            // Check if it's one-bit mode (all bytes are 0xf0)
+            bool is_one_bit = true;
+            for (int i = 0; i < 6; i++) {
+                if (data[i] != 0xf0) {
+                    is_one_bit = false;
+                    break;
+                }
+            }
+            
+            if (is_one_bit) {
+                // One-bit mode colors
+                background = "#ffffff";
+                foreground = "#000000";
+                accent = "#000000";
+                selection = "#ffffff";
                 return true;
             }
+            
+            // Extract color components from binary format
+            StringBuilder bg_sb = new StringBuilder();
+            StringBuilder fg_sb = new StringBuilder();
+            StringBuilder accent_sb = new StringBuilder();
+            StringBuilder selection_sb = new StringBuilder();
+            
+            // Extract each digit from the 3 byte pairs
+            for (int i = 0; i < 3; i++) {
+                uint8 byte1 = data[i*2];
+                uint8 byte2 = data[i*2+1];
+                
+                // Extract 4-bit values
+                uint8 bg_val = (byte1 >> 4) & 0x0F;
+                uint8 fg_val = byte1 & 0x0F;
+                uint8 accent_val = (byte2 >> 4) & 0x0F;
+                uint8 selection_val = byte2 & 0x0F;
+                
+                // Convert to hex chars and append
+                bg_sb.append_c(int_to_hex_char(bg_val));
+                fg_sb.append_c(int_to_hex_char(fg_val));
+                accent_sb.append_c(int_to_hex_char(accent_val));
+                selection_sb.append_c(int_to_hex_char(selection_val));
+            }
+            
+            // Convert 3-digit hex codes to 6-digit hex colors
+            background = expand_hex_color(bg_sb.str);
+            foreground = expand_hex_color(fg_sb.str);
+            accent = expand_hex_color(accent_sb.str);
+            selection = expand_hex_color(selection_sb.str);
+            
+            return true;
         } catch (Error e) {
             warning("Error loading theme file: %s", e.message);
         }
@@ -146,8 +193,7 @@ namespace App.Utils {
     }
 
     /**
-     * Saves colors to the theme file
-     * Updated for the reformulated pickers
+     * Saves colors to the theme file in binary format
      */
     public bool save_theme_file(string file_path,
                                ColorPickerWidget accent_picker,
@@ -157,21 +203,33 @@ namespace App.Utils {
                                Gtk.Window? parent = null) {
         try {
             // Get three-digit hex codes directly from the pickers
-            string a = bg_picker.get_hex_code();       // BG
-            string b = fg_picker.get_hex_code();       // FG
-            string c = accent_picker.get_hex_code();   // ACCENT
-            string d = selection_picker.get_hex_code(); // SELECTION
+            string bg = bg_picker.get_hex_code();
+            string fg = fg_picker.get_hex_code();
+            string acc = accent_picker.get_hex_code();
+            string sel = selection_picker.get_hex_code();
             
-            // Format the content according to the pattern "ABCD ABCD ABCD"
-            string content = a[0].to_string() + b[0].to_string() + c[0].to_string() + d[0].to_string() +
-                           " " +
-                           a[1].to_string() + b[1].to_string() + c[1].to_string() + d[1].to_string() +
-                           " " + 
-                           a[2].to_string() + b[2].to_string() + c[2].to_string() + d[2].to_string();
-
-            // Write to the theme file
-            FileUtils.set_contents(file_path, content);
-
+            // Create binary data (6 bytes = 3 pairs)
+            uint8[] bin_data = new uint8[6];
+            
+            // First digit pair - byte 0: BG+FG, byte 1: Accent+Selection
+            bin_data[0] = (uint8)((hex_char_to_int(bg[0]) << 4) | hex_char_to_int(fg[0]));
+            bin_data[1] = (uint8)((hex_char_to_int(acc[0]) << 4) | hex_char_to_int(sel[0]));
+            
+            // Second digit pair
+            bin_data[2] = (uint8)((hex_char_to_int(bg[1]) << 4) | hex_char_to_int(fg[1]));
+            bin_data[3] = (uint8)((hex_char_to_int(acc[1]) << 4) | hex_char_to_int(sel[1]));
+            
+            // Third digit pair
+            bin_data[4] = (uint8)((hex_char_to_int(bg[2]) << 4) | hex_char_to_int(fg[2]));
+            bin_data[5] = (uint8)((hex_char_to_int(acc[2]) << 4) | hex_char_to_int(sel[2]));
+            
+            // Write binary data to file
+            var file = File.new_for_path(file_path);
+            var stream = file.replace(null, false, FileCreateFlags.REPLACE_DESTINATION);
+            size_t bytes_written;
+            stream.write_all(bin_data, out bytes_written);
+            stream.close();
+            
             return true;
         } catch (Error e) {
             warning("Error saving theme file: %s", e.message);

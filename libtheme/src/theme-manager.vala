@@ -458,7 +458,7 @@ namespace Theme {
         private Gtk.CssProvider one_bit_provider; // Dedicated provider for 1-bit mode
         private FileMonitor? monitor = null;
         private string theme_path;
-        private string? last_theme_data = null;
+        private uint8[]? last_theme_data = null;
         private uint theme_change_timeout_id = 0;
         private uint sourceview_generation_timeout_id = 0;
         private bool theme_needs_update = false;
@@ -467,7 +467,7 @@ namespace Theme {
         private ColorMode _color_mode = ColorMode.TWO_BIT;
 
         // Original unprocessed theme data for mode switching
-        private string? original_theme_data = null;
+        private uint8[]? original_theme_data = null;
 
         // Concurrency control
         private Mutex theme_lock = Mutex();
@@ -621,6 +621,27 @@ namespace Theme {
          */
         private void apply_one_bit_mode() {
             debug("Applying 1-bit mode (black and white)");
+            
+            // Create binary data for one-bit mode (0xf0f0f0f0f0f0)
+            uint8[] one_bit_data = new uint8[6];
+            for (int i = 0; i < 6; i++) {
+                one_bit_data[i] = 0xf0;
+            }
+            
+            // Save binary data to file
+            var file = File.new_for_path(theme_path);
+            try {
+                var stream = file.replace(null, false, FileCreateFlags.REPLACE_DESTINATION);
+                size_t bytes_written;
+                stream.write_all(one_bit_data, out bytes_written);
+                stream.close();
+                
+                // Store the original binary data for mode switching
+                original_theme_data = one_bit_data;
+                last_theme_data = one_bit_data;
+            } catch (Error e) {
+                warning("Failed to save one-bit theme data: %s", e.message);
+            }
 
             // Create CSS for 1-bit mode - white background, black text
             var css = @"
@@ -798,7 +819,7 @@ namespace Theme {
             // Prevent concurrent processing
             theme_lock.lock();
             try {
-                // Modern way to load file contents
+                // Load file as binary data
                 var file = File.new_for_path(theme_path);
 
                 // Check if file exists first to avoid errors
@@ -810,38 +831,70 @@ namespace Theme {
                     return;
                 }
 
-                // Load the file content
+                // Load the binary content
                 uint8[] contents;
-                string etag_out;
-                file.load_contents(null, out contents, out etag_out);
+                file.load_contents(null, out contents, null);
 
-                // Convert to string and process
-                string theme_data = (string) contents;
-                string trimmed_data = theme_data.strip();
+                // Verify file size
+                if (contents.length != 6) {
+                    warning("Invalid theme file size: %d bytes (expected 6)", contents.length);
+                    return;
+                }
 
                 // Store the original theme data for mode switching
-                original_theme_data = trimmed_data;
+                original_theme_data = contents;
 
-                // Skip processing if theme hasn't changed and not in 1-bit mode
-                if (last_theme_data != null && last_theme_data == trimmed_data &&
-                    _color_mode == ColorMode.TWO_BIT) {
+                // Check if it's the one-bit mode pattern
+                bool is_one_bit = true;
+                for (int i = 0; i < 6; i++) {
+                    if (contents[i] != 0xf0) {
+                        is_one_bit = false;
+                        break;
+                    }
+                }
+
+                // Skip processing if theme hasn't changed and mode matches
+                bool theme_unchanged = false;
+                if (last_theme_data != null && last_theme_data.length == contents.length) {
+                    theme_unchanged = true;
+                    for (int i = 0; i < contents.length; i++) {
+                        if (last_theme_data[i] != contents[i]) {
+                            theme_unchanged = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (theme_unchanged && 
+                    ((is_one_bit && _color_mode == ColorMode.ONE_BIT) ||
+                     (!is_one_bit && _color_mode == ColorMode.TWO_BIT))) {
                     debug("Theme data unchanged, skipping update");
                     return;
                 }
 
-                // If in 1-bit mode, apply black and white theme
-                if (_color_mode == ColorMode.ONE_BIT) {
+                // Update color mode based on theme data
+                if (is_one_bit) {
+                    // If it's one-bit data but we're not in one-bit mode, switch modes
+                    if (_color_mode != ColorMode.ONE_BIT) {
+                        _color_mode = ColorMode.ONE_BIT;
+                        color_mode_changed(_color_mode);
+                    }
                     apply_one_bit_mode();
                 } else {
-                    // Otherwise process and apply the theme data
-                    if (!update_theme_variables(trimmed_data)) {
+                    // If we're in one-bit mode but it's not one-bit data, switch modes
+                    if (_color_mode == ColorMode.ONE_BIT) {
+                        _color_mode = ColorMode.TWO_BIT;
+                        color_mode_changed(_color_mode);
+                    }
+                    // Process theme data
+                    if (!update_theme_variables_binary(contents)) {
                         warning("Failed to update theme variables");
                         return;
                     }
                 }
 
                 // Cache the theme data
-                last_theme_data = trimmed_data;
+                last_theme_data = contents;
 
                 // Clear color cache on theme change
                 color_cache.remove_all();
@@ -870,12 +923,21 @@ namespace Theme {
 
             theme_lock.lock();
             try {
+                // Check if the data is one-bit mode pattern
+                bool is_one_bit = true;
+                for (int i = 0; i < original_theme_data.length; i++) {
+                    if (original_theme_data[i] != 0xf0) {
+                        is_one_bit = false;
+                        break;
+                    }
+                }
+
                 // If in 1-bit mode, apply black and white theme
                 if (_color_mode == ColorMode.ONE_BIT) {
                     apply_one_bit_mode();
                 } else {
-                    // Otherwise process and apply the normal theme data
-                    if (!update_theme_variables(original_theme_data)) {
+                    // Otherwise process the theme data
+                    if (!update_theme_variables_binary(original_theme_data)) {
                         warning("Failed to update theme variables");
                         return;
                     }
@@ -935,50 +997,65 @@ namespace Theme {
         }
 
         /**
-         * Parses and applies the theme data for two-bit mode (four colors).
+         * Parses and applies binary theme data.
+         * Format: 6 bytes where each pair contains interleaved color digits:
+         * - Byte 0: BG (high nibble) and FG (low nibble) for first digit
+         * - Byte 1: ACCENT (high nibble) and SELECTION (low nibble) for first digit
+         * - Byte 2: BG (high nibble) and FG (low nibble) for second digit
+         * - Byte 3: ACCENT (high nibble) and SELECTION (low nibble) for second digit
+         * - Byte 4: BG (high nibble) and FG (low nibble) for third digit
+         * - Byte 5: ACCENT (high nibble) and SELECTION (low nibble) for third digit
          */
-        private bool update_theme_variables(string theme_data) {
-            // Only log in debug mode
-            debug("Processing two-bit theme data: '%s'", theme_data);
-
-            string[] parts = theme_data.split(" ");
-
-            if (parts.length != 3) {
-                warning("Invalid theme format: expected 3 parts, got %d", parts.length);
+        private bool update_theme_variables_binary(uint8[] data) {
+            // Validate data size
+            if (data.length != 6) {
+                warning("Invalid binary theme data: expected 6 bytes, got %d", data.length);
                 return false;
             }
-
-            // Validate parts
-            foreach (string part in parts) {
-                if (part.length != 4) {
-                    warning("Invalid color code: '%s' (expected 4 characters)", part);
-                    return false;
-                }
+            
+            // Extract color components
+            string[] colors = new string[4]; // bg, fg, accent, selection
+            
+            for (int i = 0; i < 4; i++) {
+                colors[i] = "";
             }
-
-            // Extract and expand colors with optimized string building
-            string[] colors = new string[4];
-            var sb = new StringBuilder();
-
-            for (int col = 0; col < 4; col++) {
-                sb.assign("");
-                foreach (string part in parts) {
-                    char c = part[col];
-                    sb.append_c(c).append_c(c);
-                }
-                colors[col] = sb.str;
+            
+            // Process each pair of bytes
+            for (int i = 0; i < 3; i++) {
+                uint8 byte1 = data[i*2];
+                uint8 byte2 = data[i*2+1];
+                
+                // Extract 4-bit values
+                uint8 bg_val = (byte1 >> 4) & 0x0F;
+                uint8 fg_val = byte1 & 0x0F;
+                uint8 accent_val = (byte2 >> 4) & 0x0F;
+                uint8 selection_val = byte2 & 0x0F;
+                
+                // Convert to hex chars and append
+                colors[0] += int_to_hex_char(bg_val).to_string();
+                colors[1] += int_to_hex_char(fg_val).to_string();
+                colors[2] += int_to_hex_char(accent_val).to_string();
+                colors[3] += int_to_hex_char(selection_val).to_string();
             }
-
-            // Build CSS with modern string builder pattern
-            sb.assign("");
-            // Fixed mapping:
-            sb.append_printf("@define-color theme_bg #%s;\n", colors[0]);
-            sb.append_printf("@define-color theme_fg #%s;\n", colors[1]);
-            sb.append_printf("@define-color theme_accent #%s;\n", colors[2]);
-            sb.append_printf("@define-color theme_selection #%s;", colors[3]);
-
-            string css = sb.str;
-
+            
+            // Convert 3-digit colors to 6-digit hex colors
+            for (int i = 0; i < 4; i++) {
+                StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < 3; j++) {
+                    sb.append_c(colors[i][j]);
+                    sb.append_c(colors[i][j]);
+                }
+                colors[i] = sb.str;
+            }
+            
+            // Build CSS
+            var css = """
+                @define-color theme_bg #%s;
+                @define-color theme_fg #%s;
+                @define-color theme_accent #%s;
+                @define-color theme_selection #%s;
+            """.printf(colors[0], colors[1], colors[2], colors[3]);
+            
             try {
                 theme_provider.load_from_string(css);
                 return true;
@@ -986,6 +1063,29 @@ namespace Theme {
                 warning("Failed to load theme CSS: %s", e.message);
                 return false;
             }
+        }
+        
+        /**
+         * Helper function to convert int to hex char
+         */
+        private char int_to_hex_char(uint8 n) {
+            if (n < 10)
+                return (char)('0' + n);
+            else
+                return (char)('a' + (n - 10));
+        }
+        
+        /**
+         * Helper function to convert hex char to int
+         */
+        private uint8 hex_char_to_int(char c) {
+            if (c >= '0' && c <= '9')
+                return (uint8)(c - '0');
+            else if (c >= 'a' && c <= 'f')
+                return (uint8)(c - 'a' + 10);
+            else if (c >= 'A' && c <= 'F')
+                return (uint8)(c - 'A' + 10);
+            return 0;
         }
 
         /**
@@ -1001,45 +1101,76 @@ namespace Theme {
 
                 uint8[] contents;
                 file.load_contents(null, out contents, null);
-
-                string theme_data = (string) contents;
-                string trimmed_data = theme_data.strip();
-
+                
+                // Check file size
+                if (contents.length != 6) {
+                    throw new IOError.FAILED("Invalid theme file size: %d bytes (expected 6)", contents.length);
+                }
+                
+                // Check if it's one-bit mode pattern
+                bool is_one_bit = true;
+                for (int i = 0; i < contents.length; i++) {
+                    if (contents[i] != 0xf0) {
+                        is_one_bit = false;
+                        break;
+                    }
+                }
+                
                 // Store the original theme data for mode switching
-                original_theme_data = trimmed_data;
-
-                debug("Loaded theme data: '%s'", trimmed_data);
-
-                // Skip processing if theme hasn't changed and not in 1-bit mode
-                if (last_theme_data != null && last_theme_data == trimmed_data &&
-                    _color_mode == ColorMode.TWO_BIT) {
+                original_theme_data = contents;
+                
+                // Skip processing if theme hasn't changed and mode matches
+                bool theme_unchanged = false;
+                if (last_theme_data != null && last_theme_data.length == contents.length) {
+                    theme_unchanged = true;
+                    for (int i = 0; i < contents.length; i++) {
+                        if (last_theme_data[i] != contents[i]) {
+                            theme_unchanged = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (theme_unchanged && 
+                    ((is_one_bit && _color_mode == ColorMode.ONE_BIT) ||
+                     (!is_one_bit && _color_mode == ColorMode.TWO_BIT))) {
                     debug("Theme data unchanged, skipping update");
                     return;
                 }
-
-                // If in 1-bit mode, keep using black and white theme
-                if (_color_mode == ColorMode.ONE_BIT) {
-                    debug("In 1-bit mode, applying black and white theme");
+                
+                // Update color mode based on theme data
+                if (is_one_bit) {
+                    // Switch to one-bit mode if needed
+                    if (_color_mode != ColorMode.ONE_BIT) {
+                        _color_mode = ColorMode.ONE_BIT;
+                        color_mode_changed(_color_mode);
+                    }
                     apply_one_bit_mode();
                 } else {
-                    // Otherwise process and apply the theme data
-                    if (!update_theme_variables(trimmed_data)) {
+                    // Switch to two-bit mode if needed
+                    if (_color_mode == ColorMode.ONE_BIT) {
+                        _color_mode = ColorMode.TWO_BIT;
+                        color_mode_changed(_color_mode);
+                    }
+                    // Process theme data
+                    if (!update_theme_variables_binary(contents)) {
                         throw new IOError.FAILED("Failed to update theme variables");
                     }
                 }
-
+                
                 // Cache the theme data
-                last_theme_data = trimmed_data;
-
-                // Clear color cache when theme changes
+                last_theme_data = contents;
+                
+                // Clear color cache
                 color_cache.remove_all();
-
-                // Schedule GTKSourceView scheme generation to happen in background
+                
+                // Schedule GTKSourceView scheme generation
                 if (generate_sourceview_schemes) {
                     schedule_sourceview_generation();
                 }
-
-                theme_changed(); // Emit signal so UI can update
+                
+                // Notify listeners
+                theme_changed();
             } finally {
                 theme_lock.unlock();
             }
@@ -1294,51 +1425,80 @@ namespace Theme {
         /**
          * Sets a new theme using the specified color codes.
          */
-        public void set_theme(string bg_color, string fg_color, string sel_color) throws Error {
-            if (bg_color.length != 4 || fg_color.length != 4 || sel_color.length != 4) {
-                throw new IOError.INVALID_ARGUMENT("Invalid color code format");
+        public void set_theme(string bg_code, string fg_code, string accent_code) throws Error {
+            // Each code should be a 3-digit hex value (e.g., "7dc")
+            if (bg_code.length != 3 || fg_code.length != 3 || accent_code.length != 3) {
+                throw new IOError.INVALID_ARGUMENT(
+                    "Invalid color code format: each code must be 3 hex digits");
             }
-
-            string theme_data = "%s %s %s".printf(sel_color, fg_color, bg_color);
-
+            
+            // Create 6 bytes of binary data (3 pairs)
+            uint8[] binary_data = new uint8[6];
+            
+            // First digit pair - byte 0: BG+FG, byte 1: Accent+Selection
+            binary_data[0] = (uint8)((hex_char_to_int(bg_code[0]) << 4) | hex_char_to_int(fg_code[0]));
+            binary_data[1] = (uint8)((hex_char_to_int(accent_code[0]) << 4) | hex_char_to_int(accent_code[0]));
+            
+            // Second digit pair
+            binary_data[2] = (uint8)((hex_char_to_int(bg_code[1]) << 4) | hex_char_to_int(fg_code[1]));
+            binary_data[3] = (uint8)((hex_char_to_int(accent_code[1]) << 4) | hex_char_to_int(accent_code[1]));
+            
+            // Third digit pair
+            binary_data[4] = (uint8)((hex_char_to_int(bg_code[2]) << 4) | hex_char_to_int(fg_code[2]));
+            binary_data[5] = (uint8)((hex_char_to_int(accent_code[2]) << 4) | hex_char_to_int(accent_code[2]));
+            
             // Store the original theme data for mode switching
-            original_theme_data = theme_data;
-
+            original_theme_data = binary_data;
+            
             // Skip processing if theme hasn't changed and not in 1-bit mode
-            if (last_theme_data != null && last_theme_data == theme_data &&
-                _color_mode == ColorMode.TWO_BIT) {
+            bool theme_unchanged = false;
+            if (last_theme_data != null && last_theme_data.length == binary_data.length) {
+                theme_unchanged = true;
+                for (int i = 0; i < binary_data.length; i++) {
+                    if (last_theme_data[i] != binary_data[i]) {
+                        theme_unchanged = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (theme_unchanged && _color_mode == ColorMode.TWO_BIT) {
                 debug("Theme data unchanged, skipping update");
                 return;
             }
 
             theme_lock.lock();
             try {
-                // Save to file
+                // Save to file as binary
                 var file = File.new_for_path(theme_path);
-                file.replace_contents(theme_data.data, null, false,
-                                      FileCreateFlags.REPLACE_DESTINATION, null);
+                var stream = file.replace(null, false, FileCreateFlags.REPLACE_DESTINATION);
+                size_t bytes_written;
+                stream.write_all(binary_data, out bytes_written);
+                stream.close();
 
-                // If in 1-bit mode, apply black and white theme
+                // If in 1-bit mode, switch to two-bit mode
                 if (_color_mode == ColorMode.ONE_BIT) {
-                    apply_one_bit_mode();
-                } else {
-                    // Otherwise process and apply the theme data
-                    if (!update_theme_variables(theme_data)) {
-                        throw new IOError.FAILED("Failed to update theme variables");
-                    }
+                    _color_mode = ColorMode.TWO_BIT;
+                    color_mode_changed(_color_mode);
                 }
-
+                
+                // Process the binary theme data
+                if (!update_theme_variables_binary(binary_data)) {
+                    throw new IOError.FAILED("Failed to update theme variables");
+                }
+                
                 // Cache the theme data
-                last_theme_data = theme_data;
-
-                // Clear color cache when theme changes
+                last_theme_data = binary_data;
+                
+                // Clear color cache
                 color_cache.remove_all();
-
-                // Schedule GTKSourceView scheme generation to happen in background
+                
+                // Schedule GTKSourceView scheme generation
                 if (generate_sourceview_schemes) {
                     schedule_sourceview_generation();
                 }
-
+                
+                // Notify listeners
                 theme_changed();
             } finally {
                 theme_lock.unlock();
@@ -1391,7 +1551,7 @@ namespace Theme {
                     } else {
                         // If switching back to 2-bit mode, restore normal theme
                         if (original_theme_data != null) {
-                            update_theme_variables(original_theme_data);
+                            update_theme_variables_binary(original_theme_data);
                         }
                     }
 
