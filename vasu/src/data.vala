@@ -186,7 +186,67 @@ public class VasuData : Object {
         tile_changed();
     }
 
-    // New method to reset shifts
+    // Shift right-to-left (opposite of current shift_horizontal)
+    public void shift_horizontal_reverse() {
+        // Store the leftmost column
+        int[] leftmost_column = new int[TILE_HEIGHT];
+        for (int y = 0; y < TILE_HEIGHT; y++) {
+            leftmost_column[y] = current_tile[0, y];
+        }
+        
+        // Shift all columns to the left
+        for (int y = 0; y < TILE_HEIGHT; y++) {
+            for (int x = 0; x < TILE_WIDTH - 1; x++) {
+                current_tile[x, y] = current_tile[x + 1, y];
+            }
+        }
+        
+        // Wrap the leftmost column to become the rightmost
+        for (int y = 0; y < TILE_HEIGHT; y++) {
+            current_tile[TILE_WIDTH - 1, y] = leftmost_column[y];
+        }
+        
+        // Track the shift
+        horizontal_shifts = (horizontal_shifts - 1) % TILE_WIDTH;
+        if (horizontal_shifts < 0) {
+            horizontal_shifts += TILE_WIDTH;
+        }
+        
+        // Notify listeners that the tile has changed
+        tile_changed();
+    }
+
+    // Shift bottom-to-top (opposite of current shift_vertical)
+    public void shift_vertical_reverse() {
+        // Store the bottom row
+        int[] bottom_row = new int[TILE_WIDTH];
+        for (int x = 0; x < TILE_WIDTH; x++) {
+            bottom_row[x] = current_tile[x, TILE_HEIGHT - 1];
+        }
+        
+        // Shift all rows down
+        for (int y = TILE_HEIGHT - 1; y > 0; y--) {
+            for (int x = 0; x < TILE_WIDTH; x++) {
+                current_tile[x, y] = current_tile[x, y - 1];
+            }
+        }
+        
+        // Wrap the bottom row to become the top row
+        for (int x = 0; x < TILE_WIDTH; x++) {
+            current_tile[x, 0] = bottom_row[x];
+        }
+        
+        // Track the shift
+        vertical_shifts = (vertical_shifts - 1) % TILE_HEIGHT;
+        if (vertical_shifts < 0) {
+            vertical_shifts += TILE_HEIGHT;
+        }
+        
+        // Notify listeners that the tile has changed
+        tile_changed();
+    }
+
+    // Method to reset shifts
     public void reset_shift() {
         // Calculate the number of shifts needed to return to the original state
         int h_shifts_to_reset = horizontal_shifts > 0 ? TILE_WIDTH - horizontal_shifts : 0;

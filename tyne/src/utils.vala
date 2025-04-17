@@ -6,6 +6,7 @@ public class FontUtils {
     public int GLYPH_WIDTH = 16; // Will be set based on format
     public int GLYPH_HEIGHT = 16; // Will be set based on format
     public string current_filename = null;
+    public bool is_uf1_extended = false; // Flag for 8x16 UF1 fonts
     
     public const int TILE_SIZE = 8;
     public const int GRID_SCALE = 2;    // Scale factor for grid display
@@ -41,12 +42,39 @@ public class FontUtils {
             // Store current filename
             current_filename = file.get_path();
             
+            // Reset extended UF1 flag
+            is_uf1_extended = false;
+            
             // Determine font format based on file extension
             string path = file.get_path();
             if (path.has_suffix(".uf1")) {
                 font_format = 1;
-                GLYPH_WIDTH = 8;
-                GLYPH_HEIGHT = 8;
+                
+                // Check if this is an 8x16 UF1 font
+                int data_size = (int)size - HEADER_SIZE;
+                
+                // Check if the file size is consistent with 8x16 UF1 fonts (16 bytes per glyph)
+                bool has_8x16_size = (data_size > 0 && data_size % 16 == 0);
+                
+                // Simple heuristic for detecting 8x16 fonts
+                // If the file size is divisible by 16 bytes per glyph (rather than 8 bytes)
+                // and is reasonable for a font file, we'll assume it's an 8x16 UF1 font
+                
+                // Typical 8x16 UF1 fonts have at least a few glyphs
+                bool is_reasonable_size = (data_size >= 32); // At least a couple of glyphs
+                
+                // If the file has a size consistent with 8x16 glyphs and meets minimum size requirements
+                bool appears_to_be_8x16 = has_8x16_size && is_reasonable_size;
+                
+                if (has_8x16_size && appears_to_be_8x16) {
+                    is_uf1_extended = true;
+                    GLYPH_WIDTH = 8;
+                    GLYPH_HEIGHT = 16;
+                } else {
+                    // Standard 8x8 UF1
+                    GLYPH_WIDTH = 8;
+                    GLYPH_HEIGHT = 8;
+                }
             } else if (path.has_suffix(".uf2")) {
                 font_format = 2;
                 GLYPH_WIDTH = 16;
@@ -164,7 +192,11 @@ public class FontUtils {
                 // Generate bitmap data based on format
                 switch (font_format) {
                     case 1:
-                        write_uf1_bitmap(data_stream, offset);
+                        if (is_uf1_extended) {
+                            write_uf1_extended_bitmap(data_stream, offset);
+                        } else {
+                            write_uf1_bitmap(data_stream, offset);
+                        }
                         break;
                     case 2:
                         write_uf2_bitmap(data_stream, offset);
@@ -245,6 +277,37 @@ public class FontUtils {
                 stream.put_string("00");
             }
             stream.put_string("\n");
+        }
+    }
+    
+    // Method for handling 8x16 UF1 fonts according to insights.md
+    private void write_uf1_extended_bitmap(DataOutputStream stream, int offset) 
+        throws IOError {
+        // Extended UF1 (8x16) format as described in insights.md
+        // Each character is represented by 8 uint16 values
+        // Each uint16 contains data for 2 rows: high byte for one row, low byte for next row
+        // The first 4 uint16 values represent the top 8x8 tile
+        // The next 4 uint16 values represent the bottom 8x8 tile
+        
+        // Process each uint16 (16-bit) value
+        for (int i = 0; i < 8; i++) {
+            // Get the offset for this uint16 in the font data
+            int uint16_offset = offset + (i * 2);
+            
+            // Check if we're still within the font data
+            if (uint16_offset + 1 >= font_data.length) {
+                // Write two empty rows
+                stream.put_string("00\n00\n");
+                continue;
+            }
+            
+            // Get the high byte and low byte (2 rows of pixels)
+            uint8 high_byte = font_data[uint16_offset];
+            uint8 low_byte = font_data[uint16_offset + 1];
+            
+            // Write the two rows
+            stream.put_string("%02X\n".printf(high_byte));
+            stream.put_string("%02X\n".printf(low_byte));
         }
     }
     
@@ -350,7 +413,11 @@ public class FontUtils {
         // Calculate bytes required for storing a glyph
         switch (font_format) {
             case 1: // UF1
-                return 8; // 8 bytes per 8x8 glyph (1 bit per pixel)
+                if (is_uf1_extended) {
+                    return 16; // 16 bytes per 8x16 glyph (8 uint16 values)
+                } else {
+                    return 8; // 8 bytes per 8x8 glyph (1 bit per pixel)
+                }
             case 2: // UF2: 16x16 (4 tiles)
                 return 32; // 32 bytes per 16x16 glyph (1 bit per pixel)
             case 3: // UF3: 24x24 (9 tiles)
@@ -371,8 +438,13 @@ public class FontUtils {
         
         switch (font_format) {
             case 1:
-                draw_uf1_glyph(cr, offset, x_offset, y_offset, 
+                if (is_uf1_extended) {
+                    draw_uf1_extended_glyph(cr, offset, x_offset, y_offset, 
+                                          scale, actual_width);
+                } else {
+                    draw_uf1_glyph(cr, offset, x_offset, y_offset, 
                                   scale, actual_width);
+                }
                 break;
             case 2:
                 draw_uf2_glyph(cr, offset, x_offset, y_offset, 
@@ -394,6 +466,60 @@ public class FontUtils {
                                int scale, uint8 actual_width) {
         // UF1 is simple: just one 8x8 tile
         draw_tile(cr, offset, x_offset, y_offset, scale);
+    }
+    
+    // Draw 8x16 UF1 fonts according to insights.md
+    private void draw_uf1_extended_glyph(Cairo.Context cr, int offset, 
+                                        int x_offset, int y_offset, 
+                                        int scale, uint8 actual_width) {
+        // Set up drawing
+        cr.set_antialias(Cairo.Antialias.NONE);
+        cr.set_line_width(1.0);
+        
+        // Per insights.md:
+        // - First 4 uint16 values represent top 8x8 tile
+        // - Next 4 uint16 values represent bottom 8x8 tile
+        // - Each uint16 contains data for 2 rows
+        
+        // Draw all 16 rows (8 uint16 values with 2 rows each)
+        for (int i = 0; i < 8; i++) {
+            // Calculate offset in the font data for this uint16
+            int uint16_offset = offset + (i * 2);
+            
+            // Check if we're still within the font data
+            if (uint16_offset + 1 >= font_data.length) continue;
+            
+            // Get the two bytes that make up this uint16
+            uint8 high_byte = font_data[uint16_offset];     // First row
+            uint8 low_byte = font_data[uint16_offset + 1];  // Second row
+            
+            // Calculate y-position for these two rows
+            int y_high = y_offset + (i * 2);
+            int y_low = y_offset + (i * 2) + 1;
+            
+            // Draw the pixels for the high byte (first row)
+            for (int x = 0; x < 8; x++) {
+                // Check if the bit is set (MSB first)
+                if ((high_byte & (1 << (7 - x))) != 0) {
+                    int px = (x_offset + x) * scale;
+                    int py = y_high * scale;
+                    cr.rectangle(px, py, scale, scale);
+                }
+            }
+            
+            // Draw the pixels for the low byte (second row)
+            for (int x = 0; x < 8; x++) {
+                // Check if the bit is set (MSB first)
+                if ((low_byte & (1 << (7 - x))) != 0) {
+                    int px = (x_offset + x) * scale;
+                    int py = y_low * scale;
+                    cr.rectangle(px, py, scale, scale);
+                }
+            }
+        }
+        
+        // Fill all the rectangles we've drawn
+        cr.fill();
     }
     
     private void draw_uf2_glyph(Cairo.Context cr, int offset, 
@@ -457,6 +583,11 @@ public class FontUtils {
     
     private void draw_tile(Cairo.Context cr, int offset, 
                           int tile_x, int tile_y, int scale) {
+        // Set antialiasing to NONE for crisp pixel edges
+        cr.set_antialias(Cairo.Antialias.NONE);
+        // Set line width to 1.0 for consistent rendering
+        cr.set_line_width(1.0);
+        
         // Each byte represents 8 pixels in a row
         for (int y = 0; y < TILE_SIZE; y++) {
             // Check if we're still within the font data

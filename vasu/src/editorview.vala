@@ -36,8 +36,8 @@ public class VasuEditorView : Gtk.DrawingArea {
     public int selection_end_tile_y = -1;
     private bool is_selecting = false;
 
-    private int zoom_origin_x = 0;
-    private int zoom_origin_y = 0;
+    public int zoom_origin_x = 0;
+    public int zoom_origin_y = 0;
 
     // Add methods to select and highlight a tile
     public void select_tile(int x, int y) {
@@ -244,11 +244,29 @@ public class VasuEditorView : Gtk.DrawingArea {
     }
     
     private void draw_normal_view(Cairo.Context cr, int width, int height) {
-        // Draw pixels
         cr.set_antialias(Cairo.Antialias.NONE);
+
+        // Draw pixels
         for (int x = 0; x < GRID_WIDTH * 8; x++) {
             for (int y = 0; y < GRID_HEIGHT * 8; y++) {
-                int color_idx = editor_pixels[x, y];
+                // Calculate the tile this pixel belongs to
+                int tile_x = x / 8;
+                int tile_y = y / 8;
+                
+                // Calculate pixel position within the tile
+                int pixel_x = x % 8;
+                int pixel_y = y % 8;
+                
+                // Get color from the appropriate position
+                int color_idx;
+                if (tile_x == selected_tile_x && tile_y == selected_tile_y) {
+                    // For selected tile, get color from CHR data
+                    color_idx = chr_data.get_pixel(pixel_x, pixel_y);
+                } else {
+                    // Otherwise get from editor pixels
+                    color_idx = editor_pixels[x, y];
+                }
+                
                 Gdk.RGBA color = chr_data.get_color(color_idx);
                 
                 cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
@@ -368,7 +386,7 @@ public class VasuEditorView : Gtk.DrawingArea {
     private void draw_zoomed_view(Cairo.Context cr, int width, int height) {
         int zoom_width = 16;
         int zoom_height = 16;
-        
+
         // Draw zoomed pixels
         for (int y = 0; y < zoom_height; y++) {
             for (int x = 0; x < zoom_width; x++) {
@@ -379,6 +397,32 @@ public class VasuEditorView : Gtk.DrawingArea {
                 // Check if this pixel is within bounds
                 if (editor_x >= 0 && editor_x < GRID_WIDTH * 8 && 
                     editor_y >= 0 && editor_y < GRID_HEIGHT * 8) {
+                    
+                    // Get the tile this pixel belongs to
+                    int tile_x = editor_x / 8;
+                    int tile_y = editor_y / 8;
+                    
+                    // Calculate pixel position within the tile
+                    int pixel_x = editor_x % 8;
+                    int pixel_y = editor_y % 8;
+                    
+                    // Apply mirroring if this is the selected tile
+                    if (tile_x == selected_tile_x && tile_y == selected_tile_y) {
+                        // Apply horizontal mirroring if enabled
+                        if (chr_data.mirror_horizontal) {
+                            pixel_x = 7 - pixel_x;
+                        }
+                        
+                        // Apply vertical mirroring if enabled
+                        if (chr_data.mirror_vertical) {
+                            pixel_y = 7 - pixel_y;
+                        }
+                        
+                        // Recalculate the editor position
+                        editor_x = tile_x * 8 + pixel_x;
+                        editor_y = tile_y * 8 + pixel_y;
+                    }
+                    
                     int color_idx = editor_pixels[editor_x, editor_y];
                     Gdk.RGBA color = chr_data.get_color(color_idx);
                     
@@ -394,21 +438,48 @@ public class VasuEditorView : Gtk.DrawingArea {
             }
         }
         
-        // Draw quarters lines
-        Gdk.RGBA gcolor = chr_data.get_color(2);
-        cr.set_source_rgba(gcolor.red, gcolor.green, gcolor.blue, gcolor.alpha);
-        // Vertical dotted line
-        int center_x = width / 2;  // 64 for a 128px width
-        for (int y = 0; y < height; y += 2) {
-            cr.rectangle(center_x, y, 1, 1);
-        }
-        cr.fill();
+        // Draw grid lines (every 8 pixels in the actual grid)
+        Gdk.RGBA grid_color = chr_data.get_color(2);
+        cr.set_source_rgba(grid_color.red, grid_color.green, grid_color.blue, 0.7);
         
-        // Horizontal dotted line
-        int center_y = height / 2;  // 64 for a 128px height
-        for (int x = 0; x < width; x += 2) {
-            cr.rectangle(x, center_y, 1, 1);
+        // Calculate which tile boundaries are visible in our current view
+        int start_tile_x = zoom_origin_x / 8;
+        int start_tile_y = zoom_origin_y / 8;
+        
+        // Draw vertical grid lines at 8px boundaries
+        for (int tile_x = start_tile_x; tile_x <= start_tile_x + 2; tile_x++) {
+            // Calculate pixel position in editor coordinates
+            int editor_x = tile_x * 8;
+            
+            // Only draw if the line would be visible in our view
+            if (editor_x >= zoom_origin_x && editor_x < zoom_origin_x + zoom_width) {
+                // Convert to view coordinates
+                int view_x = (editor_x - zoom_origin_x) * 8;
+                
+                // Draw dotted line
+                for (int y = 0; y < height; y += 2) {
+                    cr.rectangle(view_x, y, 1, 1);
+                }
+            }
         }
+        
+        // Draw horizontal grid lines at 8px boundaries
+        for (int tile_y = start_tile_y; tile_y <= start_tile_y + 2; tile_y++) {
+            // Calculate pixel position in editor coordinates
+            int editor_y = tile_y * 8;
+            
+            // Only draw if the line would be visible in our view
+            if (editor_y >= zoom_origin_y && editor_y < zoom_origin_y + zoom_height) {
+                // Convert to view coordinates
+                int view_y = (editor_y - zoom_origin_y) * 8;
+                
+                // Draw dotted line
+                for (int x = 0; x < width; x += 2) {
+                    cr.rectangle(x, view_y, 1, 1);
+                }
+            }
+        }
+        
         cr.fill();
     }
     

@@ -2,12 +2,12 @@
 public class VasuFileHandler {
     private VasuData chr_data;
     private VasuEditorView editor_view;
-    private VasuPreviewView preview_view;
+    private VasuNametableView nametable_view;
     
-    public VasuFileHandler(VasuData data, VasuEditorView editor, VasuPreviewView preview) {
+    public VasuFileHandler(VasuData data, VasuEditorView editor, VasuNametableView nametable) {
         chr_data = data;
         editor_view = editor;
-        preview_view = preview;
+        nametable_view = nametable;
     }
     
     public bool save_to_file(string path) {
@@ -84,8 +84,8 @@ public class VasuFileHandler {
             
             dos.close();
             
-            // Also save the NMT file if preview has data
-            if (preview_view != null) {
+            // Also save the NMT file if nametable has data
+            if (nametable_view != null) {
                 save_nmt_file(path);
             }
             
@@ -282,8 +282,8 @@ public class VasuFileHandler {
             
             dos.close();
             
-            // Also save the NMT file if preview has data
-            if (preview_view != null) {
+            // Also save the NMT file if nametable has data
+            if (nametable_view != null) {
                 save_nmt_file(path);
             }
             
@@ -407,9 +407,9 @@ public class VasuFileHandler {
             
             // Check if there's anything to save
             bool has_contents = false;
-            for (int y = 0; y < VasuPreviewView.GRID_HEIGHT; y++) {
-                for (int x = 0; x < VasuPreviewView.GRID_WIDTH; x++) {
-                    if (preview_view.get_placed_tile(x, y) != null) {
+            for (int y = 0; y < VasuNametableView.GRID_HEIGHT; y++) {
+                for (int x = 0; x < VasuNametableView.GRID_WIDTH; x++) {
+                    if (nametable_view.get_placed_tile(x, y) != null) {
                         has_contents = true;
                         break;
                     }
@@ -419,7 +419,7 @@ public class VasuFileHandler {
             
             // Don't save empty NMT files
             if (!has_contents) {
-                print("Preview is empty, not saving NMT file\n");
+                print("Nametable is empty, not saving NMT file\n");
                 return false;
             }
             
@@ -429,16 +429,16 @@ public class VasuFileHandler {
             ));
             
             // NMT format:
-            // For each placed tile in the preview (16x16 grid)
+            // For each placed tile in the nametable (16x16 grid)
             // - 3 bytes per tile
             // - First two bytes: CHR byte address (tile_index * 16)
             // - Third byte: pattern transformation byte
             
-            // Loop through preview grid
-            for (int grid_y = 0; grid_y < VasuPreviewView.GRID_HEIGHT; grid_y++) {
-                for (int grid_x = 0; grid_x < VasuPreviewView.GRID_WIDTH; grid_x++) {
+            // Loop through nametable grid
+            for (int grid_y = 0; grid_y < VasuNametableView.GRID_HEIGHT; grid_y++) {
+                for (int grid_x = 0; grid_x < VasuNametableView.GRID_WIDTH; grid_x++) {
                     // Get the tile at this position
-                    var tile = preview_view.get_placed_tile(grid_x, grid_y);
+                    var tile = nametable_view.get_placed_tile(grid_x, grid_y);
                     
                     if (tile != null) {
                         // Calculate tile index (source_tile_y * 16 + source_tile_x)
@@ -510,14 +510,14 @@ public class VasuFileHandler {
             
             print("Found NMT file: %s\n", nmt_path);
             
-            // Clear existing preview
-            preview_view.clear_canvas();
+            // Clear existing nametable
+            nametable_view.clear_canvas();
             
             var dis = new DataInputStream(file.read());
             
-            // Loop through preview grid
-            for (int grid_y = 0; grid_y < VasuPreviewView.GRID_HEIGHT; grid_y++) {
-                for (int grid_x = 0; grid_x < VasuPreviewView.GRID_WIDTH; grid_x++) {
+            // Loop through nametable grid
+            for (int grid_y = 0; grid_y < VasuNametableView.GRID_HEIGHT; grid_y++) {
+                for (int grid_x = 0; grid_x < VasuNametableView.GRID_WIDTH; grid_x++) {
                     try {
                         // Read 3 bytes for this tile
                         uint8 address_low = dis.read_byte();
@@ -579,7 +579,7 @@ public class VasuFileHandler {
                             chr_data.mirror_vertical = mirror_vertical;
                             
                             // Place the tile
-                            preview_view.place_tile_at_with_source(grid_x, grid_y, source_tile_x, source_tile_y);
+                            nametable_view.place_tile_at_with_source(grid_x, grid_y, source_tile_x, source_tile_y);
                             
                             // Restore original values
                             chr_data.selected_pattern_tile = old_pattern;
@@ -594,7 +594,7 @@ public class VasuFileHandler {
             }
             
             dis.close();
-            preview_view.queue_draw();
+            nametable_view.queue_draw();
             print("Loaded NMT file: %s\n", nmt_path);
             return true;
         } catch (Error e) {

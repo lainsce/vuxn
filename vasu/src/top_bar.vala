@@ -2,7 +2,8 @@
 public class TopBarComponent : Gtk.Box {
     private VasuData chr_data;
     private VasuEditorView editor_view;
-    private VasuPreviewView preview_view;
+    private VasuNametableView nametable_view;
+    private FrameBox sprite_view_box;
     
     public signal void selected_color_changed();
     
@@ -28,13 +29,13 @@ public class TopBarComponent : Gtk.Box {
     // Delegate for drawing functions
     private delegate void DrawFunc(Cairo.Context cr, int width, int height);
     
-    public TopBarComponent(VasuData data, VasuEditorView editor, VasuPreviewView preview) {
+    public TopBarComponent(VasuData data, VasuEditorView editor, VasuNametableView nametable) {
         Object(orientation: Gtk.Orientation.HORIZONTAL, spacing: 16);
-    
+
         chr_data = data;
         editor_view = editor;
-        preview_view = preview;
-        
+        nametable_view = nametable;
+
         // Set styling and margins
         margin_start = 16;
         margin_end = 16;
@@ -52,13 +53,15 @@ public class TopBarComponent : Gtk.Box {
             pattern_area.queue_draw();
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
 
-        preview_view.preview_updated.connect(() => {
+        nametable_view.nametable_updated.connect(() => {
             update_hex_data();
             pattern_area.queue_draw();
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
 
         // Connect color picker changes
@@ -73,29 +76,49 @@ public class TopBarComponent : Gtk.Box {
             pattern_area.queue_draw();
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
         
         // Connect tile selection to update the sprite view areas
         editor_view.tile_selected.connect((x, y) => {
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
 
         // Connect mirror status changes
         chr_data.notify["mirror_horizontal"].connect(() => {
             update_mirror_status(1);
+            force_pattern_label_update();
             pattern_area.queue_draw();
+            editor_view.queue_draw();
+            nametable_view.queue_draw();
+            sprite_area.queue_draw();
+            pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
 
         chr_data.notify["mirror_vertical"].connect(() => {
             update_mirror_status(1);
+            force_pattern_label_update();
             pattern_area.queue_draw();
+            editor_view.queue_draw();
+            nametable_view.queue_draw();
+            sprite_area.queue_draw();
+            pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
 
         chr_data.notify["selected_pattern_tile"].connect(() => {
             mirror_status.set_text(""); // Clear it first
             update_mirror_status(1); // Then update with current value
+            
+            // Update the display
+            queue_draw();
             pattern_area.queue_draw();
+            sprite_area.queue_draw();
+            pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
         
         chr_data.notify["selected_color"].connect(() => {
@@ -106,6 +129,7 @@ public class TopBarComponent : Gtk.Box {
             pattern_area.queue_draw();
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
         
         chr_data.palette_changed.connect(() => {
@@ -116,6 +140,7 @@ public class TopBarComponent : Gtk.Box {
             pattern_area.queue_draw();
             sprite_area.queue_draw();
             pre_view_area.queue_draw();
+            sprite_view_box.queue_draw();
         });
     }
 
@@ -124,7 +149,7 @@ public class TopBarComponent : Gtk.Box {
         var sprite_view_component = create_sprite_view_component();
         var sprite_size_component = create_sprite_size_component();
         color_picker = new ColorPickerWidget(chr_data);
-        var pattern_preview_component = create_pattern_preview_component();
+        var pattern_nametable_component = create_pattern_nametable_component();
         hex_data = create_hex_data_display("0000");
         
         // Initial setup
@@ -135,7 +160,7 @@ public class TopBarComponent : Gtk.Box {
         append(sprite_view_component);
         append(sprite_size_component);
         append(color_picker);
-        append(pattern_preview_component);
+        append(pattern_nametable_component);
         append(hex_data);
     }
     
@@ -143,8 +168,11 @@ public class TopBarComponent : Gtk.Box {
     private Gtk.Box create_sprite_view_component() {
         var sprite_size = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
         
-        var sprite_view_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        sprite_view_box.add_css_class("mini-panel-frame");
+        sprite_view_box = new FrameBox(chr_data, Gtk.Orientation.VERTICAL, 0, sprite_size);
+        sprite_view_box.margin_top = 2;
+        sprite_view_box.margin_start = 2;
+        sprite_view_box.margin_bottom = 2;
+        sprite_view_box.margin_end = 2;
         
         pre_view_area = new Gtk.DrawingArea();
         pre_view_area.set_size_request(32, 32);
@@ -455,9 +483,9 @@ public class TopBarComponent : Gtk.Box {
         }
     }
     
-    // Create the pattern preview component with mirroring controls
-    private Gtk.Box create_pattern_preview_component() {
-        var pattern_preview = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+    // Create the pattern nametable component with mirroring controls
+    private Gtk.Box create_pattern_nametable_component() {
+        var pattern_nametable = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
         
         // Create mirror controls
         var mirror_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
@@ -479,7 +507,7 @@ public class TopBarComponent : Gtk.Box {
             update_mirror_status(1);
             pattern_area.queue_draw();
             editor_view.queue_draw();
-            preview_view.queue_draw();
+            nametable_view.queue_draw();
         });
         
         // Vertical mirror toggle button
@@ -494,7 +522,7 @@ public class TopBarComponent : Gtk.Box {
             update_mirror_status(1);
             pattern_area.queue_draw();
             editor_view.queue_draw();
-            preview_view.queue_draw();
+            nametable_view.queue_draw();
         });
         
         mirror_box.append(mirror_status);
@@ -526,13 +554,13 @@ public class TopBarComponent : Gtk.Box {
         pattern_area.add_controller(pattern_right_click);
         
         // Build the component
-        pattern_preview.append(pattern_area);
-        pattern_preview.append(mirror_box);
+        pattern_nametable.append(pattern_area);
+        pattern_nametable.append(mirror_box);
         
         // Initialize mirror status
         update_mirror_status(1);
         
-        return pattern_preview;
+        return pattern_nametable;
     }
     
     // Handle left-click on pattern area
@@ -574,7 +602,7 @@ public class TopBarComponent : Gtk.Box {
         
         pattern_area.queue_draw();
         editor_view.queue_draw();
-        preview_view.queue_draw();
+        nametable_view.queue_draw();
         sprite_area.queue_draw();
         pre_view_area.queue_draw();
     }
@@ -608,7 +636,7 @@ public class TopBarComponent : Gtk.Box {
         
         pattern_area.queue_draw();
         editor_view.queue_draw();
-        preview_view.queue_draw();
+        nametable_view.queue_draw();
         sprite_area.queue_draw();
         pre_view_area.queue_draw();
     }
@@ -934,7 +962,7 @@ public class TopBarComponent : Gtk.Box {
         
         pattern_area.queue_draw();
         editor_view.queue_draw();
-        preview_view.queue_draw();
+        nametable_view.queue_draw();
         sprite_area.queue_draw();
         pre_view_area.queue_draw();
     }
@@ -948,7 +976,7 @@ public class TopBarComponent : Gtk.Box {
         force_pattern_label_update();
         pattern_area.queue_draw();
         editor_view.queue_draw();
-        preview_view.queue_draw();
+        nametable_view.queue_draw();
         sprite_area.queue_draw();
         pre_view_area.queue_draw();
     }
@@ -1037,10 +1065,10 @@ public class TopBarComponent : Gtk.Box {
             hex_data.attach(editor_label, 0, i);
             
             // Preview column
-            var preview_label = new Gtk.Label(initial_value);
-            preview_label.add_css_class("hex-label");
-            preview_label.halign = Gtk.Align.START;
-            hex_data.attach(preview_label, 1, i);
+            var nametable_label = new Gtk.Label(initial_value);
+            nametable_label.add_css_class("hex-label");
+            nametable_label.halign = Gtk.Align.START;
+            hex_data.attach(nametable_label, 1, i);
         }
         
         data_label = new Gtk.Label("");

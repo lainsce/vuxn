@@ -2,7 +2,7 @@
 public class MenuComponent : Gtk.Box {
     private VasuData chr_data;
     private VasuEditorView editor_view;
-    private VasuPreviewView preview_view;
+    private VasuNametableView nametable_view;
     private TopBarComponent top_bar;
     private Gtk.PopoverMenuBar menubar;
     
@@ -118,12 +118,12 @@ public class MenuComponent : Gtk.Box {
     // Clipboard for copy/paste operations
     private ClipboardData? clipboard_data = null;
     
-    public MenuComponent(VasuData data, VasuEditorView editor, VasuPreviewView preview, TopBarComponent top_bar) {
+    public MenuComponent(VasuData data, VasuEditorView editor, VasuNametableView nametable, TopBarComponent top_bar) {
         Object(orientation: Gtk.Orientation.VERTICAL, spacing: 0);
         
         chr_data = data;
         editor_view = editor;
-        preview_view = preview;
+        nametable_view = nametable;
         this.top_bar = top_bar;
 
         margin_start = 4;
@@ -191,8 +191,14 @@ public class MenuComponent : Gtk.Box {
         
         // Move menu
         var move_menu = new GLib.Menu();
-        move_menu.append("Up/Down", "win.shift-h");
-        move_menu.append("Left/Right", "win.shift-v");
+        move_menu.append("Up", "win.arrow-up");
+        move_menu.append("Down", "win.arrow-down");
+        move_menu.append("Left", "win.arrow-left");
+        move_menu.append("Right", "win.arrow-right");
+        move_menu.append("Decr.H", "win.shift-h-r");
+        move_menu.append("Incr.H", "win.shift-h");
+        move_menu.append("Decr.V", "win.shift-v-r");
+        move_menu.append("Incr.V", "win.shift-v");
         move_menu.append("Reset", "win.shift-reset");
         move_menu.append("SelectAll", "win.select-all");
         menu_bar.append_submenu("Move", move_menu);
@@ -222,7 +228,7 @@ public class MenuComponent : Gtk.Box {
         var new_action = new SimpleAction("new", null);
         new_action.activate.connect(() => {
             editor_view.clear_editor();
-            preview_view.clear_canvas();
+            nametable_view.clear_canvas();
             chr_data.filename = "untitled10x10.chr";
         });
         action_group.add_action(new_action);
@@ -305,12 +311,14 @@ public class MenuComponent : Gtk.Box {
         var mirror_h_action = new SimpleAction("mirror-h", null);
         mirror_h_action.activate.connect(() => {
             chr_data.mirror_horizontal = !chr_data.mirror_horizontal;
+            editor_view.queue_draw();
         });
         action_group.add_action(mirror_h_action);
         
         var mirror_v_action = new SimpleAction("mirror-v", null);
         mirror_v_action.activate.connect(() => {
             chr_data.mirror_vertical = !chr_data.mirror_vertical;
+            editor_view.queue_draw();
         });
         action_group.add_action(mirror_v_action);
         
@@ -334,6 +342,20 @@ public class MenuComponent : Gtk.Box {
             editor_view.update_from_current_tile();
         });
         action_group.add_action(shift_v_action);
+        
+        var shift_h_reverse_action = new SimpleAction("shift-h-r", null);
+        shift_h_reverse_action.activate.connect(() => {
+            chr_data.shift_horizontal_reverse();
+            editor_view.update_from_current_tile();
+        });
+        action_group.add_action(shift_h_reverse_action);
+
+        var shift_v_reverse_action = new SimpleAction("shift-v-r", null);
+        shift_v_reverse_action.activate.connect(() => {
+            chr_data.shift_vertical_reverse();
+            editor_view.update_from_current_tile();
+        });
+        action_group.add_action(shift_v_reverse_action);
         
         var shift_reset_action = new SimpleAction("shift-reset", null);
         shift_reset_action.activate.connect(() => {
@@ -409,6 +431,58 @@ public class MenuComponent : Gtk.Box {
         });
         action_group.add_action(color_3_action);
         
+        // In menu_component.vala - Add to the action_group section of add_actions()
+
+        // Add arrow key actions for 1px movement
+        var arrow_up_action = new SimpleAction("arrow-up", null);
+        arrow_up_action.activate.connect(() => {
+            // Only apply in zoom mode
+            if (chr_data.zoom_level == 16 && editor_view != null) {
+                // Move crosshair up by 1px
+                if (editor_view.zoom_origin_y > 0) {
+                    editor_view.zoom_origin_y--;
+                    editor_view.queue_draw();
+                }
+            }
+        });
+        action_group.add_action(arrow_up_action);
+
+        var arrow_down_action = new SimpleAction("arrow-down", null);
+        arrow_down_action.activate.connect(() => {
+            if (chr_data.zoom_level == 16 && editor_view != null) {
+                // Move crosshair down by 1px (stay within bounds)
+                if (editor_view.zoom_origin_y + 16 < editor_view.GRID_HEIGHT * 8) {
+                    editor_view.zoom_origin_y++;
+                    editor_view.queue_draw();
+                }
+            }
+        });
+        action_group.add_action(arrow_down_action);
+
+        var arrow_left_action = new SimpleAction("arrow-left", null);
+        arrow_left_action.activate.connect(() => {
+            if (chr_data.zoom_level == 16 && editor_view != null) {
+                // Move crosshair left by 1px
+                if (editor_view.zoom_origin_x > 0) {
+                    editor_view.zoom_origin_x--;
+                    editor_view.queue_draw();
+                }
+            }
+        });
+        action_group.add_action(arrow_left_action);
+
+        var arrow_right_action = new SimpleAction("arrow-right", null);
+        arrow_right_action.activate.connect(() => {
+            if (chr_data.zoom_level == 16 && editor_view != null) {
+                // Move crosshair right by 1px (stay within bounds)
+                if (editor_view.zoom_origin_x + 16 < editor_view.GRID_WIDTH * 8) {
+                    editor_view.zoom_origin_x++;
+                    editor_view.queue_draw();
+                }
+            }
+        });
+        action_group.add_action(arrow_right_action);
+        
         // When the widget is attached to a window, insert the action group
         realize.connect(() => {
             var window = get_root() as Gtk.Window;
@@ -427,9 +501,7 @@ public class MenuComponent : Gtk.Box {
         // File menu shortcuts
         app.set_accels_for_action("win.new", {"<Control>n"});
         app.set_accels_for_action("win.open", {"<Control>o"});
-        app.set_accels_for_action("win.open-mono", {"<Control><Shift>o"});
         app.set_accels_for_action("win.save", {"<Control>s"});
-        app.set_accels_for_action("win.save-mono", {"<Control><Shift>s"});
         app.set_accels_for_action("win.rename", {"<Control>r"});
         app.set_accels_for_action("win.exit", {"<Control>q"});
         
@@ -437,20 +509,23 @@ public class MenuComponent : Gtk.Box {
         app.set_accels_for_action("win.copy", {"<Control>c"});
         app.set_accels_for_action("win.paste", {"<Control>v"});
         app.set_accels_for_action("win.cut", {"<Control>x"});
-        app.set_accels_for_action("win.invert", {"<Control>i"});
-        app.set_accels_for_action("win.colorize", {"<Control>k"});
+        app.set_accels_for_action("win.erase", {"Backspace"});
+        app.set_accels_for_action("win.invert", {"i"});
+        app.set_accels_for_action("win.colorize", {"c"});
         
         // View menu shortcuts
+        app.set_accels_for_action("win.arrow-up", {"Up"});
+        app.set_accels_for_action("win.arrow-down", {"Down"});
+        app.set_accels_for_action("win.arrow-left", {"Left"});
+        app.set_accels_for_action("win.arrow-right", {"Right"});
         app.set_accels_for_action("win.select-all", {"<Control>a"});
         
-        // Tool menu shortcuts
-        app.set_accels_for_action("win.tool-brush", {"q"});
-        app.set_accels_for_action("win.tool-cursor", {"w"});
-        app.set_accels_for_action("win.tool-zoom", {"e"});
-        app.set_accels_for_action("win.color-0", {"1"});
-        app.set_accels_for_action("win.color-1", {"2"});
-        app.set_accels_for_action("win.color-2", {"3"});
-        app.set_accels_for_action("win.color-3", {"4"});
+        // Move menu shortcuts
+        app.set_accels_for_action("win.shift-h", {"<Shift>Right"});
+        app.set_accels_for_action("win.shift-h-r", {"<Shift>Left"});
+        app.set_accels_for_action("win.shift-v", {"<Shift>Down"});
+        app.set_accels_for_action("win.shift-v-r", {"<Shift>Up"});
+        app.set_accels_for_action("win.shift-reset", {"Escape"});
     }
     
     // Implementation of menu actions

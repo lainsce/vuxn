@@ -1,8 +1,8 @@
-public class VasuPreviewView : Gtk.DrawingArea {
+public class VasuNametableView : Gtk.DrawingArea {
     private VasuData chr_data;
     private VasuEditorView? editor_view;
     
-    public signal void preview_updated();
+    public signal void nametable_updated();
     
     private bool click_handled = false;
     private bool right_click_handled = false;
@@ -118,7 +118,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
     private double current_offset_x = 0.0;
     private double current_offset_y = 0.0;
     
-    public VasuPreviewView(VasuData data, VasuEditorView? editor = null) {
+    public VasuNametableView(VasuData data, VasuEditorView? editor = null) {
         chr_data = data;
         editor_view = editor;
         
@@ -209,7 +209,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
             }
         }
         
-        // Redraw the preview
+        // Redraw the nametable
         queue_draw();
     }
     
@@ -303,7 +303,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
         }
         
         cr.restore();
-        preview_updated();
+        nametable_updated();
     }
     
     private void transform_coordinates(ref double x, ref double y) {
@@ -515,7 +515,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
         int sprite_width = chr_data.sprite_width;
         int sprite_height = chr_data.sprite_height;
         
-        // First, check if the sprite would fit completely within the preview bounds
+        // First, check if the sprite would fit completely within the nametable bounds
         if (grid_x + sprite_width > GRID_WIDTH || grid_y + sprite_height > GRID_HEIGHT) {
             // Sprite would go outside the bounds, don't place it
             return;
@@ -587,7 +587,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
         }
         
         queue_draw();
-        preview_updated();
+        nametable_updated();
     }
     
     // Method to place a tile with specific source (for NMT loading)
@@ -637,7 +637,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
         placed_tiles[grid_x, grid_y] = transformed_tile;
         
         queue_draw();
-        preview_updated();
+        nametable_updated();
     }
     
     // Helper method to erase a sprite at a specific position
@@ -663,7 +663,7 @@ public class VasuPreviewView : Gtk.DrawingArea {
         }
         
         queue_draw();
-        preview_updated();
+        nametable_updated();
     }
     
     // Method to clear all placed tiles

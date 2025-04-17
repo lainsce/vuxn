@@ -2,7 +2,7 @@
 public class BottomToolbarComponent : Gtk.Box {
     private VasuData chr_data;
     private VasuEditorView editor_view;
-    private VasuPreviewView preview_view;
+    private VasuNametableView nametable_view;
     private FilenameComponent filename_component;
     private List<Gtk.Button> color_buttons;
     private List<Gtk.ToggleButton> tool_buttons;
@@ -17,12 +17,12 @@ public class BottomToolbarComponent : Gtk.Box {
     public signal void request_open();
     public signal void selected_color_changed();
     
-    public BottomToolbarComponent(VasuData data, VasuEditorView editor, VasuPreviewView preview) {
+    public BottomToolbarComponent(VasuData data, VasuEditorView editor, VasuNametableView nametable) {
         Object(orientation: Gtk.Orientation.HORIZONTAL, spacing: 0);
         
         chr_data = data;
         editor_view = editor;
-        preview_view = preview;
+        nametable_view = nametable;
         
         add_css_class("status-bar");
         margin_start = 15;
@@ -374,7 +374,7 @@ public class BottomToolbarComponent : Gtk.Box {
         
         clear_tool.clicked.connect(() => {
             editor_view.clear_editor();
-            preview_view.clear_canvas();
+            nametable_view.clear_canvas();
             chr_data.filename = "untitled10x10.chr";
             queue_draw();
         });

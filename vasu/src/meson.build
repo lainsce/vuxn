@@ -10,6 +10,7 @@ sources = [
     'window.vala',
     'data.vala',
     'file_handler.vala',
+    'framebox.vala',
     'editorview.vala',
     'previewview.vala',
     'picker.vala',

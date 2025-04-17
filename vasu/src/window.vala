@@ -3,7 +3,7 @@ public class MainWindow : Gtk.ApplicationWindow {
     private VasuData chr_data;
     private VasuFileHandler file_handler;
     private VasuEditorView editor_view;
-    private VasuPreviewView preview_view;
+    private VasuNametableView nametable_view;
     private MenuComponent menu_component;
     private TopBarComponent top_bar;
     private BottomToolbarComponent bottom_toolbar;
@@ -33,7 +33,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         setup_ui();
         
         // Handle files after UI is done constructing
-        file_handler = new VasuFileHandler(chr_data, editor_view, preview_view);
+        file_handler = new VasuFileHandler(chr_data, editor_view, nametable_view);
         
         // Setup all gestures
         setup_controllers();
@@ -99,16 +99,6 @@ public class MainWindow : Gtk.ApplicationWindow {
                     box-shadow: none;
                     background: none;
                     border: 1px solid %s;
-                }
-                .mini-panel-frame {
-                    border: 1px solid %s;
-                    border-radius: 2px;
-                    padding: 1px;
-                }
-                .panel-frame {
-                    border: 1px solid %s;
-                    border-radius: 4px;
-                    padding: 2px;
                 }
                 button:not(.close-button) {
                     background: none;
@@ -214,18 +204,23 @@ public class MainWindow : Gtk.ApplicationWindow {
                 popover modelbutton {
                     color: %s;
                     padding: 0;
-                    min-height: 8px;
+                    min-height: 0;
                     margin: 0;
                     padding: 0;
+                    background: transparent;
+                }
+                popover modelbutton label {
                     font-family: "atari8", monospace;
                     font-size: 8px;
-                    background: transparent;
+                    margin: 0;
+                    padding: 0;
                 }
                 popover modelbutton accelerator {
                     font-family: "atari8", monospace;
                     font-size: 8px;
                     margin-left: 16px;
                     margin-right: 1px;
+                    padding: 0;
                     background: transparent;
                     color: %s;
                 }
@@ -266,8 +261,6 @@ public class MainWindow : Gtk.ApplicationWindow {
                 bg_hex,             // window background
                 fg_hex,             // window.csd box-shadow
                 fg_hex,             // .close-button border
-                ac_hex,             // .mini-panel-frame border
-                ac_hex,             // .panel-frame border
                 bg_hex,             // .status-bar background
                 fg_hex,             // .filename-label color
                 se_hex,             // .data-label color
@@ -309,48 +302,52 @@ public class MainWindow : Gtk.ApplicationWindow {
         // Create the editor view first
         editor_view = new VasuEditorView(chr_data);
         
-        // Create the preview view with a reference to the editor
-        preview_view = new VasuPreviewView(chr_data, editor_view);
+        // Create the nametable view with a reference to the editor
+        nametable_view = new VasuNametableView(chr_data, editor_view);
         
-        // Connect tile selection signal from editor to preview
+        // Connect tile selection signal from editor to nametable
         editor_view.tile_selected.connect((tile_x, tile_y) => {
-            preview_view.set_selected_tile(tile_x, tile_y);
-            preview_view.queue_draw();
+            nametable_view.set_selected_tile(tile_x, tile_y);
+            nametable_view.queue_draw();
         });
         
         // Create top bar 
-        top_bar = new TopBarComponent(chr_data, editor_view, preview_view);
+        top_bar = new TopBarComponent(chr_data, editor_view, nametable_view);
         
         top_bar.selected_color_changed.connect(() => {
             apply_global_styles();
         });
         
-        // Main content area with editor and preview
+        // Main content area with editor and nametable
         var content_box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 4);
         content_box.halign = Gtk.Align.CENTER;
         
         // Create editor panel with frame
-        var editor_panel = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        editor_panel.add_css_class("panel-frame");
-        editor_panel.margin_start = 8;
+        var editor_panel = new FrameBox(chr_data, Gtk.Orientation.VERTICAL, 0, content_box);
+        editor_panel.margin_top = 2;
+        editor_panel.margin_start = 2;
+        editor_panel.margin_bottom = 2;
+        editor_panel.margin_end = 2;
         
         // Add the editor view to its panel
         editor_panel.append(editor_view);
         
-        // Create preview panel with frame
-        var preview_panel = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        preview_panel.add_css_class("panel-frame");
-        preview_panel.margin_end = 8;
+        // Create nametable panel with frame
+        var nametable_panel = new FrameBox(chr_data, Gtk.Orientation.VERTICAL, 0, content_box);
+        nametable_panel.margin_top = 2;
+        nametable_panel.margin_start = 2;
+        nametable_panel.margin_bottom = 2;
+        nametable_panel.margin_end = 2;
         
-        // Add the preview view to its panel
-        preview_panel.append(preview_view);
+        // Add the nametable view to its panel
+        nametable_panel.append(nametable_view);
         
         // Add panels to content box
         content_box.append(editor_panel);
-        content_box.append(preview_panel);
+        content_box.append(nametable_panel);
         
         // Create bottom toolbar
-        bottom_toolbar = new BottomToolbarComponent(chr_data, editor_view, preview_view);
+        bottom_toolbar = new BottomToolbarComponent(chr_data, editor_view, nametable_view);
         
         // Connect file operation signals
         bottom_toolbar.request_save.connect(() => {
@@ -372,7 +369,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         main_box.append(bottom_toolbar);
         
         // Initialize file handler with all components
-        file_handler = new VasuFileHandler(chr_data, editor_view, preview_view);
+        file_handler = new VasuFileHandler(chr_data, editor_view, nametable_view);
     }
     
     private Gtk.Widget create_titlebar() {
@@ -390,7 +387,7 @@ public class MainWindow : Gtk.ApplicationWindow {
         title_bar.append(close_button);
         
         // Create menu component
-        menu_component = new MenuComponent(chr_data, editor_view, preview_view, top_bar);
+        menu_component = new MenuComponent(chr_data, editor_view, nametable_view, top_bar);
         
         // Connect menu signals
         menu_component.request_save.connect(() => {
