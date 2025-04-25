@@ -33,6 +33,7 @@ public class App : Gtk.Application {
             { "open", action_open },
             { "save", action_save },
             { "save_as", action_save_as },
+            { "quit", action_quit },
             { "open-recent", action_open_recent, "s" }, // Added for recent files
 
             // Edit menu actions
@@ -54,6 +55,13 @@ public class App : Gtk.Application {
         };
 
         return entries;
+    }
+    
+    private void action_quit() {
+       var window = get_active_window() as Window;
+        if (window != null) {
+            window.close();
+        }
     }
 
     // Added action for terminal toggle

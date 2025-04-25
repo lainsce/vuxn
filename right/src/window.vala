@@ -41,6 +41,10 @@ public class Window : Gtk.ApplicationWindow {
         height_request = 600;
         width_request = 800;
         
+        var _tmp = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
+        _tmp.visible = false;
+        titlebar = _tmp;
+        
         // Load CSS
         var provider = new Gtk.CssProvider();
         provider.load_from_resource("/com/example/right/style.css");
@@ -60,6 +64,7 @@ public class Window : Gtk.ApplicationWindow {
         close_button.add_css_class ("close-button");
         close_button.tooltip_text = "Close";
         close_button.valign = Gtk.Align.CENTER;
+        close_button.margin_start = 8;
         close_button.clicked.connect (() => {
             if (has_unsaved_changes () && !confirm_discard_changes ()) {
                 return;
@@ -83,6 +88,8 @@ public class Window : Gtk.ApplicationWindow {
         var appl = (App) application;
         file_menu.append_submenu ("Recent Files", appl.get_recent_files_menu ());
         menu_bar.append_submenu("File", file_menu);
+        
+        file_menu.append ("Exit", "app.quit");
 
         // Edit menu
         var edit_menu = new GLib.Menu ();
@@ -116,6 +123,7 @@ public class Window : Gtk.ApplicationWindow {
         title_label.hexpand = true;
         title_label.valign = Gtk.Align.CENTER;
         title_label.halign = Gtk.Align.START;
+        title_label.add_css_class ("file-label");
 
         // Add title label
         toolbar.append (title_label);
@@ -548,6 +556,8 @@ public class Window : Gtk.ApplicationWindow {
             language = manager.get_language ("markdown");
         } else if (file_path.has_suffix (".sh")) {
             language = manager.get_language ("sh");
+        } else if (file_path.has_suffix (".tal")) {
+            language = manager.get_language ("uxntal");
         }
 
         // Apply the language

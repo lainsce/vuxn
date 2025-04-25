@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=Utility;GTK;
+Comment=A pattern drawing VM inspired by classic Mac
+Exec=com.example.turquoise
+GenericName=Pattern VM
+Icon=com.example.turquoise
+Name=Turquoise
+StartupNotify=true
+Terminal=false
+Type=Application
+Version=1.0

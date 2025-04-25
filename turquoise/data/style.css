@@ -1,0 +1,44 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  border: none;
+  font-family: "atari8", monospace;
+  font-size: 8px;
+  line-height: 8px;
+}
+
+textview {
+  background-color: @theme_accent;
+  color: @theme_fg;
+}
+
+textview text {
+  background-color: @theme_accent;
+  color: @theme_fg;
+}
+
+.left-pane > box {
+  padding: 2px;
+}
+
+.close-button {
+    background: transparent;
+    border: 1px solid @theme_fg;
+    box-shadow: none;
+    min-height: 10px;
+  	min-width: 10px;
+
+}
+.close-button:hover {
+    background: @theme_selection;
+}
+.close-button:active {
+    background: @theme_accent;
+}
+
+window {
+    box-shadow: 0 0 0 2px @theme_fg;
+    background: @theme_accent;
+    color: @theme_bg;
+}
