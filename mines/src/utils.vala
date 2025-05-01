@@ -26,70 +26,75 @@ public class MinesweeperUtils {
     }
     
     public static void draw_raised_tile(Cairo.Context cr, int x, int y, int width, int height) {
-        // Draw tile background (light gray)
-        set_color(cr, 2);
-        cr.rectangle(x, y, width, height);
-        cr.fill();
-        
-        // Set line width to 1px
+        // Ensure we're using 1px lines with no anti-aliasing
+        cr.set_antialias(Cairo.Antialias.NONE);
         cr.set_line_width(1);
-        
-        // Draw bevelled edges inset by 2 pixels
-        // White for top/left edges (inset by 2 pixels)
-        set_color(cr, 1);
-        // Top edge
-        cr.move_to(x + 1, y + 1);
-        cr.line_to(x + width - 1, y + 1);
-        cr.move_to(x + 2, y + 2);
-        cr.line_to(x + width - 2, y + 2);
-        cr.stroke();
-        
-        // Left edge
-        cr.move_to(x + 1, y + 1);
-        cr.line_to(x + 1, y + height - 1);
-        cr.move_to(x + 2, y + 2);
-        cr.line_to(x + 2, y + height - 2);
-        cr.stroke();
-        
-        // Dark gray for bottom/right edges (inset by 2 pixels)
-        set_color(cr, 3);
-        // Bottom edge
-        cr.move_to(x + 1, y + height - 1);
-        cr.line_to(x + width - 1, y + height - 1);
-        cr.move_to(x + 2, y + height - 2);
-        cr.line_to(x + width - 2, y + height - 2);
-        cr.stroke();
-        
-        // Right edge
-        cr.move_to(x + width - 1, y + 1);
-        cr.line_to(x + width - 1, y + height - 1);
-        cr.move_to(x + width - 2, y + 2);
-        cr.line_to(x + width - 2, y + height - 2);
-        cr.stroke();
+
+        // Draw all white parts
+        set_color(cr, 2); // white/background
+        cr.rectangle(x, y, 15, 1);           // Row 1: 15 white
+        cr.rectangle(x, y + 1, 14, 1);       // Row 2: 14 white
+        for (int i = 2; i < 14; i++) {
+            cr.rectangle(x, y + i, 2, 1);    // Rows 3-14: 2 white each
+        }
+        cr.rectangle(x, y + 14, 1, 1);       // Row 15: 1 white
+        cr.fill();
+
+        // Draw all gray parts
+        set_color(cr, 3); // gray/accent
+        cr.rectangle(x + 15, y, 1, 1);       // Row 1: 1 gray at the end
+        cr.rectangle(x + 14, y + 1, 1, 1);   // Row 2: 1 gray
+        for (int i = 2; i < 14; i++) {
+            cr.rectangle(x + 2, y + i, 12, 1); // Rows 3-14: 12 gray each
+        }
+        cr.rectangle(x + 1, y + 14, 1, 1);   // Row 15: 1 gray
+        cr.rectangle(x, y + 15, 1, 1);       // Row 16: 1 gray
+        cr.fill();
+
+        // Draw all black parts
+        set_color(cr, 1); // black/foreground
+        cr.rectangle(x + 15, y + 1, 1, 1);   // Row 2: 1 black at the end
+        for (int i = 2; i < 14; i++) {
+            cr.rectangle(x + 14, y + i, 2, 1); // Rows 3-14: 2 black each at the end
+        }
+        cr.rectangle(x + 2, y + 14, 14, 1);  // Row 15: 14 black
+        cr.rectangle(x + 1, y + 15, 15, 1);  // Row 16: 15 black
+        cr.fill();
     }
     
     public static void draw_flat_tile(Cairo.Context cr, int x, int y, int width, int height) {
-        // Draw tile background (white)
-        set_color(cr, 0);
-        cr.rectangle(x, y, width, height);
-        cr.fill();
-        
-        // Draw tile border (dotted black)
+        // Ensure we're using 1px lines with no anti-aliasing
+        cr.set_antialias(Cairo.Antialias.NONE);
         cr.set_line_width(1);
-        double[] dashes = { 1, 1 };
-        cr.set_dash(dashes, 0);
-        set_color(cr, 1);
-        cr.move_to(x + width, y);
-        cr.line_to(x + width, y + height);
-        cr.stroke();
-        cr.move_to(x, y + height);
-        cr.line_to(x + width, y + height);
-        cr.stroke();
-        cr.set_dash(null, 0);
+
+        // Draw all white parts
+        set_color(cr, 0); // white/background
+        for (int i = 0; i < 15; i += 2) {
+            cr.rectangle(x, y + i, 15, 1);   // Odd rows: 15 white each
+        }
+        for (int i = 1; i < 15; i += 2) {
+            cr.rectangle(x, y + i, 16, 1);   // Even rows: 16 white each
+        }
+        for (int i = 1; i < 14; i += 2) {
+            cr.rectangle(x + i, y + 15, 1, 1); // Bottom row: alternating white
+        }
+        cr.fill();
+
+        // Draw all gray parts
+        set_color(cr, 2); // gray/accent
+        for (int i = 0; i < 15; i += 2) {
+            cr.rectangle(x + 15, y + i, 1, 1); // Odd rows: 1 gray at the end
+        }
+        cr.rectangle(x + 14, y + 15, 2, 1);  // Bottom row: 2 gray at the end
+
+        for (int i = 0; i < 14; i += 2) {
+            cr.rectangle(x + i, y + 15, 1, 1); // Bottom row: alternating black
+        }
+        cr.fill();
     }
     
     public static void draw_flag(Cairo.Context cr, int x, int y) {
-        // Black parts (color 3)
+        // Black parts (color 1)
         set_color(cr, 1);
         // Flag pole
         cr.rectangle(x + 7, y + 4, 1, 6);
@@ -146,7 +151,7 @@ public class MinesweeperUtils {
         cr.fill();
 
         // White "shine" spots
-        set_color(cr, 0);
+        set_color(cr, 2);
         cr.rectangle(x + 5, y + 4, 1, 1);
         cr.rectangle(x + 4, y + 5, 1, 1);
         cr.rectangle(x + 6, y + 5, 1, 1);
@@ -157,7 +162,7 @@ public class MinesweeperUtils {
     
     public static void draw_number(Cairo.Context cr, int x, int y, int number) {
         // With only 4 colors, we'll use black for all numbers in a true 2-bit style
-        set_color(cr, 1); // Black for all numbers
+        set_color(cr, 3); // Black for all numbers
         
         // Simple pixel number representations for 1-8
         switch (number) {
@@ -258,45 +263,30 @@ public class MinesweeperUtils {
     }
     
     public static void draw_sunken_panel(Cairo.Context cr, int x, int y, int width, int height) {
-        // Background
-        set_color(cr, 4); // Alpha for background
-        cr.rectangle(x, y, width, height);
-        cr.fill();
-        
+        // Ensure we're using 1px lines with no anti-aliasing
+        cr.set_antialias(Cairo.Antialias.NONE);
         cr.set_line_width(1);
         
-        // Draw bevelled edges inset by 1 pixel
-        // White for top/left edges (inset by 2 pixels)
-        set_color(cr, 3);
-        // Top edge
-        cr.move_to(x + 1, y + 1);
-        cr.line_to(x + width - 1, y + 1);
-        cr.move_to(x + 2, y + 2);
-        cr.line_to(x + width - 2, y + 2);
-        cr.stroke();
+        // Fill middle with transparent/no color (alpha)
+        set_color(cr, 4); // Alpha for background
+        cr.rectangle(x + 2, y + 2, width - 4, height - 4);
+        cr.fill();
         
-        // Left edge
-        cr.move_to(x + 1, y + 1);
-        cr.line_to(x + 1, y + height - 1);
-        cr.move_to(x + 2, y + 2);
-        cr.line_to(x + 2, y + height - 2);
-        cr.stroke();
+        // Draw all dark gray parts (for top and left edges)
+        set_color(cr, 1); // Dark gray
+        cr.rectangle(x, y, width, 1);        // Top row
+        cr.rectangle(x, y + 1, 1, height - 1); // Left column
+        cr.rectangle(x + 1, y + 1, width - 2, 1); // Second row
+        cr.rectangle(x + 1, y + 2, 1, height - 3); // Second column
+        cr.fill();
         
-        // Dark gray for bottom/right edges (inset by 2 pixels)
-        set_color(cr, 1);
-        // Bottom edge
-        cr.move_to(x + 1, y + height - 1);
-        cr.line_to(x + width - 1, y + height - 1);
-        cr.move_to(x + 2, y + height - 2);
-        cr.line_to(x + width - 2, y + height - 2);
-        cr.stroke();
-        
-        // Right edge
-        cr.move_to(x + width - 1, y + 1);
-        cr.line_to(x + width - 1, y + height - 1);
-        cr.move_to(x + width - 2, y + 2);
-        cr.line_to(x + width - 2, y + height - 2);
-        cr.stroke();
+        // Draw all white parts (for bottom and right edges)
+        set_color(cr, 2); // White
+        cr.rectangle(x + 1, y + height - 1, width - 1, 1); // Bottom row
+        cr.rectangle(x + width - 1, y + 1, 1, height - 2); // Right column
+        cr.rectangle(x + 2, y + height - 2, width - 3, 1); // Second-to-last row
+        cr.rectangle(x + width - 2, y + 2, 1, height - 4); // Second-to-last column
+        cr.fill();
     }
     
     public static void draw_seven_segment_number(Cairo.Context cr, int number, int x, int y) {
@@ -312,6 +302,9 @@ public class MinesweeperUtils {
     }
     
     public static void draw_seven_segment_digit(Cairo.Context cr, int digit, int x, int y) {
+        // Ensure we're using 1px lines with no anti-aliasing
+        cr.set_antialias(Cairo.Antialias.NONE);
+        
         // Segment patterns for 0-9
         bool[,] segments = {
             {true, true, true, true, true, true, false},     // 0
@@ -328,120 +321,111 @@ public class MinesweeperUtils {
         
         if (digit < 0 || digit > 9) 
             digit = 0;
-
-        // Segment coordinates
-        int[,] segmentCoords = {
-            {3, 1, 9, 1},                 // A: top horizontal
-            {12, 2, 1, 5},                 // B: top-right vertical
-            {12, 8, 1, 5},                 // C: bottom-right vertical
-            {3, 13, 9, 1},                // D: bottom horizontal
-            {2, 8, 1, 5},                  // E: bottom-left vertical
-            {2, 2, 1, 5},                  // F: top-left vertical
-            {3, 7, 9, 1}                  // G: middle horizontal
-        };
         
-        // Background
-        set_color(cr, 0); // Black for background
+        // Draw dark gray background (*)
+        set_color(cr, 3); // Dark gray
         cr.rectangle(x, y, 16, 16);
         cr.fill();
         
-        // First draw all segments as unlit (dark gray)
-        set_color(cr, 3); // Dark gray for unlit
+        // Draw light gray areas (_)
+        set_color(cr, 2); // Light gray
         
-        for (int i = 0; i < 7; i++) {
-            int sx = x + segmentCoords[i,0];
-            int sy = y + segmentCoords[i,1];
-            int sw = segmentCoords[i,2];
-            int sh = segmentCoords[i,3];
-            
-            switch (i) {
-                case 0:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
-                   cr.fill();
-                   break;
-                case 1:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
-                   cr.fill();
-                   break;
-                case 2:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
-                   cr.fill();
-                   break;
-                case 3:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx + 1, sy - 1, sw - 2, sh);
-                   cr.fill();
-                   break;
-                case 4:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
-                   cr.fill();
-                   break;
-                case 5:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
-                   cr.fill();
-                   break;
-                case 6:
-                   cr.rectangle(sx, sy, sw, sh);
-                   cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
-                   cr.fill();
-                   break;
-            }
+        // Row 2: 12 light gray in middle
+        cr.rectangle(x + 2, y + 1, 12, 1);
+        
+        // Row 3: special pattern
+        cr.rectangle(x + 1, y + 2, 1, 1);
+        cr.rectangle(x + 3, y + 2, 10, 1);
+        cr.rectangle(x + 14, y + 2, 1, 1);
+        
+        // Rows 4-7: sides only
+        for (int i = 3; i < 7; i++) {
+            cr.rectangle(x + 1, y + i, 2, 1);
+            cr.rectangle(x + 13, y + i, 2, 1);
         }
         
-        // Then draw lit segments (white)
-        set_color(cr, 1); // White for lit segments
+        // Row 8: special pattern
+        cr.rectangle(x + 1, y + 7, 1, 1);
+        cr.rectangle(x + 3, y + 7, 10, 1);
+        cr.rectangle(x + 14, y + 7, 1, 1);
         
-        for (int i = 0; i < 7; i++) {
-            if (segments[digit, i]) {
-                int sx = x + segmentCoords[i,0];
-                int sy = y + segmentCoords[i,1];
-                int sw = segmentCoords[i,2];
-                int sh = segmentCoords[i,3];
-                
-                switch (i) {
-                    case 0:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
-                       cr.fill();
-                       break;
-                    case 1:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
-                       cr.fill();
-                       break;
-                    case 2:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx - 1, sy + 1, sw, sh - 2);
-                       cr.fill();
-                       break;
-                    case 3:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx + 1, sy - 1, sw - 2, sh);
-                       cr.fill();
-                       break;
-                    case 4:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
-                       cr.fill();
-                       break;
-                    case 5:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx + 1, sy + 1, sw, sh - 2);
-                       cr.fill();
-                       break;
-                    case 6:
-                       cr.rectangle(sx, sy, sw, sh);
-                       cr.rectangle(sx + 1, sy + 1, sw - 2, sh);
-                       cr.fill();
-                       break;
-                }
-            }
+        // Row 9: special pattern with middle section
+        cr.rectangle(x + 1, y + 8, 2, 1);
+        cr.rectangle(x + 4, y + 8, 8, 1);
+        cr.rectangle(x + 13, y + 8, 2, 1);
+        
+        // Rows 10-13: sides only
+        for (int i = 9; i < 13; i++) {
+            cr.rectangle(x + 1, y + i, 2, 1);
+            cr.rectangle(x + 13, y + i, 2, 1);
         }
+        
+        // Row 14: special pattern
+        cr.rectangle(x + 1, y + 13, 1, 1);
+        cr.rectangle(x + 3, y + 13, 10, 1);
+        cr.rectangle(x + 14, y + 13, 1, 1);
+        
+        // Row 15: 12 light gray in middle
+        cr.rectangle(x + 2, y + 14, 12, 1);
+        cr.fill();
+        
+        // Now draw the lit segments (black)
+        set_color(cr, 1); // Black for lit segments
+        
+        // Draw the segments based on the provided patterns
+        if (segments[digit, 0]) { // Segment A (top)
+            cr.rectangle(x + 2, y + 1, 12, 1);  // Row 2: columns 2-13
+            cr.rectangle(x + 3, y + 2, 10, 1);  // Row 3: middle
+        }
+        
+        if (segments[digit, 1]) { // Segment B (top right)
+            // Columns 13-14, rows 2-7
+            cr.rectangle(x + 14, y + 2, 1, 1);  // Row 3: corner
+            for (int i = 3; i < 7; i++) {
+                cr.rectangle(x + 13, y + i, 2, 1);
+            }
+            cr.rectangle(x + 14, y + 7, 1, 1);  // Row 8: corner
+        }
+        
+        if (segments[digit, 2]) { // Segment C (bottom right)
+            // Columns 13-14, rows 8-13
+            cr.rectangle(x + 13, y + 8, 2, 1);
+            for (int i = 9; i < 13; i++) {
+                cr.rectangle(x + 13, y + i, 2, 1);
+            }
+            cr.rectangle(x + 14, y + 13, 1, 1); // Row 14: corner
+        }
+        
+        if (segments[digit, 3]) { // Segment D (bottom)
+            cr.rectangle(x + 3, y + 13, 10, 1); // Row 14: middle
+            cr.rectangle(x + 2, y + 14, 12, 1); // Row 15: columns 2-13
+        }
+        
+        if (segments[digit, 4]) { // Segment E (bottom left)
+            // Columns 1-2, rows 8-13
+            cr.rectangle(x + 1, y + 8, 2, 1);
+            for (int i = 9; i < 13; i++) {
+                cr.rectangle(x + 1, y + i, 2, 1);
+            }
+            cr.rectangle(x + 1, y + 13, 1, 1); // Row 14: corner
+        }
+        
+        if (segments[digit, 5]) { // Segment F (top left)
+            // Columns 1-2, rows 2-7
+            cr.rectangle(x + 1, y + 2, 1, 1);  // Row 3: corner
+            for (int i = 3; i < 7; i++) {
+                cr.rectangle(x + 1, y + i, 2, 1);
+            }
+            cr.rectangle(x + 1, y + 7, 1, 1);  // Row 8: corner
+        }
+        
+        if (segments[digit, 6]) { // Segment G (middle)
+            // Only the middle horizontal bars
+            cr.rectangle(x + 3, y + 7, 10, 1); // Row 8: columns 3-12
+            cr.rectangle(x + 4, y + 8, 8, 1);  // Row 9: columns 4-11
+        }
+        
+        cr.fill();
     }
     
     // Create the standard 3-digit number display (e.g., for timer and mine counter)

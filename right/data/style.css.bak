@@ -30,11 +30,6 @@
     background: transparent;
 }
 
-.line-label {
-    color: @theme_accent;
-    background: transparent;
-}
-
 .searchbar {
     padding: 0;
     margin: 0;

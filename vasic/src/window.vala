@@ -1,0 +1,408 @@
+using Gtk;
+
+public class BasicWindow : Gtk.ApplicationWindow {
+    private BasicEmulator app;
+    private Gtk.DrawingArea drawing_area;
+    private Theme.Manager theme;
+    
+    // Cursor state
+    public int cursorX = 0;
+    public int cursorY = 0;
+    public bool insertMode = true;
+    
+    public BasicWindow(BasicEmulator application) {
+        Object(application: application);
+        
+        this.app = application;
+        
+        theme = Theme.Manager.get_default();
+        theme.theme_changed.connect(() => {
+            app.init_color_palette ();
+            drawing_area.queue_draw();
+        });
+        
+        // Window setup
+        this.title = "BASIC Emulator";
+        this.set_default_size(BasicEmulator.WIDTH, BasicEmulator.HEIGHT);
+        this.resizable = false;
+        
+        // Set empty titlebar
+        var empty_titlebar = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 0);
+        empty_titlebar.visible = false;
+        this.set_titlebar(empty_titlebar);
+        
+        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        box.append(create_titlebar());
+        
+        // Set up keyboard input
+        var keyController = new Gtk.EventControllerKey();
+        keyController.key_pressed.connect(on_key_pressed);
+        
+        // Create drawing area
+        drawing_area = new Gtk.DrawingArea();
+        drawing_area.set_content_width(BasicEmulator.WIDTH);
+        drawing_area.set_content_height(BasicEmulator.HEIGHT);
+        drawing_area.set_size_request(BasicEmulator.WIDTH, BasicEmulator.HEIGHT);
+        drawing_area.hexpand = true;
+        drawing_area.vexpand = true;
+        drawing_area.set_draw_func(draw);
+        drawing_area.set_focusable(true);
+        box.add_controller(keyController);
+        
+        box.append(drawing_area);
+        
+        // Wrap in WindowHandle for proper window dragging
+        var handle = new Gtk.WindowHandle();
+        handle.set_child(box);
+        this.set_child(handle);
+        
+        // Set up a timer for cursor blinking
+        Timeout.add(500, () => {
+            drawing_area.queue_draw();
+            return true;
+        });
+        
+        // Set initial cursor position below header
+        cursorY = BasicEmulator.HEADER_LINES;
+        cursorX = 0;
+    }
+    
+    private Gtk.Widget create_titlebar() {
+        // Create vertical layout
+        var vbox = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        
+        return vbox;
+    }
+    
+    // Fix: use 'new' to explicitly hide the parent method
+    public new void queue_draw() {
+        drawing_area.queue_draw();
+    }
+    
+    // Draw function for the DrawingArea
+    private void draw(Gtk.DrawingArea da, Cairo.Context cr, int width, int height) {
+        // Draw border
+        cr.set_source_rgb(app.borderColor.red, app.borderColor.green, app.borderColor.blue);
+        cr.rectangle(0, 0, BasicEmulator.WIDTH, BasicEmulator.HEIGHT);
+        cr.fill();
+        
+        // Draw blurple background for text area
+        cr.set_source_rgb(app.bgColor.red, app.bgColor.green, app.bgColor.blue);
+        cr.rectangle(BasicEmulator.BORDER_SIZE, BasicEmulator.BORDER_SIZE, 
+                    BasicEmulator.WIDTH - 2 * BasicEmulator.BORDER_SIZE, 
+                    BasicEmulator.HEIGHT - 2 * BasicEmulator.BORDER_SIZE);
+        cr.fill();
+        
+        // Draw text with off-white color
+        cr.select_font_face("atari8", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL);
+        cr.set_font_size(BasicEmulator.CHAR_HEIGHT);
+        cr.set_source_rgb(app.textColor.red, app.textColor.green, app.textColor.blue);
+        
+        // Calculate free memory
+        int freeMemory = BasicEmulator.TOTAL_MEMORY - app.memoryUsed;
+        
+        // Draw header text
+        cr.move_to(BasicEmulator.BORDER_SIZE, BasicEmulator.BORDER_SIZE + BasicEmulator.CHAR_HEIGHT);
+        cr.show_text("*** VALA BASIC ***");
+        
+        cr.move_to(BasicEmulator.BORDER_SIZE, BasicEmulator.BORDER_SIZE + 2 * BasicEmulator.CHAR_HEIGHT);
+        cr.show_text("64K RAM SYSTEM " + freeMemory.to_string() + " BASIC BYTES FREE");
+        
+        // Draw main program text
+        for (int y = BasicEmulator.HEADER_LINES; y < BasicEmulator.ROWS; y++) {
+            string line = app.lines[y];
+            
+            // Check if this is an error message (starts with "? ")
+            if (line.has_prefix("? ")) {
+                cr.set_source_rgb(app.errorColor.red, app.errorColor.green, app.errorColor.blue); // Error color for errors
+            } else {
+                cr.set_source_rgb(app.textColor.red, app.textColor.green, app.textColor.blue); // Text color for normal text
+            }
+            
+            for (int x = 0; x < line.length && x < BasicEmulator.COLS; x++) {
+                cr.move_to(BasicEmulator.BORDER_SIZE + x * BasicEmulator.CHAR_WIDTH, 
+                          BasicEmulator.BORDER_SIZE + (y + 1) * BasicEmulator.CHAR_HEIGHT);
+                cr.show_text(line.substring(x, 1));
+            }
+        }
+        
+        // Draw icons if program is running
+        if (app.running) {
+            foreach (IconData icon in app.loadedIcons) {
+                for (int i = 0; i < icon.rows.length; i++) {
+                    string row = icon.rows[i];
+                    for (int j = 0; j < row.length; j++) {
+                        char c = row[j];
+                        // Skip spaces (transparent)
+                        if (c == ' ') continue;
+                        
+                        // Calculate position
+                        int x = BasicEmulator.BORDER_SIZE + (icon.x + j) * BasicEmulator.CHAR_WIDTH;
+                        int y = BasicEmulator.BORDER_SIZE + (icon.y + i + BasicEmulator.HEADER_LINES) * BasicEmulator.CHAR_HEIGHT;
+                        
+                        // Choose color based on character (using our color palette)
+                        switch (c) {
+                            case '*':
+                                cr.set_source_rgb(app.textColor.red, app.textColor.green, app.textColor.blue); // Text color (white)
+                                break;
+                            case '#':
+                                cr.set_source_rgb(app.borderColor.red, app.borderColor.green, app.borderColor.blue); // Border color
+                                break;
+                            case '@':
+                                cr.set_source_rgb(app.errorColor.red, app.errorColor.green, app.errorColor.blue); // Error color
+                                break;
+                            default:
+                                cr.set_source_rgb(app.textColor.red, app.textColor.green, app.textColor.blue); // Text color default
+                                break;
+                        }
+                        
+                        // Draw the pixel
+                        cr.rectangle(x, y, BasicEmulator.CHAR_WIDTH, BasicEmulator.CHAR_HEIGHT);
+                        cr.fill();
+                    }
+                }
+            }
+        }
+        
+        // Draw cursor (blinking)
+        if (!app.running && (get_monotonic_time() / 500000) % 2 == 0) {
+            cr.rectangle(
+                BasicEmulator.BORDER_SIZE + cursorX * BasicEmulator.CHAR_WIDTH,
+                BasicEmulator.BORDER_SIZE + cursorY * BasicEmulator.CHAR_HEIGHT,
+                BasicEmulator.CHAR_WIDTH,
+                BasicEmulator.CHAR_HEIGHT
+            );
+            cr.set_source_rgba(app.textColor.red, app.textColor.green, app.textColor.blue, 0.5);  // Semi-transparent text color
+            cr.fill();
+        }
+    }
+    
+    // Handle key press events
+    private bool on_key_pressed(Gtk.EventControllerKey controller, uint keyval, uint keycode, Gdk.ModifierType state) {
+        // If in INPUT mode, handle special input processing
+        if (app.running && app.inputMode) {
+            switch (keyval) {
+                case Gdk.Key.Return:
+                case Gdk.Key.KP_Enter:
+                    // Process the input
+                    double value = 0;
+                    if (double.try_parse(app.inputBuffer, out value)) {
+                        app.set_variable(app.inputVarName, value);
+                    } else {
+                        // If not a number, store 0
+                        app.set_variable(app.inputVarName, 0);
+                    }
+                    app.inputMode = false;
+                    // Clear the input line
+                    int inputLine = app.find_empty_line(BasicEmulator.HEADER_LINES);
+                    if (inputLine != -1) {
+                        app.lines[inputLine] = "";
+                    }
+                    break;
+                    
+                case Gdk.Key.BackSpace:
+                    if (app.inputBuffer.length > 0) {
+                        app.inputBuffer = app.inputBuffer.substring(0, app.inputBuffer.length - 1);
+                        // Update the input line
+                        int inputLine = app.find_empty_line(BasicEmulator.HEADER_LINES);
+                        if (inputLine != -1) {
+                            app.lines[inputLine] = app.inputPrompt + app.inputBuffer;
+                        }
+                    }
+                    break;
+                    
+                case Gdk.Key.Escape:
+                    // Cancel input mode
+                    app.inputMode = false;
+                    // Store 0 in the variable (default when canceled)
+                    app.set_variable(app.inputVarName, 0);
+                    break;
+                    
+                default:
+                    // Handle regular character input
+                    unichar c = Gdk.keyval_to_unicode(keyval);
+                    if (c.isprint()) {
+                        app.inputBuffer += c.to_string();
+                        // Update the input line
+                        int inputLine = app.find_empty_line(BasicEmulator.HEADER_LINES);
+                        if (inputLine != -1) {
+                            app.lines[inputLine] = app.inputPrompt + app.inputBuffer;
+                        }
+                    }
+                    break;
+            }
+            
+            drawing_area.queue_draw();
+            return Gdk.EVENT_STOP;
+        } 
+        // If program is running (not in input mode)
+        else if (app.running) {
+            // ESC key stops the program with BREAK
+            if (keyval == Gdk.Key.Escape) {
+                app.stop_program();
+                drawing_area.queue_draw();
+                return Gdk.EVENT_STOP;
+            }
+            return Gdk.EVENT_PROPAGATE;
+        }
+        
+        // In EDIT mode
+        
+        // Prevent editing header lines
+        if (cursorY < BasicEmulator.HEADER_LINES) {
+            // If in header, move cursor to first editable line
+            cursorY = BasicEmulator.HEADER_LINES;
+            cursorX = 0;
+            drawing_area.queue_draw();
+            return Gdk.EVENT_STOP;
+        }
+        
+        switch (keyval) {
+            case Gdk.Key.Return:
+            case Gdk.Key.KP_Enter:
+                // Process the current line when Enter is pressed
+                string currentLine = app.lines[cursorY].strip();
+                
+                // Handle special commands and program lines
+                if (currentLine.length > 0) {
+                    // Process the line
+                    app.process_line(currentLine);
+                    
+                    // Add a new empty line if we're not at the bottom yet
+                    if (cursorY < BasicEmulator.ROWS - 1) {
+                        cursorY++;
+                        // If the next line isn't empty and we're not at the bottom, make room
+                        if (app.lines[cursorY].length > 0 && cursorY < BasicEmulator.ROWS - 1) {
+                            // Shift lines down
+                            for (int i = BasicEmulator.ROWS - 1; i > cursorY; i--) {
+                                app.lines[i] = app.lines[i-1];
+                            }
+                            app.lines[cursorY] = "";
+                        }
+                    } else {
+                        // At the bottom, scroll content up
+                        for (int i = BasicEmulator.HEADER_LINES; i < BasicEmulator.ROWS - 1; i++) {
+                            app.lines[i] = app.lines[i+1];
+                        }
+                        app.lines[BasicEmulator.ROWS - 1] = "";
+                    }
+                } else {
+                    // Just an empty line, move to the next one
+                    if (cursorY < BasicEmulator.ROWS - 1) {
+                        cursorY++;
+                    }
+                }
+                
+                cursorX = 0;
+                app.updateMemoryUsage();
+                break;
+                
+            case Gdk.Key.BackSpace:
+                if (cursorX > 0) {
+                    string line = app.lines[cursorY];
+                    app.lines[cursorY] = line.substring(0, cursorX - 1) + line.substring(cursorX);
+                    cursorX--;
+                } else if (cursorY > BasicEmulator.HEADER_LINES) {
+                    // Merge with previous line if at beginning of line
+                    cursorY--;
+                    cursorX = app.lines[cursorY].length;
+                    app.lines[cursorY] += app.lines[cursorY + 1];
+                    // Shift all lines up
+                    for (int i = cursorY + 1; i < BasicEmulator.ROWS - 1; i++) {
+                        app.lines[i] = app.lines[i + 1];
+                    }
+                    app.lines[BasicEmulator.ROWS - 1] = "";
+                }
+                app.updateMemoryUsage();
+                break;
+                
+            case Gdk.Key.Delete:
+                string line = app.lines[cursorY];
+                if (cursorX < line.length) {
+                    app.lines[cursorY] = line.substring(0, cursorX) + line.substring(cursorX + 1);
+                } else if (cursorY < BasicEmulator.ROWS - 1) {
+                    // Merge with next line if at end of line
+                    app.lines[cursorY] += app.lines[cursorY + 1];
+                    // Shift all lines up
+                    for (int i = cursorY + 1; i < BasicEmulator.ROWS - 1; i++) {
+                        app.lines[i] = app.lines[i + 1];
+                    }
+                    app.lines[BasicEmulator.ROWS - 1] = "";
+                }
+                app.updateMemoryUsage();
+                break;
+                
+            case Gdk.Key.Left:
+                if (cursorX > 0) {
+                    cursorX--;
+                } else if (cursorY > BasicEmulator.HEADER_LINES) {
+                    cursorY--;
+                    cursorX = app.lines[cursorY].length;
+                }
+                break;
+                
+            case Gdk.Key.Right:
+                if (cursorX < app.lines[cursorY].length) {
+                    cursorX++;
+                } else if (cursorY < BasicEmulator.ROWS - 1) {
+                    cursorY++;
+                    cursorX = 0;
+                }
+                break;
+                
+            case Gdk.Key.Up:
+                if (cursorY > BasicEmulator.HEADER_LINES) {
+                    cursorY--;
+                    cursorX = int.min(cursorX, app.lines[cursorY].length);
+                }
+                break;
+                
+            case Gdk.Key.Down:
+                if (cursorY < BasicEmulator.ROWS - 1) {
+                    cursorY++;
+                    cursorX = int.min(cursorX, app.lines[cursorY].length);
+                }
+                break;
+                
+            case Gdk.Key.Home:
+                cursorX = 0;
+                break;
+                
+            case Gdk.Key.End:
+                cursorX = app.lines[cursorY].length;
+                break;
+                
+            case Gdk.Key.Insert:
+                insertMode = !insertMode;
+                break;
+                
+            case Gdk.Key.Escape:
+                this.close();
+                break;
+                
+            default:
+                // Check if we have enough memory before adding characters
+                if (app.memoryUsed >= BasicEmulator.TOTAL_MEMORY) {
+                    // Memory full, don't allow more input
+                    break;
+                }
+                
+                // Handle regular character input
+                unichar c = Gdk.keyval_to_unicode(keyval);
+                if (c.isprint()) {
+                    string line = app.lines[cursorY];
+                    if (insertMode || cursorX >= line.length) {
+                        app.lines[cursorY] = line.substring(0, cursorX) + c.to_string() + line.substring(cursorX);
+                    } else {
+                        app.lines[cursorY] = line.substring(0, cursorX) + c.to_string() + line.substring(cursorX + 1);
+                    }
+                    cursorX++;
+                    app.updateMemoryUsage();
+                }
+                break;
+        }
+        
+        drawing_area.queue_draw();
+        return Gdk.EVENT_STOP;
+    }
+}

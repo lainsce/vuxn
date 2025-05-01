@@ -210,13 +210,13 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     private void handle_game_click(int n_press, double x, double y) {
         if (game_over)
             return;
-            
+                
         int row = (int)(y / TILE_SIZE);
         int col = (int)(x / TILE_SIZE);
         
         if (row < 0 || row >= rows || col < 0 || col >= cols)
             return;
-            
+                
         // Start timer on first click
         if (first_click) {
             place_mines(row, col);
@@ -225,7 +225,64 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
             timer_running = true;
         }
 
-        if (!flagged_grid[row, col]) {
+        // Check if clicking on an already revealed numbered tile (chording)
+        if (revealed_grid[row, col] && number_grid[row, col] > 0) {
+            // Count flags around this tile
+            int flags_count = 0;
+            
+            for (int dr = -1; dr <= 1; dr++) {
+                for (int dc = -1; dc <= 1; dc++) {
+                    if (dr == 0 && dc == 0)
+                        continue;
+                        
+                    int nr = row + dr;
+                    int nc = col + dc;
+                    
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && flagged_grid[nr, nc]) {
+                        flags_count++;
+                    }
+                }
+            }
+            
+            // If the number of flags matches the number on the tile, reveal all non-flagged surrounding tiles
+            if (flags_count == number_grid[row, col]) {
+                bool hit_mine = false;
+                
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int dc = -1; dc <= 1; dc++) {
+                        if (dr == 0 && dc == 0)
+                            continue;
+                            
+                        int nr = row + dr;
+                        int nc = col + dc;
+                        
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !revealed_grid[nr, nc] && !flagged_grid[nr, nc]) {
+                            // Reveal this tile
+                            revealed_grid[nr, nc] = true;
+                            remaining_tiles--;
+                            
+                            // Check if this tile has a mine
+                            if (mine_grid[nr, nc]) {
+                                hit_mine = true;
+                            } else if (number_grid[nr, nc] == 0) {
+                                // Auto-reveal neighboring tiles for zero-count tiles
+                                reveal_tile(nr, nc);
+                            }
+                        }
+                    }
+                }
+                
+                // If we hit a mine, game over
+                if (hit_mine) {
+                    game_over = true;
+                    timer_running = false;
+                    top_panel.queue_draw();
+                } else {
+                    check_win_condition();
+                }
+            }
+        } else if (!flagged_grid[row, col]) {
+            // Normal case: reveal a single tile
             reveal_tile(row, col);
             check_win_condition();
         }
@@ -257,12 +314,45 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
     
     private void place_mines(int safe_row, int safe_col) {
         int mines_placed = 0;
-        while (mines_placed < mines) {
+        
+        // Create a list of "safe" tiles that should not have mines (3x3 around first click)
+        bool[,] safe_tiles = new bool[rows, cols];
+        
+        // Mark the 3x3 area around the first click as safe
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                int nr = safe_row + dr;
+                int nc = safe_col + dc;
+                
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                    safe_tiles[nr, nc] = true;
+                }
+            }
+        }
+        
+        // Count safe tiles to adjust mine count if needed
+        int safe_count = 0;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (safe_tiles[r, c])
+                    safe_count++;
+            }
+        }
+        
+        // Adjust mines count if there are too many for the available spaces
+        int actual_mines = mines;
+        int available_spaces = rows * cols - safe_count;
+        if (actual_mines > available_spaces) {
+            actual_mines = available_spaces;
+        }
+        
+        // Place mines randomly in non-safe areas
+        while (mines_placed < actual_mines) {
             int row = GLib.Random.int_range(0, rows);
             int col = GLib.Random.int_range(0, cols);
             
-            // Ensure we don't place a mine on first click or where a mine already exists
-            if ((row != safe_row || col != safe_col) && !mine_grid[row, col]) {
+            // Place mine if the tile is not safe and doesn't already have a mine
+            if (!safe_tiles[row, col] && !mine_grid[row, col]) {
                 mine_grid[row, col] = true;
                 mines_placed++;
                 
@@ -279,6 +369,9 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
                 }
             }
         }
+        
+        // Update mines_left to the actual number of mines placed
+        mines_left = actual_mines;
     }
     
     private void reveal_tile(int row, int col) {
@@ -343,7 +436,7 @@ public class MinesweeperWindow : Gtk.ApplicationWindow {
                     }
                 } else {
                     // Draw revealed tile (flat with border)
-                    MinesweeperUtils.draw_flat_tile(cr, x, y, TILE_SIZE, TILE_SIZE);
+                    MinesweeperUtils.draw_flat_tile(cr, x, y, TILE_SIZE + 1, TILE_SIZE + 1);
                     
                     // Draw content
                     if (mine_grid[row, col]) {

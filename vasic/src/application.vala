@@ -1,0 +1,778 @@
+using Gtk;
+
+public class BasicEmulator : Gtk.Application {
+    // Constants
+    public const int BORDER_SIZE = 24;
+    public const int CHAR_WIDTH = 8;
+    public const int CHAR_HEIGHT = 8;
+    public const int COLS = 40;
+    public const int ROWS = 24;
+    public const int WIDTH = COLS * CHAR_WIDTH + 2 * BORDER_SIZE;
+    public const int HEIGHT = ROWS * CHAR_HEIGHT + 2 * BORDER_SIZE;
+    
+    // Modes
+    public const int MODE_EDIT = 0;
+    public const int MODE_RUN = 1;
+    public const int MODE_DIRECT = 2;  // For direct command execution
+    private int currentMode = MODE_EDIT;
+    
+    // Program storage - separate from display
+    private string[] programLines = new string[1000];
+    private int programLineCount = 0;
+    
+    // Memory management
+    public const int TOTAL_MEMORY = 65536; // 64KB in bytes
+    public int memoryUsed = 0;
+    
+    // Header constants
+    public const int HEADER_LINES = 2;
+    public const int MAIN_ROWS = ROWS - HEADER_LINES;
+    
+    // Color palette - initialize without 'new' keyword
+    public Gdk.RGBA bgColor = {};      // Background color (#549)
+    public Gdk.RGBA borderColor = {};  // Border color (#87c)
+    public Gdk.RGBA textColor = {};    // Text color (#eee)
+    public Gdk.RGBA errorColor = {};   // Error color (#c77)
+    
+    // Program state
+    public string[] lines = new string[ROWS];
+    public bool running = false;
+    public bool inputMode = false;
+    public string inputBuffer = "";
+    public string inputPrompt = "";
+    public string inputVarName = "";
+    public int programCounter = 0;
+
+    // Use GLib.Stack instead of Gtk.Stack for data structures
+    public GLib.GenericArray<int> callStack = new GLib.GenericArray<int>();
+    
+    // Box the double values in HashTable using Object with specific get/set methods
+    public HashTable<string, Value?> variables = new HashTable<string, Value?>(str_hash, str_equal);
+    
+    public List<IconData> loadedIcons = new List<IconData>();
+    
+    // UI elements
+    public BasicWindow window = null;
+    Theme.Manager theme;
+    
+    // Constructor
+    public BasicEmulator() {
+        Object(application_id: "com.example.basicemulator", flags: ApplicationFlags.FLAGS_NONE);
+
+        for (int i = 0; i < ROWS; i++) {
+            lines[i] = "";
+        }
+
+        for (int i = 0; i < 1000; i++) {
+            programLines[i] = "";
+        }
+        
+        // Initialize memory usage
+        updateMemoryUsage();
+    }
+    
+    private void setup_theme_management() {
+        string theme_file = Path.build_filename(Environment.get_home_dir(), ".theme");
+        
+        Timeout.add(10, () => {
+            if (FileUtils.test(theme_file, FileTest.EXISTS)) {
+                try {
+                    theme.load_theme_from_file(theme_file);
+                } catch (Error e) {
+                    warning("Theme load failed: %s", e.message);
+                }
+            }
+            return true;
+        });
+    }
+    
+    // Initialize color palette
+    public void init_color_palette() {
+        var bg_color = theme.get_color ("theme_bg");      // Background color
+        var border_color = theme.get_color ("theme_accent");  // Border color
+        var fg_color = theme.get_color ("theme_fg");    // Text color
+        var err_color = theme.get_color ("theme_selection");   // Error color
+        
+        bgColor = { bg_color.red, bg_color.green, bg_color.blue, 1.0f };
+        borderColor = { border_color.red, border_color.green, border_color.blue, 1.0f };
+        textColor = { fg_color.red, fg_color.green, fg_color.blue, 1.0f };
+        errorColor = { err_color.red, err_color.green, err_color.blue, 1.0f };
+    }
+    
+    // Calculate and update memory usage
+    public void updateMemoryUsage() {
+        memoryUsed = 0;
+        
+        // Skip header lines when calculating memory
+        for (int i = HEADER_LINES; i < ROWS; i++) {
+            if (lines[i].length > 0) {
+                // Each character uses 1 byte
+                memoryUsed += lines[i].length;
+                
+                // Add 2 bytes overhead per line (line number reference)
+                memoryUsed += 2;
+            }
+        }
+        
+        // Ensure we don't exceed total memory
+        if (memoryUsed > TOTAL_MEMORY) {
+            memoryUsed = TOTAL_MEMORY;
+        }
+    }
+    
+    // Application startup
+    protected override void activate() {
+        window = new BasicWindow(this);
+        
+        theme = Theme.Manager.get_default();
+        theme.apply_to_display();
+        setup_theme_management();
+        init_color_palette();
+        
+        lines[HEADER_LINES] = "READY.";
+        
+        // Position cursor for input
+        window.cursorY = HEADER_LINES + 1;
+        window.cursorX = 0;
+        
+        window.present();
+    }
+    
+    
+    // Additional commands
+    public void handle_list(string args) {
+        // Clear the screen (except header)
+        for (int i = HEADER_LINES; i < ROWS; i++) {
+            lines[i] = "";
+        }
+        
+        // Display the program
+        int displayLine = HEADER_LINES;
+        for (int i = 0; i < programLineCount && displayLine < ROWS; i++) {
+            if (programLines[i] != null && programLines[i].length > 0) {
+                lines[displayLine] = programLines[i];
+                displayLine++;
+            }
+        }
+        
+        // Position cursor at the bottom
+        window.cursorY = displayLine;
+        window.cursorX = 0;
+    }
+
+    public void handle_new() {
+        // Clear program
+        programLines = new string[1000]; // Allocate space for 1000 lines
+        programLineCount = 0;
+        
+        // Clear screen except header
+        for (int i = HEADER_LINES; i < ROWS; i++) {
+            lines[i] = "";
+        }
+        
+        // Display prompt
+        lines[HEADER_LINES] = "READY.";
+        
+        // Position cursor for input
+        window.cursorY = HEADER_LINES + 1;
+        window.cursorX = 0;
+        
+        // Update mode
+        currentMode = MODE_EDIT;
+    }
+    
+    private int find_first_program_line() {
+        for (int i = 0; i < programLineCount; i++) {
+            if (programLines[i] != null && programLines[i].length > 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Modified run_program method
+    public void run_program() {
+        running = true;
+        currentMode = MODE_RUN;
+        programCounter = 0;
+        
+        // Clear variables and call stack
+        variables.remove_all();
+        callStack = new GLib.GenericArray<int>();
+        loadedIcons = new List<IconData>();
+        
+        // Find first non-empty program line
+        int firstLine = find_first_program_line();
+        if (firstLine < 0) {
+            // No program to run
+            lines[HEADER_LINES] = "NO PROGRAM";
+            lines[HEADER_LINES + 1] = "READY.";
+            running = false;
+            currentMode = MODE_EDIT;
+            window.queue_draw();
+            return;
+        }
+        
+        // Clear screen except header
+        for (int i = HEADER_LINES; i < ROWS; i++) {
+            lines[i] = "";
+        }
+        
+        // Run the program from stored program lines
+        execute_stored_program();
+        
+        // When execution is complete, display "READY."
+        if (!running) {
+            int readyLine = find_empty_line(HEADER_LINES);
+            if (readyLine >= 0) {
+                lines[readyLine] = "READY.";
+            }
+            currentMode = MODE_EDIT;
+        }
+    }
+
+    // Handle command/program line parsing
+    public void process_line(string line) {
+        string trimmed = line.strip();
+        
+        // Skip empty lines
+        if (trimmed.length == 0) return;
+        
+        // Check if it's a direct command
+        if (trimmed.has_prefix("RUN") || trimmed == "RUN") {
+            run_program();
+            return;
+        }
+        
+        // Check if it starts with a line number
+        int lineNumber = -1;
+        string[] parts = trimmed.split(" ", 2);
+        
+        if (parts.length > 0 && int.try_parse(parts[0], out lineNumber)) {
+            // It's a program line, store it
+            store_program_line(lineNumber, trimmed);
+        } else {
+            // It's a direct command, execute it
+            execute_command(trimmed);
+        }
+    }
+
+    // Store a line in program memory
+    private void store_program_line(int lineNumber, string line) {
+        // Ensure we have a valid line number
+        if (lineNumber < 0 || lineNumber >= 1000) {
+            handle_error("LINE NUMBER OUT OF RANGE (0-999)");
+            return;
+        }
+        
+        // Store the line
+        programLines[lineNumber] = line;
+        
+        // Update program line count
+        if (lineNumber >= programLineCount) {
+            programLineCount = lineNumber + 1;
+        }
+    }
+
+    // Handle stopping a running program with BREAK or ESC
+    public void stop_program() {
+        if (running) {
+            running = false;
+            
+            // Show break message
+            int line = find_empty_line(HEADER_LINES);
+            if (line >= 0) {
+                lines[line] = "BREAK IN LINE " + programCounter.to_string();
+                if (line + 1 < ROWS) {
+                    lines[line + 1] = "READY.";
+                }
+            }
+            
+            currentMode = MODE_EDIT;
+            window.queue_draw();
+        }
+    }
+    
+    // Main interpreter loop
+    private void execute_stored_program() {
+        int currentLine = 0;
+        bool programEnded = false;
+        
+        while (running && currentLine < programLineCount && !programEnded) {
+            // Skip empty lines
+            if (programLines[currentLine] == null || programLines[currentLine].length == 0) {
+                currentLine++;
+                programCounter = currentLine;
+                continue;
+            }
+            
+            // Parse the line
+            string line = programLines[currentLine];
+            string[] parts = line.split(" ", 2);
+            
+            // Skip the line number and execute the command
+            if (parts.length > 1) {
+                string command = parts[1].strip();
+                
+                // Special handling for END command to ensure it stops execution
+                if (command == "END") {
+                    programEnded = true;
+                    running = false;
+                    break;
+                }
+                
+                // Execute the command
+                execute_command(command);
+                
+                // Check if running was set to false by the command
+                if (!running) {
+                    break;
+                }
+            }
+            
+            // Move to next line if not redirected by GOTO
+            if (running && programCounter == currentLine) {
+                currentLine++;
+                programCounter = currentLine;
+            } else {
+                // GOTO or GOSUB changed the program counter
+                currentLine = programCounter;
+            }
+            
+            // Update display
+            window.queue_draw();
+            
+            // Allow UI to update
+            while (GLib.MainContext.default().pending()) {
+                GLib.MainContext.default().iteration(true);
+            }
+            
+            // Small delay for visual feedback
+            Thread.usleep(50000);
+        }
+        
+        running = false;
+    }
+
+    public void execute_program() {
+        string lastCommand = "";
+        int lastNumberedLine = -1;
+        
+        while (running && programCounter < ROWS) {
+            // Skip header lines
+            if (programCounter < HEADER_LINES) {
+                programCounter = HEADER_LINES;
+            }
+            
+            // If we're in input mode, wait until input is provided
+            if (inputMode) {
+                // Update display
+                window.queue_draw();
+                
+                // Allow UI to update using GLib context iteration instead of deprecated functions
+                while (GLib.MainContext.default().pending()) {
+                    GLib.MainContext.default().iteration(true);
+                }
+                
+                // Wait for input to complete
+                if (inputMode) {
+                    Thread.usleep(50000); // Small delay to prevent CPU hogging
+                    continue; // Stay at the same program line
+                }
+            }
+            
+            string line = lines[programCounter];
+            string trimmedLine = line.strip();
+            
+            if (trimmedLine.length == 0) {
+                programCounter++;
+                continue;
+            }
+            
+            // Parse line number if present
+            int lineNumber = -1;
+            string command = trimmedLine;
+            bool isValid = false;
+            bool isContinuation = false;
+            
+            string[] parts = trimmedLine.split(" ", 2);
+            if (parts.length > 0 && int.try_parse(parts[0], out lineNumber)) {
+                // Line starts with a number
+                isValid = true;
+                lastNumberedLine = programCounter;
+                if (parts.length > 1) {
+                    command = parts[1].strip();
+                    lastCommand = command;
+                } else {
+                    command = "";
+                    lastCommand = command;
+                }
+            } else if (line.length >= 4 && line.substring(0, 4) == "    ") {
+                // Line starts with four spaces - treat as continuation
+                if (lastNumberedLine >= 0) {
+                    isValid = true;
+                    isContinuation = true;
+                    command = trimmedLine;
+                } else {
+                    // Error: continuation without a previous numbered line
+                    isValid = false;
+                    handle_error("SYNTAX ERROR: Continuation line without a previous numbered line");
+                    running = false;
+                }
+            } else {
+                // Error: line doesn't start with a number or four spaces
+                isValid = false;
+                handle_error("SYNTAX ERROR: Line must start with a number or four spaces");
+                running = false;
+            }
+            
+            if (isValid) {
+                if (isContinuation) {
+                    // Combine with the lastCommand and execute
+                    execute_command(lastCommand + " " + command);
+                } else if (command.length > 0) {
+                    execute_command(command);
+                }
+            }
+            
+            if (running && !inputMode) {
+                programCounter++;
+            }
+            
+            // Update display
+            window.queue_draw();
+            
+            // Allow UI to update using GLib context iteration instead of deprecated functions
+            while (GLib.MainContext.default().pending()) {
+                GLib.MainContext.default().iteration(true);
+            }
+            
+            // Small delay for visual feedback
+            Thread.usleep(50000);
+        }
+        
+        running = false;
+        window.queue_draw();
+    }
+    
+    // Execute a single BASIC command
+    public void execute_command(string command) {
+        string[] parts = command.split(" ", 2);
+        string cmd = parts[0].up();
+        string args = parts.length > 1 ? parts[1] : "";
+        
+        switch (cmd) {
+            case "PRINT":
+                handle_print(args);
+                break;
+                
+            case "LET":
+                handle_let(args);
+                break;
+                
+            case "IF":
+                handle_if(args);
+                break;
+                
+            case "GOTO":
+                handle_goto(args);
+                break;
+                
+            case "GOSUB":
+                handle_gosub(args);
+                break;
+                
+            case "RET":
+                handle_return();
+                break;
+                
+            case "END":
+                // Make sure END stops program execution immediately
+                running = false;
+                return; // Explicit return to prevent further processing
+                
+            case "REM":
+                // Comment, do nothing
+                break;
+                
+            case "PICT":
+                handle_pict(args);
+                break;
+                
+            case "INPUT":
+                handle_input(args);
+                break;
+                
+            default:
+                // For simplicity, unknown commands are treated as REM
+                break;
+        }
+    }
+    
+    // Set a variable value (using Value to box doubles)
+    public void set_variable(string name, double val) {
+        Value value = Value(typeof(double));
+        value.set_double(val);
+        variables.set(name, value);
+    }
+    
+    // Get a variable value (using Value to unbox doubles)
+    public double get_variable(string name, double default_val = 0.0) {
+        Value? val = variables.get(name);
+        if (val == null)
+            return default_val;
+        return val.get_double();
+    }
+    
+    // PRINT command
+    private void handle_print(string args) {
+        // Find an empty line or create one
+        int outputLine = find_empty_line(HEADER_LINES);
+        
+        if (outputLine == -1) {
+            // Shift everything up one line (but preserve header)
+            for (int i = HEADER_LINES; i < ROWS - 1; i++) {
+                lines[i] = lines[i + 1];
+            }
+            outputLine = ROWS - 1;
+            lines[outputLine] = "";
+        }
+        
+        // Process the arguments (simple evaluation)
+        string output = "";
+        
+        // Handle quoted strings and variables
+        bool inQuotes = false;
+        string buffer = "";
+        
+        for (int i = 0; i < args.length; i++) {
+            char c = args[i];
+            
+            if (c == '"') {
+                inQuotes = !inQuotes;
+                if (!inQuotes) {
+                    output += buffer;
+                    buffer = "";
+                }
+            } else if (inQuotes) {
+                buffer += c.to_string();
+            } else if (c == '+') {
+                // Concatenation operator, do nothing
+            } else if (!c.isspace()) {
+                // Could be a variable name
+                string varName = "";
+                while (i < args.length && (args[i].isalpha() || args[i].isdigit())) {
+                    varName += args[i].to_string();
+                    i++;
+                }
+                i--; // Adjust for the loop increment
+                
+                if (variables.contains(varName)) {
+                    output += get_variable(varName).to_string();
+                }
+            }
+        }
+        
+        lines[outputLine] = output;
+    }
+    
+    // INPUT command for user input
+    private void handle_input(string args) {
+        // Parse the input arguments
+        string prompt = "";
+        string varName = args.strip();
+        
+        // Check if there's a prompt message
+        if (args.contains("\"")) {
+            // Format: INPUT "prompt"; variable
+            int startQuote = args.index_of("\"");
+            int endQuote = args.index_of("\"", startQuote + 1);
+            
+            if (endQuote > startQuote) {
+                prompt = args.substring(startQuote + 1, endQuote - startQuote - 1);
+                
+                // Find the variable name after the semicolon
+                int semicolon = args.index_of(";", endQuote);
+                if (semicolon >= 0 && semicolon < args.length - 1) {
+                    varName = args.substring(semicolon + 1).strip();
+                } else {
+                    handle_error("SYNTAX ERROR: INPUT requires variable after prompt");
+                    return;
+                }
+            }
+        }
+        
+        // Verify we have a valid variable name
+        if (varName.length == 0) {
+            handle_error("SYNTAX ERROR: INPUT requires a variable name");
+            return;
+        }
+        
+        // Setup for input mode
+        inputMode = true;
+        inputBuffer = "";
+        inputVarName = varName;
+        inputPrompt = prompt.length > 0 ? prompt + "? " : "? ";
+        
+        // Display prompt on a new line
+        int outputLine = find_empty_line(HEADER_LINES);
+        if (outputLine == -1) {
+            // Shift everything up one line (but preserve header)
+            for (int i = HEADER_LINES; i < ROWS - 1; i++) {
+                lines[i] = lines[i + 1];
+            }
+            outputLine = ROWS - 1;
+        }
+        
+        lines[outputLine] = inputPrompt;
+        
+        // Pause program execution until input is received
+        // The on_key_pressed handler will resume execution when Enter is pressed
+    }
+    
+    // LET command for variable assignment
+    private void handle_let(string args) {
+        string[] parts = args.split("=", 2);
+        if (parts.length != 2) {
+            handle_error("SYNTAX ERROR: LET requires variable=expression format");
+            return;
+        }
+        
+        string varName = parts[0].strip();
+        string exprStr = parts[1].strip();
+        
+        // Use the expression evaluator
+        ExpressionEvaluator evaluator = new ExpressionEvaluator(exprStr, this);
+        double result = evaluator.evaluate();
+        
+        set_variable(varName, result);
+    }
+    
+    // IF command for conditional execution
+    private void handle_if(string args) {
+        string[] parts = args.split("THEN", 2);
+        if (parts.length != 2) {
+            handle_error("SYNTAX ERROR: IF requires THEN clause");
+            return;
+        }
+        
+        string condition = parts[0].strip();
+        string thenAction = parts[1].strip();
+        
+        // Evaluate the condition using the expression evaluator
+        ExpressionEvaluator evaluator = new ExpressionEvaluator(condition, this);
+        bool conditionMet = evaluator.evaluateComparison();
+        
+        if (conditionMet) {
+            execute_command(thenAction);
+        }
+    }
+    
+    // GOTO command for unconditional jumps
+    private void handle_goto(string args) {
+        int targetLine = 0;
+        if (int.try_parse(args.strip(), out targetLine)) {
+            // Find the line with this number
+            for (int i = HEADER_LINES; i < ROWS; i++) {
+                string line = lines[i].strip();
+                string[] parts = line.split(" ", 2);
+                int lineNum = 0;
+                
+                if (parts.length > 0 && int.try_parse(parts[0], out lineNum) && lineNum == targetLine) {
+                    programCounter = i;
+                    return;
+                }
+            }
+        }
+    }
+    
+    // GOSUB command for subroutine calls
+    private void handle_gosub(string args) {
+        callStack.add(programCounter);
+        handle_goto(args);
+    }
+    
+    // RET command for subroutine returns
+    private void handle_return() {
+        if (callStack.length > 0) {
+            // Get the last item in the array
+            programCounter = callStack.get(callStack.length - 1);
+            // Remove it from the array (pop)
+            callStack.remove_index(callStack.length - 1);
+        }
+    }
+    
+    // PICT command for loading and displaying icons
+    private void handle_pict(string args) {
+        string[] parts = args.split(",");
+        if (parts.length < 3) {
+            handle_error("SYNTAX ERROR: PICT requires filepath,x,y");
+            return;
+        }
+        
+        string filepath = parts[0].strip();
+        int x = int.parse(parts[1].strip());
+        int y = int.parse(parts[2].strip());
+        
+        // Check if the file has .icn extension
+        if (!filepath.down().has_suffix(".icn")) {
+            handle_error("ERROR: PICT only supports .icn files");
+            return;
+        }
+        
+        try {
+            // Read the icon file
+            File file = File.new_for_path(filepath);
+            if (!file.query_exists()) {
+                handle_error("ERROR: File not found: " + filepath);
+                return;
+            }
+            
+            // Read file contents line by line
+            DataInputStream dis = new DataInputStream(file.read());
+            string line;
+            string[] iconRows = {};
+            
+            while ((line = dis.read_line()) != null) {
+                iconRows += line;
+            }
+            
+            // Store the icon data
+            loadedIcons.append(new IconData(iconRows, x, y));
+            
+        } catch (Error e) {
+            handle_error("ERROR: Failed to load icon: " + e.message);
+        }
+    }
+    
+    // Find an empty line or return -1 if none found
+    public int find_empty_line(int startLine) {
+        for (int i = startLine; i < ROWS; i++) {
+            if (lines[i].length == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    // Handle errors
+    public void handle_error(string errorMessage) {
+        // Find an empty line or create one for the error message
+        int outputLine = find_empty_line(HEADER_LINES);
+        
+        if (outputLine == -1) {
+            // Shift everything up one line (but preserve header)
+            for (int i = HEADER_LINES; i < ROWS - 1; i++) {
+                lines[i] = lines[i + 1];
+            }
+            outputLine = ROWS - 1;
+        }
+        
+        // Display the error message - mark it with "?" to indicate it's an error
+        lines[outputLine] = "? " + errorMessage;
+    }
+    
+    public static int main(string[] args) {
+        return new BasicEmulator().run(args);
+    }
+}

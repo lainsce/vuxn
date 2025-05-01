@@ -1,6 +1,7 @@
 window {
-    background: @theme_accent;
+    background: @theme_bg;
     color: @theme_fg;
+    box-shadow: 0 0 0 2px @theme_fg;
 }
 
 .close-button {
@@ -9,8 +10,8 @@ window {
     box-shadow: none;
 }
 .close-button:hover {
-    background: @theme_fg;
+    background: @theme_accent;
 }
 .close-button:active {
-    background: @theme_fg;
+    background: @theme_selection;
 }

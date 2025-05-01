@@ -689,14 +689,6 @@ public class Window : Gtk.ApplicationWindow {
 
         title = window_title;
         title_label.label = window_title;
-         // Get line count
-        int line_count = source_buffer.get_line_count();
-        
-        // Convert to hexadecimal
-        string hex_count = "%X".printf(line_count);
-        
-        // Update the label
-        line_label.label = hex_count;
     }
 
     public bool confirm_discard_changes () {

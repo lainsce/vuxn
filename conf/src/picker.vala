@@ -12,7 +12,7 @@ namespace App {
         private const int BAR_WIDTH = 68;
         private const int BAR_HEIGHT = 14;
         private const int BAR_GAP = 1;
-        private const int CHECKERBOARD_SIZE = 2;
+        private const int CHECKERBOARD_SIZE = 1;
         
         // UI elements
         private Gtk.DrawingArea bars_area;
